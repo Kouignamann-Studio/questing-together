@@ -13,10 +13,12 @@ type LobbyPlayer = {
 type RoleOnboardingCardProps = {
   localPlayerId: PlayerId;
   players: LobbyPlayer[];
+  targetPlayerCount: number;
   isHost: boolean;
   isBusy: boolean;
   onSetDisplayName: (name: string) => void;
   onSelectRole: (roleId: RoleId) => void;
+  onSetTargetPlayerCount: (targetPlayerCount: number) => void;
   onStartAdventure: () => void;
 };
 
@@ -28,15 +30,18 @@ const buttonTextureDisabled = require('../../assets/images/T_Button_Disabled.png
 export function RoleOnboardingCard({
   localPlayerId,
   players,
+  targetPlayerCount,
   isHost,
   isBusy,
   onSetDisplayName,
   onSelectRole,
+  onSetTargetPlayerCount,
   onStartAdventure,
 }: RoleOnboardingCardProps) {
   const existingName = players.find((player) => player.playerId === localPlayerId)?.displayName ?? '';
   const [nameInput, setNameInput] = useState(existingName || '');
   const [nameTouched, setNameTouched] = useState(false);
+  const [isPartySizeMenuOpen, setIsPartySizeMenuOpen] = useState(false);
 
   useEffect(() => {
     if (existingName && existingName !== nameInput) {
@@ -54,7 +59,13 @@ export function RoleOnboardingCard({
   const canPickRole = localNameSaved;
   const selectedRoleId = players.find((player) => player.playerId === localPlayerId)?.roleId ?? null;
   const assignedRoleIds = new Set(players.map((player) => player.roleId).filter(Boolean) as RoleId[]);
-  const allPicked = players.length === 3 && players.every((player) => Boolean(player.roleId));
+  const joinedPlayerCount = players.length;
+  const waitingForPlayers = joinedPlayerCount < targetPlayerCount;
+  const allPicked = joinedPlayerCount === targetPlayerCount && players.every((player) => Boolean(player.roleId));
+  const targetOptions = [1, 2, 3].map((value) => ({
+    value,
+    disabled: value < joinedPlayerCount || isBusy,
+  }));
 
   return (
     <View style={styles.card}>
@@ -103,6 +114,50 @@ export function RoleOnboardingCard({
           </ImageBackground>
         </Pressable>
         {localNameSaved ? <Text style={styles.nameSavedText}>Saved as {existingName}.</Text> : null}
+      </View>
+
+      <View style={styles.assignmentCard}>
+        <Text style={styles.assignmentTitle}>Party Size</Text>
+        {isHost ? (
+          <View style={styles.partySizeControl}>
+            <Pressable
+              disabled={isBusy}
+              onPress={() => setIsPartySizeMenuOpen((value) => !value)}
+              style={[styles.partySizeButton, isBusy && styles.roleButtonDisabled]}>
+              <View style={styles.partySizeButtonInner}>
+                <Text style={styles.partySizeButtonText}>
+                  Players: {targetPlayerCount} {targetPlayerCount === 1 ? 'adventurer' : 'adventurers'}
+                </Text>
+                <Text style={styles.partySizeChevron}>{isPartySizeMenuOpen ? '˄' : '˅'}</Text>
+              </View>
+            </Pressable>
+            {isPartySizeMenuOpen ? (
+              <View style={styles.partySizeMenu}>
+                {targetOptions.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    disabled={option.disabled}
+                    onPress={() => {
+                      setIsPartySizeMenuOpen(false);
+                      if (option.disabled || option.value === targetPlayerCount) return;
+                      onSetTargetPlayerCount(option.value);
+                    }}
+                    style={[styles.partySizeOption, option.disabled && styles.partySizeOptionDisabled]}>
+                    <Text style={styles.partySizeOptionText}>
+                      {option.value} {option.value === 1 ? 'player' : 'players'}
+                      {option.value === targetPlayerCount ? ' (selected)' : ''}
+                      {option.value < joinedPlayerCount ? ' (disabled: room already larger)' : ''}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <Text style={styles.assignmentLine}>
+            Host selected {targetPlayerCount} {targetPlayerCount === 1 ? 'player' : 'players'}.
+          </Text>
+        )}
       </View>
 
       <View style={styles.roleList}>
@@ -156,9 +211,11 @@ export function RoleOnboardingCard({
 
       <Text style={styles.readyLine}>
         {canPickRole
-          ? allPicked
+          ? waitingForPlayers
+            ? `Waiting for party to join (${joinedPlayerCount}/${targetPlayerCount}).`
+            : allPicked
             ? 'All roles picked. Host can start adventure.'
-            : `Waiting for all picks (${assignedRoleIds.size}/3).`
+            : `Waiting for all picks (${assignedRoleIds.size}/${targetPlayerCount}).`
           : 'Set your name to unlock roles.'}
       </Text>
 
@@ -176,7 +233,7 @@ export function RoleOnboardingCard({
           </ImageBackground>
         </Pressable>
       ) : (
-        <Text style={styles.hostHint}>Waiting for host to start once everyone has picked.</Text>
+        <Text style={styles.hostHint}>Waiting for host to start once the party is ready.</Text>
       )}
     </View>
   );
@@ -321,6 +378,54 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     padding: 0,
     gap: 3,
+  },
+  partySizeControl: {
+    gap: 8,
+  },
+  partySizeButton: {
+    width: '100%',
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#c2a377',
+    backgroundColor: '#f8efdf',
+  },
+  partySizeButtonInner: {
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  partySizeButtonText: {
+    fontSize: 12,
+    color: '#4d3625',
+    fontFamily: 'Besley',
+  },
+  partySizeChevron: {
+    fontSize: 14,
+    color: '#6b4a2a',
+    fontFamily: 'Besley',
+  },
+  partySizeMenu: {
+    gap: 6,
+  },
+  partySizeOption: {
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#c2a377',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#f8efdf',
+  },
+  partySizeOptionDisabled: {
+    opacity: 0.5,
+  },
+  partySizeOptionText: {
+    fontSize: 12,
+    color: '#4d3625',
+    fontFamily: 'Besley',
   },
   assignmentTitle: {
     fontSize: 12,

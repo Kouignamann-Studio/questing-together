@@ -17,6 +17,11 @@ alter table if exists public.rooms drop column if exists pending_next_scene_id;
 alter table if exists public.rooms drop column if exists is_story_ended;
 alter table if exists public.rooms drop column if exists previous_scene_summary;
 alter table if exists public.rooms drop column if exists first_vote_at;
+alter table if exists public.rooms add column if not exists target_player_count int not null default 3;
+alter table if exists public.rooms drop constraint if exists rooms_target_player_count_check;
+alter table if exists public.rooms
+  add constraint rooms_target_player_count_check
+  check (target_player_count between 1 and 3);
 
 alter table if exists public.room_players drop column if exists role_id;
 alter table if exists public.room_players drop column if exists ap_points;
@@ -146,14 +151,16 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_room_id uuid;
+  v_target_player_count int := 3;
+  v_joined_player_count int := 0;
   v_assigned_player_id public.player_id;
 begin
   if v_user_id is null then
     raise exception 'Not authenticated';
   end if;
 
-  select r.id
-  into v_room_id
+  select r.id, r.target_player_count
+  into v_room_id, v_target_player_count
   from public.rooms r
   where r.code = upper(trim(p_code))
     and r.status <> 'finished'
@@ -169,6 +176,15 @@ begin
       and rp.user_id = v_user_id
   ) then
     return v_room_id;
+  end if;
+
+  select count(*)
+  into v_joined_player_count
+  from public.room_players rp
+  where rp.room_id = v_room_id;
+
+  if v_joined_player_count >= v_target_player_count then
+    raise exception 'Room is full';
   end if;
 
   select slot.player_id
@@ -196,6 +212,64 @@ begin
   values (v_room_id, v_assigned_player_id, v_user_id);
 
   return v_room_id;
+end;
+$$;
+
+create or replace function public.story_set_target_player_count(
+  p_room_id uuid,
+  p_target_player_count int
+)
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_host_id uuid;
+  v_room_status public.room_status;
+  v_joined_player_count int := 0;
+begin
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if p_target_player_count not between 1 and 3 then
+    raise exception 'Target player count must be between 1 and 3';
+  end if;
+
+  select r.host_user_id, r.status
+  into v_host_id, v_room_status
+  from public.rooms r
+  where r.id = p_room_id
+  for update;
+
+  if v_host_id is null then
+    raise exception 'Room not found';
+  end if;
+
+  if v_host_id <> v_user_id then
+    raise exception 'Only host can change party size';
+  end if;
+
+  if v_room_status <> 'lobby' then
+    raise exception 'Party size can only be changed in the lobby';
+  end if;
+
+  select count(*)
+  into v_joined_player_count
+  from public.room_players rp
+  where rp.room_id = p_room_id;
+
+  if p_target_player_count < v_joined_player_count then
+    raise exception 'Party size cannot be smaller than the current room membership';
+  end if;
+
+  update public.rooms
+  set target_player_count = p_target_player_count
+  where id = p_room_id;
+
+  return p_target_player_count;
 end;
 $$;
 
@@ -537,6 +611,7 @@ declare
   v_host_id uuid;
   v_room_status public.room_status;
   v_player_count int;
+  v_target_player_count int;
   v_assigned_count int;
   v_unique_roles int;
   v_event_id bigint;
@@ -565,18 +640,20 @@ begin
   end if;
 
   select count(*),
+         coalesce(max(r.target_player_count), 3),
          count(*) filter (where rp.role_id is not null),
          count(distinct rp.role_id)
-  into v_player_count, v_assigned_count, v_unique_roles
+  into v_player_count, v_target_player_count, v_assigned_count, v_unique_roles
   from public.room_players rp
+  join public.rooms r on r.id = rp.room_id
   where rp.room_id = p_room_id;
 
-  if v_player_count <> 3 then
-    raise exception 'Adventure requires exactly 3 players';
+  if v_player_count <> v_target_player_count then
+    raise exception 'Adventure requires exactly % players', v_target_player_count;
   end if;
 
-  if v_assigned_count <> 3 or v_unique_roles <> 3 then
-    raise exception 'All 3 roles must be uniquely assigned before start';
+  if v_assigned_count <> v_target_player_count or v_unique_roles <> v_target_player_count then
+    raise exception 'All % roles must be uniquely assigned before start', v_target_player_count;
   end if;
 
   update public.rooms
@@ -612,6 +689,7 @@ declare
   v_player_id public.player_id;
   v_room_status public.room_status;
   v_current_scene_id text;
+  v_player_count int;
   v_action_count int;
   v_event_id bigint;
 begin
@@ -642,6 +720,11 @@ begin
   if v_player_id is null then
     raise exception 'Not a room member';
   end if;
+
+  select count(*)
+  into v_player_count
+  from public.room_players rp
+  where rp.room_id = p_room_id;
 
   v_current_scene_id := public.story_current_scene_id(p_room_id);
   if p_scene_id <> v_current_scene_id then
@@ -684,7 +767,7 @@ begin
     and re.payload_json->>'sceneId' = p_scene_id
     and re.payload_json->>'stepId' = p_step_id;
 
-  if v_action_count >= 3 then
+  if v_action_count >= v_player_count then
     raise exception 'Scene step already complete';
   end if;
 
@@ -723,6 +806,7 @@ declare
   v_player_id public.player_id;
   v_room_status public.room_status;
   v_current_scene_id text;
+  v_player_count int := 0;
   v_confirm_event_id bigint;
   v_action_count int := 0;
   v_vote_count int := 0;
@@ -760,6 +844,11 @@ begin
     raise exception 'Not a room member';
   end if;
 
+  select count(*)
+  into v_player_count
+  from public.room_players rp
+  where rp.room_id = p_room_id;
+
   v_current_scene_id := public.story_current_scene_id(p_room_id);
   if p_scene_id <> v_current_scene_id then
     raise exception 'Scene is no longer active';
@@ -789,7 +878,7 @@ begin
     and re.payload_json->>'sceneId' = p_scene_id
     and re.payload_json->>'stepId' = p_step_id;
 
-  if v_action_count < 3 then
+  if v_action_count < v_player_count then
     raise exception 'Waiting for all reactions before voting';
   end if;
 
@@ -840,7 +929,7 @@ begin
     and re.type = 'option_confirm'
     and re.payload_json->>'sceneId' = p_scene_id;
 
-  if v_vote_count = 3 and not exists (
+  if v_vote_count = v_player_count and not exists (
     select 1
     from public.room_events re
     where re.room_id = p_room_id
@@ -1007,6 +1096,7 @@ declare
   v_player_id public.player_id;
   v_room_status public.room_status;
   v_current_scene_id text;
+  v_player_count int := 0;
   v_action_count int := 0;
   v_event_id bigint;
   v_end_at timestamptz;
@@ -1039,6 +1129,11 @@ begin
     raise exception 'Not a room member';
   end if;
 
+  select count(*)
+  into v_player_count
+  from public.room_players rp
+  where rp.room_id = p_room_id;
+
   v_current_scene_id := public.story_current_scene_id(p_room_id);
   if p_scene_id <> v_current_scene_id then
     raise exception 'Scene is no longer active';
@@ -1057,7 +1152,7 @@ begin
     and re.payload_json->>'sceneId' = p_scene_id
     and re.payload_json->>'stepId' = p_step_id;
 
-  if v_action_count < 3 then
+  if v_action_count < v_player_count then
     raise exception 'Waiting for all reactions before starting timer';
   end if;
 
@@ -1205,6 +1300,7 @@ declare
   v_player_id public.player_id;
   v_room_status public.room_status;
   v_current_scene_id text;
+  v_player_count int := 0;
   v_continue_event_id bigint;
   v_continue_count int := 0;
   v_resolved_option text;
@@ -1235,6 +1331,11 @@ begin
   if v_player_id is null then
     raise exception 'Not a room member';
   end if;
+
+  select count(*)
+  into v_player_count
+  from public.room_players rp
+  where rp.room_id = p_room_id;
 
   v_current_scene_id := public.story_current_scene_id(p_room_id);
   if p_scene_id <> v_current_scene_id then
@@ -1300,7 +1401,7 @@ begin
     return v_continue_event_id;
   end if;
 
-  if v_continue_count = 3 and not exists (
+  if v_continue_count = v_player_count and not exists (
     select 1 from public.room_events re
     where re.room_id = p_room_id
       and re.id > public.story_last_reset_id(p_room_id)
@@ -1421,6 +1522,7 @@ $$;
 
 grant execute on function public.story_select_role(uuid, public.role_id) to authenticated;
 grant execute on function public.story_set_display_name(uuid, text) to authenticated;
+grant execute on function public.story_set_target_player_count(uuid, int) to authenticated;
 grant execute on function public.story_start_adventure(uuid, text) to authenticated;
 grant execute on function public.story_take_action(uuid, text, text, text) to authenticated;
 grant execute on function public.story_confirm_option(uuid, text, text, text, text) to authenticated;

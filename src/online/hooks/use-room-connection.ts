@@ -11,6 +11,7 @@ type RoomRecord = {
   code: string;
   host_user_id: string;
   status: 'lobby' | 'in_progress' | 'finished';
+  target_player_count: number;
 };
 
 type RoomPlayerRecord = {
@@ -32,6 +33,7 @@ type UseRoomConnectionResult = {
   joinRoom: (code: string) => Promise<void>;
   setDisplayName: (displayName: string) => Promise<void>;
   selectRole: (roleId: RoleId) => Promise<void>;
+  setTargetPlayerCount: (targetPlayerCount: number) => Promise<void>;
   startAdventure: () => Promise<void>;
   leaveRoom: () => Promise<void>;
 };
@@ -66,7 +68,7 @@ function withSchemaHint(message: string) {
 async function fetchRoomSnapshot(roomId: string): Promise<RoomRecord | null> {
   const { data, error } = await supabase
     .from('rooms')
-    .select('id, code, host_user_id, status')
+    .select('id, code, host_user_id, status, target_player_count')
     .eq('id', roomId)
     .maybeSingle();
 
@@ -340,6 +342,28 @@ export function useRoomConnection(): UseRoomConnectionResult {
     [refreshRoomState, room?.id]
   );
 
+  const setTargetPlayerCount = useCallback(
+    async (targetPlayerCount: number) => {
+      if (!room?.id) return;
+
+      setIsBusy(true);
+      setRoomError(null);
+      try {
+        const { error } = await supabase.rpc('story_set_target_player_count', {
+          p_room_id: room.id,
+          p_target_player_count: targetPlayerCount,
+        });
+        if (error) throw error;
+        await refreshRoomState(room.id);
+      } catch (error) {
+        setRoomError(withSchemaHint(getErrorMessage(error, 'Failed to set party size')));
+      } finally {
+        setIsBusy(false);
+      }
+    },
+    [refreshRoomState, room?.id]
+  );
+
   const startAdventure = useCallback(async () => {
     if (!room?.id) return;
 
@@ -369,9 +393,10 @@ export function useRoomConnection(): UseRoomConnectionResult {
       joinRoom,
       setDisplayName,
       selectRole,
+      setTargetPlayerCount,
       startAdventure,
       leaveRoom,
     }),
-    [room, players, isBusy, roomError, createRoom, joinRoom, setDisplayName, selectRole, startAdventure, leaveRoom]
+    [room, players, isBusy, roomError, createRoom, joinRoom, setDisplayName, selectRole, setTargetPlayerCount, startAdventure, leaveRoom]
   );
 }

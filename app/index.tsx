@@ -205,11 +205,15 @@ export default function IndexScreen() {
                       roleId: player.role_id,
                       displayName: player.display_name,
                     }))}
+                    targetPlayerCount={room.target_player_count}
                     isHost={isHost}
                     isBusy={roomConnection.isBusy}
                     onSetDisplayName={(name) => void roomConnection.setDisplayName(name)}
                     onSelectRole={(roleId: RoleId) => {
                       void roomConnection.selectRole(roleId);
+                    }}
+                    onSetTargetPlayerCount={(targetPlayerCount) => {
+                      void roomConnection.setTargetPlayerCount(targetPlayerCount);
                     }}
                     onStartAdventure={() => {
                       void roomConnection.startAdventure();

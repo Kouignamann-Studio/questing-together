@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { EVIDENCE_CONFIRMATION_COUNT, playerNameById, players } from '@/src/game/constants';
 import { PlayerId, RoleId } from '@/src/game/types';
@@ -191,6 +191,32 @@ const roleLabelById: Record<RoleId, string> = {
   ranger: 'Ranger',
 };
 
+function mergeRoomEvents(currentEvents: RoomEventRow[], incomingEvents: RoomEventRow[]) {
+  if (!incomingEvents.length) return currentEvents;
+
+  const byId = new Map<number, RoomEventRow>();
+  currentEvents.forEach((event) => {
+    byId.set(event.id, event);
+  });
+
+  let hasNewEvent = false;
+  incomingEvents.forEach((event) => {
+    if (!byId.has(event.id)) {
+      hasNewEvent = true;
+    }
+    byId.set(event.id, event);
+  });
+
+  if (!hasNewEvent && byId.size === currentEvents.length) {
+    return currentEvents;
+  }
+
+  return Array.from(byId.values()).sort((a, b) => {
+    if (a.id === b.id) return 0;
+    return a.id < b.id ? -1 : 1;
+  });
+}
+
 function extractQuotedLines(text: string) {
   const lines: string[] = [];
   text.replace(/"([^"]+)"/g, (_, line: string) => {
@@ -203,7 +229,10 @@ function extractQuotedLines(text: string) {
 
 function cleanSceneTitle(title: string) {
   return title
+    .replace(/^\d+\.\s*/i, '')
     .replace(/^Scene\\s*\\d+:\\s*/i, '')
+    .replace(/^Fin\.\s*/i, '')
+    .replace(/^Échec\.\s*/i, '')
     .replace(/^Combat:\\s*/i, 'Combat — ')
     .replace(/^Rest:\\s*/i, 'Rest — ');
 }
@@ -212,7 +241,7 @@ function getIntermissionText(scene: Scene) {
   const sceneName = cleanSceneTitle(scene.title);
   const customTemplate = scene.intermissionText?.trim();
   if (!customTemplate) {
-    return `Later, you arrive at ${sceneName}.`;
+    return `Plus tard, le groupe atteint ${sceneName}.`;
   }
   return customTemplate.replace(/\{scene\}|<scene name>/gi, sceneName);
 }
@@ -609,18 +638,49 @@ export function useRoomStory({
   const [events, setEvents] = useState<RoomEventRow[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [storyError, setStoryError] = useState<string | null>(null);
+  const latestEventIdRef = useRef(0);
+
+  useEffect(() => {
+    latestEventIdRef.current = events[events.length - 1]?.id ?? 0;
+  }, [events]);
 
   useEffect(() => {
     if (!roomId) {
       setEvents([]);
       setStoryError(null);
       setIsReady(true);
+      latestEventIdRef.current = 0;
       return;
     }
 
     let isMounted = true;
     setIsReady(false);
     setStoryError(null);
+
+    const syncEvents = async (afterEventId?: number) => {
+      let query = supabase
+        .from('room_events')
+        .select('id, type, payload_json, created_at')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(1000);
+
+      if (typeof afterEventId === 'number' && afterEventId > 0) {
+        query = query.gt('id', afterEventId);
+      }
+
+      const { data, error } = await query;
+      if (!isMounted) return;
+
+      if (error) {
+        setStoryError(error.message);
+        return;
+      }
+
+      setEvents((currentEvents) => mergeRoomEvents(currentEvents, (data ?? []) as RoomEventRow[]));
+      setStoryError(null);
+    };
 
     const channel = supabase
       .channel(`room-events-${roomId}`)
@@ -636,29 +696,19 @@ export function useRoomStory({
       .subscribe();
 
     const loadInitialEvents = async () => {
-      const { data, error } = await supabase
-        .from('room_events')
-        .select('id, type, payload_json, created_at')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
-        .limit(1000);
-
+      await syncEvents();
       if (!isMounted) return;
-      if (error) {
-        setStoryError(error.message);
-        setIsReady(true);
-        return;
-      }
-
-      setEvents((data ?? []) as RoomEventRow[]);
       setIsReady(true);
     };
 
     void loadInitialEvents();
+    const reconciliationTimer = setInterval(() => {
+      void syncEvents(latestEventIdRef.current);
+    }, 2500);
 
     return () => {
       isMounted = false;
+      clearInterval(reconciliationTimer);
       void supabase.removeChannel(channel);
     };
   }, [roomId]);
