@@ -1,362 +1,187 @@
 {
-  "version": 9,
-  "startSceneId": "scene_0",
+  "version": 11,
   "meta": {
-    "title": "Le Sceau de Rochesendre",
-    "theme": "fantasy classique • version courte de test • fort frontalier • donjon ancien",
-    "notes": "Aventure courte pour Guerrier, Sage et Ranger. Une seule scène de combat, trois fins et deux échecs."
+    "title": "Histoire Test Minimale",
+    "theme": "flux linéaire simple en français",
+    "notes": "QA: intro, scène narrative, combat, fin."
   },
+  "startSceneId": "scene_intro",
   "combat": {
-    "partyHp": 30,
+    "partyHp": 18,
     "actions": [
-      { "id": "warrior_strike", "role": "warrior", "text": "Frappe lourde", "effect": { "damage": 6 } },
-      { "id": "warrior_guard", "role": "warrior", "text": "Lever le bouclier", "effect": { "block": 4 } },
-      { "id": "warrior_fallback", "role": "warrior", "text": "Tenir le recul", "effect": { "run": true, "block": 1 } },
-      { "id": "sage_bolt", "role": "sage", "text": "Éclair runique", "effect": { "damage": 5 } },
-      { "id": "sage_ward", "role": "sage", "text": "Tracer un rempart", "effect": { "block": 3 } },
-      { "id": "sage_withdraw", "role": "sage", "text": "Couvrir la retraite", "effect": { "run": true, "enemyAttackDelta": -1 } },
-      { "id": "ranger_shot", "role": "ranger", "text": "Tir visé", "effect": { "damage": 5 } },
-      { "id": "ranger_cover", "role": "ranger", "text": "Feu de couverture", "effect": { "block": 2, "enemyAttackDelta": -1 } },
-      { "id": "ranger_slip", "role": "ranger", "text": "Ouvrir une issue", "effect": { "run": true } }
+      {
+        "id": "warrior_frappe",
+        "role": "warrior",
+        "text": "Frappe lourde",
+        "effect": {
+          "damage": 5
+        }
+      },
+      {
+        "id": "warrior_garde",
+        "role": "warrior",
+        "text": "Lever le bouclier",
+        "effect": {
+          "block": 3
+        }
+      },
+      {
+        "id": "warrior_repli",
+        "role": "warrior",
+        "text": "Couvrir le repli",
+        "effect": {
+          "run": true,
+          "block": 1
+        }
+      },
+      {
+        "id": "sage_eclair",
+        "role": "sage",
+        "text": "Éclair runique",
+        "effect": {
+          "damage": 4
+        }
+      },
+      {
+        "id": "sage_rempart",
+        "role": "sage",
+        "text": "Tracer un rempart",
+        "effect": {
+          "block": 2
+        }
+      },
+      {
+        "id": "sage_fumee",
+        "role": "sage",
+        "text": "Voile de fumée",
+        "effect": {
+          "run": true,
+          "enemyAttackDelta": -1
+        }
+      },
+      {
+        "id": "ranger_tir",
+        "role": "ranger",
+        "text": "Tir précis",
+        "effect": {
+          "damage": 4
+        }
+      },
+      {
+        "id": "ranger_couverture",
+        "role": "ranger",
+        "text": "Feu de couverture",
+        "effect": {
+          "block": 2
+        }
+      },
+      {
+        "id": "ranger_issue",
+        "role": "ranger",
+        "text": "Ouvrir une issue",
+        "effect": {
+          "run": true
+        }
+      }
     ]
   },
   "scenes": [
     {
-      "id": "scene_0",
-      "title": "1. Rochesendre",
-      "journalTitle": "1. L'appel de Rochesendre",
-      "canonicalTruth": "Le Guerrier, le Sage et le Ranger sont réunis au fort pour empêcher l'ouverture d'un sceau ancien.",
-      "intro": "À la tombée du jour, trois silhouettes franchissent presque ensemble la porte de Rochesendre. Le Guerrier a été appelé parce que les murs du fort ont besoin d'un corps qui sache tenir une ligne. Le Sage a été arraché à ses livres parce qu'un vieux sceau réclame une lecture précise et une mémoire sûre. Le Ranger a été mandé parce que nul autre ne connaît aussi bien les collines, les coupes de pierre et les sentiers qui montent vers Salace Morgul.\n\nDans la salle haute, la tension n'a rien de théâtral. Les ordres sont courts, la fatigue déjà visible, et chacun parle comme si la nuit avançait plus vite que les phrases. Le capitaine Mira Dane explique qu'un sigil de bronze a disparu. Sans lui, la chapelle du fort ne retiendra pas longtemps ce qui brûle sous ses dalles. À ses côtés, sœur Alis garde le silence. Un peu plus loin, l'intendant Mikzor se montre serviable avec une application trop régulière pour paraître honnête.",
-      "introDialogue": [
-        { "speaker": "Capitaine Mira Dane", "text": "Le sigil a été emporté vers Salace Morgul avant le coucher du soleil. Si vous partez tard, vous reviendrez trop tard." },
-        { "speaker": "Sœur Alis", "text": "Le bronze ne suffit pas seul. Il faut aussi les mots justes, et quelqu'un pour tenir le temps qu'ils prennent." },
-        { "speaker": "Mikzor", "text": "Je peux vous indiquer un passage plus court, si vous tenez à gagner de l'avance." }
-      ],
+      "id": "scene_intro",
+      "title": "1. Intro",
+      "journalTitle": "1. Entrée des ruines",
+      "canonicalTruth": "Scène d'introduction simple avec plusieurs actions et décisions.",
+      "intro": "Le groupe entre dans des ruines calmes. Quelque chose a bougé ici récemment.",
       "evidence": [],
       "steps": [
         {
-          "id": "scene_0_step1",
+          "id": "scene_intro_step1",
           "actions": [
             {
-              "id": "scene_0_warrior_losses",
+              "id": "scene_intro_warrior_entree",
               "role": "warrior",
-              "text": "Le Guerrier demande combien d'hommes ont disparu sur la route.",
-              "buttonText": "Demander combien d'hommes ont disparu.",
-              "stage": "La voix reste basse, mais elle ne laisse aucune place à l'esquive."
+              "text": "Je tiens l'entrée.",
+              "buttonText": "Tenir l'entrée",
+              "stage": "Le Guerrier se place devant la porte."
             },
             {
-              "id": "scene_0_warrior_stool",
+              "id": "scene_intro_warrior_caisses",
               "role": "warrior",
-              "text": "Le Guerrier casse le pied d'un tabouret pour voir qui sursaute.",
-              "buttonText": "Casser le pied d'un tabouret pour voir qui sursaute.",
-              "stage": "Le geste part sans prévenir, comme s'il voulait frapper la salle elle-même."
+              "text": "Je renverse les caisses pour faire une couverture.",
+              "buttonText": "Créer une couverture",
+              "stage": "Le bois grince, l'espace devient défendable."
             },
             {
-              "id": "scene_0_sage_seal",
+              "id": "scene_intro_sage_runes",
               "role": "sage",
-              "text": "Le Sage examine la poudre rouge au bord des dalles de la chapelle.",
-              "buttonText": "Examiner la poudre rouge des dalles.",
-              "stage": "Le regard descend vers la pierre comme si le reste de la pièce n'existait plus."
+              "text": "Je lis les runes du mur.",
+              "buttonText": "Lire les runes",
+              "stage": "Le Sage suit les signes à voix basse."
             },
             {
-              "id": "scene_0_sage_alis",
+              "id": "scene_intro_sage_lueur",
               "role": "sage",
-              "text": "Le Sage demande à sœur Alis ce que le rite exige réellement.",
-              "buttonText": "Demander à sœur Alis ce qu'exige le rite.",
-              "stage": "Chaque mot est posé avec soin afin de ne rien perdre de la réponse."
+              "text": "Je révèle les traces cachées par une lueur.",
+              "buttonText": "Révéler les traces",
+              "stage": "Une lumière pâle souligne le sol."
             },
             {
-              "id": "scene_0_ranger_boots",
+              "id": "scene_intro_ranger_pistes",
               "role": "ranger",
-              "text": "Le Ranger observe la boue sèche sur les bottes de Mikzor.",
-              "buttonText": "Observer la boue sur les bottes de Mikzor.",
-              "stage": "Il ne regarde ni le visage ni les mains, seulement ce que la route a laissé."
+              "text": "Je suis les pistes fraîches.",
+              "buttonText": "Suivre les pistes",
+              "stage": "Le Ranger inspecte la poussière."
             },
             {
-              "id": "scene_0_ranger_map",
+              "id": "scene_intro_ranger_son",
               "role": "ranger",
-              "text": "Le Ranger étudie la carte des approches de Salace Morgul.",
-              "buttonText": "Étudier la carte des approches.",
-              "stage": "Il suit les lignes du doigt comme s'il marchait déjà dessus."
+              "text": "J'écoute les couloirs.",
+              "buttonText": "Écouter les couloirs",
+              "stage": "Le Ranger s'immobilise et tend l'oreille."
             }
           ],
           "outcomes": {
-            "scene_0_warrior_losses": {
-              "narration": "Mira Dane répond sans détour. Quatre soldats manquent, et deux savaient tenir un carreau lourd. Ce n'était pas une simple attaque de rôdeurs.",
-              "unlockOptionIds": ["B", "C"]
+            "scene_intro_warrior_entree": {
+              "narration": "L'entrée est sécurisée pour quelques minutes.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
             },
-            "scene_0_warrior_stool": {
-              "narration": "Le bois éclate net. Personne ne bronche, sauf Mikzor, dont l'épaule se lève une seconde avant le bruit. Cela suffit au Guerrier pour retenir son visage.",
-              "tagsAdded": { "global": ["mikzor_suspect"] },
-              "unlockOptionIds": ["B", "C"]
+            "scene_intro_warrior_caisses": {
+              "narration": "Un point de défense est prêt si ça tourne mal.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
             },
-            "scene_0_sage_seal": {
-              "narration": "Le Sage reconnaît tout de suite une chaleur enfermée plutôt qu'éteinte. Sous la chapelle, quelque chose ne dort pas : quelque chose attend.",
-              "tagsAdded": { "global": ["seal_ready"] },
-              "unlockOptionIds": ["B", "C"]
+            "scene_intro_sage_runes": {
+              "narration": "Les runes mentionnent un carrefour gardé plus loin.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
             },
-            "scene_0_sage_alis": {
-              "narration": "Sœur Alis finit par nommer ce qu'elle craignait de dire. Le rite existe encore, mais il doit être prononcé avec précision, et le sigil doit tenir jusqu'au bout.",
-              "tagsAdded": { "global": ["ritual_known"] },
-              "unlockOptionIds": ["B", "C"]
+            "scene_intro_sage_lueur": {
+              "narration": "Des empreintes récentes apparaissent dans la poussière.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
             },
-            "scene_0_ranger_boots": {
-              "narration": "La terre collée au cuir vient du versant nord, pas de la cour ni des réserves. Mikzor a mis les pieds hors du fort alors qu'il prétendait être resté dedans.",
-              "tagsAdded": { "global": ["mikzor_suspect"] },
-              "unlockOptionIds": ["B", "C"]
+            "scene_intro_ranger_pistes": {
+              "narration": "Les pistes convergent vers une grande porte.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
             },
-            "scene_0_ranger_map": {
-              "narration": "Le Ranger repère sur la carte une vieille citerne accolée au donjon. Si elle n'est pas murée, elle offre une entrée que les gardes surveillent mal.",
-              "tagsAdded": { "global": ["tower_backdoor"] },
-              "unlockOptionIds": ["B", "C"]
-            }
-          }
-        }
-      ],
-      "options": [
-        { "id": "A", "text": "Prendre la route du nord dès maintenant.", "defaultVisible": true, "next": [{ "to": "scene_1" }] },
-        {
-          "id": "B",
-          "text": "Suivre le raccourci indiqué par Mikzor.",
-          "tagsAdded": { "global": ["trusted_mikzor"] },
-          "next": [{ "to": "scene_1" }]
-        },
-        {
-          "id": "C",
-          "text": "Passer d'abord par la chapelle avant de partir.",
-          "tagsAdded": { "global": ["priestess_with_you"] },
-          "next": [{ "to": "scene_1" }]
-        }
-      ],
-      "unlockRules": [],
-      "outcomeByOption": {
-        "A": { "text": "Ils quittent le fort sous une lumière déjà trop basse pour rassurer qui que ce soit." },
-        "B": { "text": "Ils acceptent l'aide de Mikzor et prennent une ligne plus courte, mais moins propre." },
-        "C": { "text": "Ils gagnent quelques mots de rite et perdent quelques minutes de nuit." }
-      }
-    },
-    {
-      "id": "scene_1",
-      "title": "2. Le sentier nord",
-      "journalTitle": "2. Le sentier vers Salace Morgul",
-      "canonicalTruth": "Le groupe rejoint les abords de Salace Morgul par un chemin qui peut récompenser la prudence ou punir une mauvaise confiance.",
-      "intro": "Le chemin qui mène à Salace Morgul coupe entre des roches noires, des taillis maigres et d'anciens travaux de mine. Plus haut, le donjon se dessine déjà contre la nuit, massif sans être vaste, comme un poing fermé sur un éperon de pierre. Le vent apporte parfois une odeur de métal chaud. À d'autres instants, il porte seulement l'humidité des galeries ouvertes sous la colline.\n\nÀ mi-pente, le groupe trouve un pont de pierre fendu, une galerie basse à moitié éboulée et la trace fraîche d'un chariot monté lourdement vers le donjon. Chaque voie peut mener au bon endroit. Aucune ne promet d'y mener proprement.",
-      "introByPreviousOption": {
-        "B": "Le raccourci de Mikzor les fait gagner du temps, mais il les jette droit sur un ancien passage de mine que personne d'honnête n'aurait conseillé à la légère. Plus ils avancent, plus l'impression d'avoir accepté une aide empoisonnée prend de la consistance.",
-        "C": "Les mots retenus dans la chapelle changent leur façon de regarder la colline. Ce qui semblait être un simple relief militaire ressemble maintenant à une couverture de pierre posée sur quelque chose de plus ancien."
-      },
-      "evidence": [],
-      "steps": [
-        {
-          "id": "scene_1_step1",
-          "actions": [
-            {
-              "id": "scene_1_warrior_rope",
-              "role": "warrior",
-              "text": "Le Guerrier ancre une corde dans la pierre pour faire passer le groupe sans hâte.",
-              "buttonText": "Ancrer une corde dans la pierre.",
-              "stage": "Il prend le temps de tester chaque appui avant d'y confier le poids des autres."
-            },
-            {
-              "id": "scene_1_warrior_bridge",
-              "role": "warrior",
-              "text": "Le Guerrier force le passage sur le pont avant qu'il ne cède tout à fait.",
-              "buttonText": "Forcer le passage sur le pont.",
-              "stage": "Il avance comme si la pierre allait céder seulement après avoir obéi."
-            },
-            {
-              "id": "scene_1_sage_marker",
-              "role": "sage",
-              "text": "Le Sage trace des repères sur la roche pour garder le chemin du retour.",
-              "buttonText": "Tracer des repères sur la roche.",
-              "stage": "La main reste précise malgré le froid qui remonte du vide."
-            },
-            {
-              "id": "scene_1_sage_borne",
-              "role": "sage",
-              "text": "Le Sage lit la borne chaude dressée au bord de la galerie.",
-              "buttonText": "Lire la borne chaude.",
-              "stage": "Il approche les doigts de la pierre comme on approche d'une braise qu'on respecte."
-            },
-            {
-              "id": "scene_1_ranger_tracks",
-              "role": "ranger",
-              "text": "Le Ranger suit les traces du chariot jusqu'à une citerne oubliée.",
-              "buttonText": "Suivre les traces du chariot.",
-              "stage": "Il s'efface presque du sentier pour mieux laisser parler la terre."
-            },
-            {
-              "id": "scene_1_ranger_gallery",
-              "role": "ranger",
-              "text": "Le Ranger examine l'entrée de galerie que Mikzor aurait préféré leur faire prendre.",
-              "buttonText": "Examiner l'entrée de la galerie.",
-              "stage": "Il reste accroupi longtemps, jusqu'à voir ce que la pente essaie de cacher."
-            }
-          ],
-          "outcomes": {
-            "scene_1_warrior_rope": {
-              "narration": "La progression ralentit, mais elle redevient sûre. Le groupe atteint l'autre côté avec assez de souffle pour penser encore droit."
-            },
-            "scene_1_warrior_bridge": {
-              "narration": "Le pont tient juste assez. Une dalle casse derrière eux et disparaît dans le noir. Ils ont gagné de l'avance, au prix d'un passage désormais impraticable.",
-              "tagsAdded": { "global": ["rash_1"] }
-            },
-            "scene_1_sage_marker": {
-              "narration": "Les marques du Sage paraissent modestes, mais elles dessinent déjà un retour possible. Dans ce genre de lieu, savoir comment repartir vaut presque autant que savoir entrer."
-            },
-            "scene_1_sage_borne": {
-              "narration": "La borne avertit contre une braise liée sous la colline. Le Sage comprend que Salace Morgul n'est pas un repaire choisi au hasard, mais un couvercle posé au bon endroit.",
-              "tagsAdded": { "global": ["ritual_known"] }
-            },
-            "scene_1_ranger_tracks": {
-              "narration": "Les ornières mènent à une citerne maçonnée qui longe la face sud du donjon. L'entrée n'est pas grande, mais elle existe encore.",
-              "tagsAdded": { "global": ["tower_backdoor"] }
-            },
-            "scene_1_ranger_gallery": {
-              "narration": "La galerie est fraîchement remuée. Des renforts ont été forcés, puis laissés tels quels. Si Mikzor l'a recommandée, ce n'était pas pour leur confort.",
-              "tagsAdded": { "global": ["mikzor_suspect"] }
-            }
-          }
-        }
-      ],
-      "options": [
-        { "id": "A", "text": "Monter jusqu'à la porte principale de Salace Morgul.", "defaultVisible": true, "next": [{ "to": "scene_2" }] },
-        {
-          "id": "B",
-          "text": "Passer par la galerie sous la colline.",
-          "next": [
-            { "ifGlobal": { "all": ["trusted_mikzor", "rash_1"] }, "to": "scene_fail_collapse" },
-            { "to": "scene_2" }
-          ]
-        },
-        {
-          "id": "C",
-          "text": "Contourner jusqu'à la citerne du donjon.",
-          "next": [{ "to": "scene_2" }]
-        }
-      ],
-      "unlockRules": [],
-      "outcomeByOption": {
-        "A": { "text": "Ils choisissent la montée franche et laissent le sentier se durcir sous leurs pas." },
-        "B": { "text": "Ils choisissent la voie basse sous la colline, là où la pierre garde plus de mémoire que de lumière." },
-        "C": { "text": "Ils coupent sous le mur extérieur en cherchant l'angle que les gardes regardent le moins." }
-      }
-    },
-    {
-      "id": "scene_2",
-      "title": "3. La porte noire",
-      "journalTitle": "3. L'entrée de Salace Morgul",
-      "canonicalTruth": "Le groupe affronte la garde du donjon avant de pouvoir rejoindre la chambre du sceau.",
-      "mode": "combat",
-      "intro": "Salace Morgul n'abrite pas une armée. Il n'en a pas besoin. Une poignée de gardes suffit quand l'escalier est étroit, que les murs renvoient la fumée et qu'un seul homme tient le coffre qu'on est venu reprendre. Dans la salle d'entrée, un capitaine hobgobelin fait reculer ses hommes pour gagner du temps. Plus haut, une lumière rouge bat déjà comme un cœur trop proche.\n\nLe bronze n'est pas loin. La question n'est plus de savoir s'ils sont sur la bonne piste, mais combien ils devront laisser en route pour atteindre la bonne salle.",
-      "combat": { "enemyName": "Garde de Salace Morgul", "enemyHp": 24, "enemyAttack": 7, "allowRun": true },
-      "evidence": [],
-      "steps": [],
-      "options": [
-        { "id": "A", "text": "Briser la garde et prendre l'escalier.", "defaultVisible": true, "next": [{ "to": "scene_3" }] },
-        { "id": "B", "text": "Tomber avant d'atteindre la salle haute.", "next": [{ "to": "scene_fail_braise" }] },
-        {
-          "id": "C",
-          "text": "Rompre le combat et filer avec un sigil abîmé.",
-          "tagsAdded": { "global": ["sigil_incomplete"] },
-          "next": [{ "to": "scene_3" }]
-        }
-      ],
-      "unlockRules": [],
-      "outcomeByOption": {
-        "A": { "text": "La garde cède enfin. Le groupe prend l'escalier avant que les survivants ne reprennent souffle." },
-        "B": { "text": "La montée s'arrête là. La chaleur venue d'en haut achève ce que les lames ont commencé." },
-        "C": { "text": "Ils arrachent le bronze à la hâte et montent plus loin avec moins qu'il n'aurait fallu." }
-      }
-    },
-    {
-      "id": "scene_3",
-      "title": "4. Le puits rouge",
-      "journalTitle": "4. La chambre du sceau",
-      "canonicalTruth": "Mikzor tente d'ouvrir la prison du drake et le groupe doit décider s'il scelle, détruit ou s'approprie la braise.",
-      "intro": "Au sommet de Salace Morgul, la chambre du sceau a été taillée comme une salle de travail, pas comme un sanctuaire. Au centre, un puits rond laisse monter une lueur rouge, plus dense qu'une simple flamme. Mikzor s'y tient déjà, le coffre ouvert à ses pieds, le bronze noirci par la chaleur. Autour de lui, deux prisonniers du fort sont maintenus à genoux, davantage comme réserve de peur que comme otages utiles.\n\nIl ne joue plus le serviteur scrupuleux. Il parle avec la froideur de quelqu'un qui se croit enfin arrivé au moment où la prudence des autres devient sa victoire. Le temps de l'enquête est fini. Il ne reste que celui des gestes qui ferment, qui sauvent ou qui corrompent.",
-      "introByPreviousOption": {
-        "C": "Le bronze arraché dans la retraite porte déjà une fissure fine sur sa tranche. Rien n'est perdu, mais plus rien n'est net non plus quand le groupe entre dans la chambre du sceau."
-      },
-      "introDialogue": [
-        { "speaker": "Mikzor", "text": "Vous arrivez au bon moment. Toute forteresse finit par appartenir à celui qui ose nommer sa peur au lieu de la cacher sous des dalles." },
-        { "speaker": "Sœur Alis", "text": "Ne l'écoute pas plus longtemps. Dans ce lieu, chaque phrase qu'on lui laisse devient un pas de plus." }
-      ],
-      "evidence": [],
-      "steps": [
-        {
-          "id": "scene_3_step1",
-          "actions": [
-            {
-              "id": "scene_3_warrior_line",
-              "role": "warrior",
-              "text": "Le Guerrier prend la ligne entre Mikzor et le puits.",
-              "buttonText": "Prendre la ligne devant le puits.",
-              "stage": "Il s'ancre dans la pierre comme si le sol devait désormais passer par lui."
-            },
-            {
-              "id": "scene_3_warrior_pedestal",
-              "role": "warrior",
-              "text": "Le Guerrier donne un coup au piédestal qui soutient les chaînes du rite.",
-              "buttonText": "Donner un coup au piédestal qui a l'air important.",
-              "stage": "Le geste est brutal, mais il choisit précisément ce qui mérite de casser."
-            },
-            {
-              "id": "scene_3_sage_words",
-              "role": "sage",
-              "text": "Le Sage prépare les mots de fermeture pendant que la salle tient encore.",
-              "buttonText": "Préparer les mots de fermeture.",
-              "stage": "La voix reste égale, même quand la chaleur mord déjà l'air."
-            },
-            {
-              "id": "scene_3_sage_bronze",
-              "role": "sage",
-              "text": "Le Sage examine la fissure du sigil et calcule ce qu'il peut encore porter.",
-              "buttonText": "Examiner la fissure du sigil.",
-              "stage": "Le regard quitte rarement le bronze, comme s'il pouvait le convaincre de durer."
-            },
-            {
-              "id": "scene_3_ranger_captives",
-              "role": "ranger",
-              "text": "Le Ranger libère les prisonniers et leur ouvre la sortie latérale.",
-              "buttonText": "Libérer les prisonniers.",
-              "stage": "La lame passe vite et propre, sans ajouter de bruit à la salle."
-            },
-            {
-              "id": "scene_3_ranger_chain",
-              "role": "ranger",
-              "text": "Le Ranger coupe la chaîne qui stabilise le mécanisme de Mikzor.",
-              "buttonText": "Couper la chaîne du mécanisme.",
-              "stage": "Il attend le bon balancement avant de laisser partir l'acier."
-            }
-          ],
-          "outcomes": {
-            "scene_3_warrior_line": {
-              "narration": "Le Guerrier ferme l'espace nécessaire. Dans une salle comme celle-ci, un homme qui tient droit vaut davantage qu'un mur fatigué."
-            },
-            "scene_3_warrior_pedestal": {
-              "narration": "Le piédestal éclate et une partie des chaînes tire de travers. Ce n'était pas élégant, mais le mécanisme devient soudain moins assuré.",
-              "tagsAdded": { "global": ["seal_ready"] },
-              "unlockOptionIds": ["B", "C"]
-            },
-            "scene_3_sage_words": {
-              "narration": "Les mots reviennent sans faute. La chambre y répond comme une serrure ancienne qui reconnaîtrait encore sa clef.",
-              "tagsAdded": { "global": ["ritual_known"] },
-              "unlockOptionIds": ["B", "C"]
-            },
-            "scene_3_sage_bronze": {
-              "narration": "Le Sage comprend aussitôt ce que la fissure permet encore et ce qu'elle ne pardonnera pas. Le groupe ne dispose pas d'une seconde tentative.",
-              "tagsAdded": { "global": ["seal_ready"] },
-              "unlockOptionIds": ["B", "C"]
-            },
-            "scene_3_ranger_captives": {
-              "narration": "Les captifs disparaissent par le couloir latéral. S'il faut faire tomber la salle, il restera au moins moins de vivants dessous.",
-              "tagsAdded": { "global": ["evac_ready"] },
-              "unlockOptionIds": ["B", "C"]
-            },
-            "scene_3_ranger_chain": {
-              "narration": "La chaîne lâche et Mikzor perd son appui d'un demi-pas. Ce n'est pas une victoire, mais c'est l'ouverture exacte dont les autres avaient besoin.",
-              "unlockOptionIds": ["B", "C"]
+            "scene_intro_ranger_son": {
+              "narration": "Un souffle métallique résonne au nord.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
             }
           }
         }
@@ -364,266 +189,346 @@
       "options": [
         {
           "id": "A",
-          "text": "Sceller le puits et tenir Rochesendre.",
+          "text": "Avancer immédiatement vers le carrefour.",
           "defaultVisible": true,
           "next": [
-            { "ifGlobal": { "all": ["seal_ready", "ritual_known"], "none": ["sigil_incomplete"] }, "to": "scene_end_heroic" },
-            { "to": "scene_end_compromise" }
+            {
+              "to": "scene_carrefour"
+            }
           ]
         },
-        { "id": "B", "text": "Évacuer tout le monde puis faire tomber la salle.", "next": [{ "to": "scene_end_compromise" }] },
-        { "id": "C", "text": "Prendre la couronne de braise avant qu'elle ne s'éteigne.", "next": [{ "to": "scene_end_dark" }] }
+        {
+          "id": "B",
+          "text": "Prendre un détour prudent.",
+          "tagsAdded": {
+            "global": [
+              "approche_prudente"
+            ]
+          },
+          "next": [
+            {
+              "to": "scene_carrefour"
+            }
+          ]
+        },
+        {
+          "id": "C",
+          "text": "Préparer une embuscade avant d'avancer.",
+          "tagsAdded": {
+            "global": [
+              "approche_embuscade"
+            ]
+          },
+          "next": [
+            {
+              "to": "scene_carrefour"
+            }
+          ]
+        }
       ],
       "unlockRules": [],
       "outcomeByOption": {
-        "A": { "text": "Ils confient leur chance à la précision du rite et à la solidité du bronze." },
-        "B": { "text": "Ils préfèrent sauver les vivants et laisser la pierre régler le reste." },
-        "C": { "text": "Ils refusent que la braise disparaisse avec cette nuit et choisissent de la prendre." }
+        "A": {
+          "text": "Le groupe avance sans pause."
+        },
+        "B": {
+          "text": "Le groupe progresse lentement, en silence."
+        },
+        "C": {
+          "text": "Le groupe avance en préparant un piège."
+        }
       }
     },
     {
-      "id": "scene_end_heroic",
-      "title": "Fin. L'aube",
-      "journalTitle": "Fin. Le fort tient",
-      "canonicalTruth": "Le groupe referme le sceau proprement et Rochesendre survit à la nuit.",
-      "intro": "Le bronze se place enfin comme il aurait dû l'être dès le départ. Les mots du rite tombent l'un après l'autre, sans trébucher, jusqu'à ce que la lueur rouge se retire dans le puits comme une marée contrariée. La chaleur baisse d'un coup. La pierre cesse de pousser. Au-dessus, la chapelle rend un dernier grondement et se tait.\n\nQuand ils remontent à l'air libre, Rochesendre tient encore debout. La fatigue ne disparaît pas, les morts ne reviennent pas, et les fissures resteront visibles longtemps. Pourtant le fort tient. Pour une nuit pareille, cela suffit à donner au lendemain une forme crédible.",
-      "isEnding": true,
+      "id": "scene_carrefour",
+      "title": "2. Carrefour",
+      "journalTitle": "2. Salle du carrefour",
+      "canonicalTruth": "Scène narrative régulière qui remplace le repos.",
+      "intro": "Le groupe atteint un carrefour de pierre fermé par une porte ancienne.",
+      "introByPreviousOption": {
+        "A": "Le groupe arrive vite au carrefour. La porte vibre d'une énergie sourde.",
+        "B": "Le détour a pris plus de temps, mais personne ne vous a repérés en chemin.",
+        "C": "Votre préparation d'embuscade vous donne des angles clairs autour du carrefour."
+      },
       "evidence": [],
       "steps": [
         {
-          "id": "scene_end_heroic_step1",
+          "id": "scene_carrefour_step1",
           "actions": [
             {
-              "id": "scene_end_heroic_warrior",
+              "id": "scene_carrefour_warrior_porte",
               "role": "warrior",
-              "text": "Le Guerrier s'appuie enfin contre un mur qui n'a plus besoin d'être tenu.",
-              "buttonText": "S'appuyer contre un mur enfin tranquille.",
-              "stage": "Le corps cède un peu, mais seulement maintenant que le fort peut se le permettre."
+              "text": "Je teste la porte à l'épaule.",
+              "buttonText": "Tester la porte",
+              "stage": "La pierre cède à peine."
             },
             {
-              "id": "scene_end_heroic_sage",
+              "id": "scene_carrefour_warrior_ligne",
+              "role": "warrior",
+              "text": "Je marque une ligne de défense.",
+              "buttonText": "Tracer une ligne",
+              "stage": "Le Guerrier choisit l'endroit où tenir."
+            },
+            {
+              "id": "scene_carrefour_sage_sigil",
               "role": "sage",
-              "text": "Le Sage écoute le silence retrouvé sous la chapelle.",
-              "buttonText": "Écouter le silence sous la chapelle.",
-              "stage": "Il reste immobile comme pour vérifier qu'aucun mot n'a manqué."
+              "text": "Je décrypte le sigil de la porte.",
+              "buttonText": "Décrypter le sigil",
+              "stage": "Les glyphes s'illuminent brièvement."
             },
             {
-              "id": "scene_end_heroic_ranger",
+              "id": "scene_carrefour_sage_rupture",
+              "role": "sage",
+              "text": "Je cherche un point de rupture magique.",
+              "buttonText": "Chercher une rupture",
+              "stage": "Le Sage suit une fissure énergétique."
+            },
+            {
+              "id": "scene_carrefour_ranger_meurtriere",
               "role": "ranger",
-              "text": "Le Ranger regarde le ciel pâlir au-dessus des collines.",
-              "buttonText": "Regarder le ciel pâlir.",
-              "stage": "Les yeux quittent enfin les pistes pour accepter l'arrivée de l'aube."
+              "text": "Je repère une meurtrière latérale.",
+              "buttonText": "Repérer une meurtrière",
+              "stage": "Le Ranger trouve un angle discret."
+            },
+            {
+              "id": "scene_carrefour_ranger_leurre",
+              "role": "ranger",
+              "text": "Je prépare un leurre sonore.",
+              "buttonText": "Préparer un leurre",
+              "stage": "Un petit mécanisme est posé près des débris."
             }
           ],
           "outcomes": {
-            "scene_end_heroic_warrior": { "narration": "La nuit leur a pris assez pour qu'ils n'éprouvent aucun besoin d'en embellir la fin." },
-            "scene_end_heroic_sage": { "narration": "Le silence rendu par la pierre paraît plus précieux qu'un chant de victoire." },
-            "scene_end_heroic_ranger": { "narration": "Au loin, Salace Morgul n'est plus qu'une masse noire. Pour l'instant, cela suffit." }
+            "scene_carrefour_warrior_porte": {
+              "narration": "La porte ne tombe pas, mais ses gonds ont souffert.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
+            },
+            "scene_carrefour_warrior_ligne": {
+              "narration": "Un couloir de repli est prêt en cas d'attaque.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
+            },
+            "scene_carrefour_sage_sigil": {
+              "narration": "Le sigil confirme la présence d'un gardien derrière la porte.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
+            },
+            "scene_carrefour_sage_rupture": {
+              "narration": "Une faiblesse magique apparaît près de l'arc central.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
+            },
+            "scene_carrefour_ranger_meurtriere": {
+              "narration": "Un passage latéral étroit peut servir de contournement.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
+            },
+            "scene_carrefour_ranger_leurre": {
+              "narration": "Le leurre peut attirer le premier assaut hors position.",
+              "unlockOptionIds": [
+                "B",
+                "C"
+              ]
+            }
           }
         }
       ],
       "options": [
-        { "id": "A", "text": "Laisser la nuit se refermer sur cette victoire.", "defaultVisible": true, "next": [{ "to": null }] }
+        {
+          "id": "A",
+          "text": "Forcer l'ouverture et engager le gardien.",
+          "defaultVisible": true,
+          "next": [
+            {
+              "to": "scene_combat"
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "text": "Contourner par le passage latéral puis attaquer.",
+          "tagsAdded": {
+            "global": [
+              "entree_laterale"
+            ]
+          },
+          "next": [
+            {
+              "to": "scene_combat"
+            }
+          ]
+        },
+        {
+          "id": "C",
+          "text": "Déclencher le leurre puis frapper pendant la diversion.",
+          "tagsAdded": {
+            "global": [
+              "diversion_prete"
+            ]
+          },
+          "next": [
+            {
+              "to": "scene_combat"
+            }
+          ]
+        }
       ],
       "unlockRules": [],
       "outcomeByOption": {
-        "A": { "text": "Rochesendre garde ses murs, ses vivants et un matin possible." }
+        "A": {
+          "text": "Le groupe choisit l'assaut frontal."
+        },
+        "B": {
+          "text": "Le groupe attaque depuis un angle inattendu."
+        },
+        "C": {
+          "text": "Le groupe lance la diversion puis charge."
+        }
       }
     },
     {
-      "id": "scene_end_compromise",
-      "title": "Fin. Le repli",
-      "journalTitle": "Fin. Les vivants d'abord",
-      "canonicalTruth": "Le groupe sauve les survivants mais perd la salle ou l'intégrité du sceau.",
-      "intro": "Le choix est moins pur et sans doute plus humain. Les captifs sont poussés vers la sortie, les blessés suivent, et la chambre du sceau est abandonnée à la pierre qui la porte depuis des siècles. Quand elle cède enfin, le choc remonte dans le donjon puis jusque sous la chapelle du fort. Une partie de ce qui devait être protégé est perdue, mais ceux qui pouvaient encore courir le font.\n\nAu matin, Rochesendre n'est pas intact. Il reste habitable, défendable et triste. Il faudra raconter pourquoi certaines pierres sont tombées pour que certains noms restent vivants. Cela n'a rien d'une fin parfaite. C'en est une qui laisse encore des gens pour la juger.",
+      "id": "scene_combat",
+      "title": "3. Combat",
+      "journalTitle": "3. Le gardien",
+      "canonicalTruth": "Unique scène de combat pour les tests.",
+      "intro": "Un gardien de pierre s'éveille et bloque la sortie.",
+      "introByPreviousOption": {
+        "A": "Le gardien vous voit arriver de face et rugit.",
+        "B": "Vous surgissez de côté, le gardien pivote brutalement.",
+        "C": "Le leurre explose et le gardien hésite une seconde."
+      },
+      "mode": "combat",
+      "combat": {
+        "enemyName": "Gardien de pierre",
+        "enemyHp": 14,
+        "enemyAttack": 4,
+        "allowRun": true
+      },
+      "evidence": [],
+      "steps": [],
+      "options": [
+        {
+          "id": "A",
+          "text": "Victoire du groupe.",
+          "defaultVisible": true,
+          "next": [
+            {
+              "to": "scene_fin"
+            }
+          ]
+        },
+        {
+          "id": "B",
+          "text": "Défaite du groupe.",
+          "next": [
+            {
+              "to": "scene_fin"
+            }
+          ]
+        },
+        {
+          "id": "C",
+          "text": "Fuite du groupe.",
+          "next": [
+            {
+              "to": "scene_fin"
+            }
+          ]
+        }
+      ],
+      "unlockRules": [],
+      "outcomeByOption": {
+        "A": {
+          "text": "Le gardien s'effondre et le passage s'ouvre."
+        },
+        "B": {
+          "text": "Le groupe recule sous la pression du gardien."
+        },
+        "C": {
+          "text": "Le groupe bat en retraite avant le coup final."
+        }
+      }
+    },
+    {
+      "id": "scene_fin",
+      "title": "4. Fin",
+      "journalTitle": "4. Conclusion",
+      "canonicalTruth": "Fin de l'histoire test.",
+      "intro": "L'essai est terminé.",
+      "introByPreviousOption": {
+        "A": "La poussière retombe. Vous avez gagné le passage.",
+        "B": "Vous êtes vivants, mais le gardien tient encore la salle.",
+        "C": "Vous vous éloignez rapidement, en notant ce qui a fonctionné."
+      },
       "isEnding": true,
       "evidence": [],
       "steps": [
         {
-          "id": "scene_end_compromise_step1",
+          "id": "scene_fin_step1",
           "actions": [
             {
-              "id": "scene_end_compromise_warrior",
+              "id": "scene_fin_warrior",
               "role": "warrior",
-              "text": "Le Guerrier compte d'abord les survivants avant de regarder les ruines.",
-              "buttonText": "Compter les survivants avant les ruines.",
-              "stage": "Le regard évite la pierre brisée pour rester sur ceux qui respirent encore."
+              "text": "On a tenu jusqu'au bout.",
+              "buttonText": "Acquiescer",
+              "stage": "Le Guerrier pose enfin son bouclier."
             },
             {
-              "id": "scene_end_compromise_sage",
+              "id": "scene_fin_sage",
               "role": "sage",
-              "text": "Le Sage referme ses notes sans chercher à corriger ce qui est déjà perdu.",
-              "buttonText": "Refermer les notes du rite.",
-              "stage": "Les mains restent calmes, comme pour empêcher le regret de parler trop tôt."
+              "text": "Les notes sont complètes.",
+              "buttonText": "Fermer le carnet",
+              "stage": "Le Sage referme calmement son carnet."
             },
             {
-              "id": "scene_end_compromise_ranger",
+              "id": "scene_fin_ranger",
               "role": "ranger",
-              "text": "Le Ranger ouvre la route du retour à ceux qui n'auraient pas tenu seuls.",
-              "buttonText": "Ouvrir la route du retour.",
-              "stage": "Il avance juste assez devant les autres pour que personne ne se perde encore."
+              "text": "Aucune menace immédiate.",
+              "buttonText": "Observer l'horizon",
+              "stage": "Le Ranger vérifie une dernière fois les alentours."
             }
           ],
           "outcomes": {
-            "scene_end_compromise_warrior": { "narration": "Le prix du choix reste lourd, mais il n'est pas vide." },
-            "scene_end_compromise_sage": { "narration": "Tout savoir n'empêche pas de devoir parfois renoncer proprement." },
-            "scene_end_compromise_ranger": { "narration": "Le chemin du retour paraît plus long que celui de l'aller, mais il existe encore." }
+            "scene_fin_warrior": {
+              "narration": "La ligne a tenu jusqu'à la fin."
+            },
+            "scene_fin_sage": {
+              "narration": "Les faits sont clairs pour le rapport."
+            },
+            "scene_fin_ranger": {
+              "narration": "Le secteur reste calme."
+            }
           }
         }
       ],
       "options": [
-        { "id": "A", "text": "Accepter cette fin incomplète.", "defaultVisible": true, "next": [{ "to": null }] }
-      ],
-      "unlockRules": [],
-      "outcomeByOption": {
-        "A": { "text": "Le fort paie une part du prix. Les vivants, eux, gardent la leur." }
-      }
-    },
-    {
-      "id": "scene_end_dark",
-      "title": "Fin. La braise",
-      "journalTitle": "Fin. La couronne de braise",
-      "canonicalTruth": "Le groupe choisit de lier à lui le pouvoir de la braise au lieu de l'éteindre ou de l'enterrer.",
-      "intro": "La couronne de braise ne brûle pas comme un métal chauffé. Elle répond comme quelque chose qui attendait seulement une volonté plus rapide que la morale. Quand elle change de mains, la chambre ne s'apaise pas : elle se soumet. Le puits se tait, mais ce silence n'a rien de sain. Il ressemble à l'obéissance d'une faim qu'on a déplacée plutôt qu'apaisée.\n\nÀ la remontée, nul ne peut dire avec certitude si Rochesendre a été sauvé ou reporté. Le fort tient encore, mais sous un nouveau genre de menace, plus intime et plus difficile à nommer. La nuit est gagnée. Le prix exact, lui, ne se révélera qu'après.",
-      "isEnding": true,
-      "evidence": [],
-      "steps": [
         {
-          "id": "scene_end_dark_step1",
-          "actions": [
+          "id": "A",
+          "text": "Terminer l'histoire.",
+          "defaultVisible": true,
+          "next": [
             {
-              "id": "scene_end_dark_warrior",
-              "role": "warrior",
-              "text": "Le Guerrier sent la chaleur lui répondre au lieu de l'attaquer.",
-              "buttonText": "Sentir la chaleur répondre.",
-              "stage": "Le corps se raidit comme devant un ordre qu'il n'a pas choisi de recevoir."
-            },
-            {
-              "id": "scene_end_dark_sage",
-              "role": "sage",
-              "text": "Le Sage comprend trop tard que certains silences sont pires que les cris.",
-              "buttonText": "Écouter le silence de la braise.",
-              "stage": "Le regard reste fixe, mais il n'observe plus tout à fait la même chose qu'avant."
-            },
-            {
-              "id": "scene_end_dark_ranger",
-              "role": "ranger",
-              "text": "Le Ranger regarde la sortie comme on mesure une distance qui a changé de nature.",
-              "buttonText": "Mesurer la distance jusqu'à la sortie.",
-              "stage": "Il garde l'issue en vue, comme si cela suffisait encore à rassurer."
+              "to": null
             }
-          ],
-          "outcomes": {
-            "scene_end_dark_warrior": { "narration": "La force gagnée ici ressemble moins à une récompense qu'à une dette immédiate." },
-            "scene_end_dark_sage": { "narration": "Toute victoire n'a pas besoin d'être fausse pour devenir inquiétante." },
-            "scene_end_dark_ranger": { "narration": "Le retour vers le fort existe encore, mais il n'a plus tout à fait le même sens." }
-          }
+          ]
         }
-      ],
-      "options": [
-        { "id": "A", "text": "Garder ce pouvoir pour vous.", "defaultVisible": true, "next": [{ "to": null }] }
       ],
       "unlockRules": [],
       "outcomeByOption": {
-        "A": { "text": "La braise ne dort plus sous la pierre. Elle marche désormais avec eux." }
-      }
-    },
-    {
-      "id": "scene_fail_collapse",
-      "title": "Échec. La pierre",
-      "journalTitle": "Échec. La galerie s'effondre",
-      "canonicalTruth": "Une mauvaise confiance combinée à un passage brutal fait s'écrouler la galerie sous la colline.",
-      "intro": "La galerie tenait déjà mal. Il ne lui manquait qu'un mauvais conseil accepté trop vite et un passage trop dur pour qu'elle se rappelle ce qu'elle était vraiment : une vieille blessure dans la colline. Le grondement vient d'abord loin, puis juste au-dessus. Ensuite il n'y a plus de loin ni de haut, seulement la pierre qui reprend sa place.\n\nAu-dehors, Salace Morgul reste debout. En dessous, le chemin se ferme avec une indifférence totale pour le courage de ceux qui s'y trouvaient encore.",
-      "isEnding": true,
-      "evidence": [],
-      "steps": [
-        {
-          "id": "scene_fail_collapse_step1",
-          "actions": [
-            {
-              "id": "scene_fail_collapse_warrior",
-              "role": "warrior",
-              "text": "Le Guerrier pousse contre une masse qu'aucun bras ne pouvait retenir.",
-              "buttonText": "Pousser contre la roche qui tombe.",
-              "stage": "L'effort est réel, mais la montagne n'a rien à négocier."
-            },
-            {
-              "id": "scene_fail_collapse_sage",
-              "role": "sage",
-              "text": "Le Sage comprend trop tard ce que la borne essayait d'avertir.",
-              "buttonText": "Comprendre trop tard l'avertissement.",
-              "stage": "La pensée va plus vite que le corps, et cela ne suffit plus."
-            },
-            {
-              "id": "scene_fail_collapse_ranger",
-              "role": "ranger",
-              "text": "Le Ranger cherche encore une fissure de lumière là où il n'y en a déjà plus.",
-              "buttonText": "Chercher une issue dans l'éboulement.",
-              "stage": "Le regard travaille jusqu'au dernier instant, même quand la roche a déjà tranché."
-            }
-          ],
-          "outcomes": {
-            "scene_fail_collapse_warrior": { "narration": "La volonté ne remplace pas un ciel libre au-dessus de soi." },
-            "scene_fail_collapse_sage": { "narration": "Certaines erreurs se paient avant même d'être complètement comprises." },
-            "scene_fail_collapse_ranger": { "narration": "Il n'existe pas de piste lisible dans une nuit de pierre." }
-          }
+        "A": {
+          "text": "Fin de l'aventure de test."
         }
-      ],
-      "options": [
-        { "id": "A", "text": "Laisser la colline garder le reste.", "defaultVisible": true, "next": [{ "to": null }] }
-      ],
-      "unlockRules": [],
-      "outcomeByOption": {
-        "A": { "text": "Sous la colline, le chemin s'achève sans retour." }
-      }
-    },
-    {
-      "id": "scene_fail_braise",
-      "title": "Échec. La braise",
-      "journalTitle": "Échec. Le drake se lève",
-      "canonicalTruth": "Le groupe tombe avant d'atteindre la chambre du sceau, et la braise gagne le temps qu'il lui fallait.",
-      "intro": "Ils avaient presque atteint l'escalier supérieur quand la ligne s'est rompue. Une lame de trop, une marche perdue, une respiration coupée dans la fumée, et le donjon a repris tout ce qu'il leur avait laissé croire possible. Plus haut, la lumière rouge bat plus fort. Elle n'a pas besoin de les voir pour profiter de leur retard.\n\nQuand ils tombent enfin, ce n'est pas seulement contre une garde mieux placée qu'eux. C'est contre le temps entier de la nuit, qui se referme avec Mikzor et sa braise encore debout.",
-      "isEnding": true,
-      "evidence": [],
-      "steps": [
-        {
-          "id": "scene_fail_braise_step1",
-          "actions": [
-            {
-              "id": "scene_fail_braise_warrior",
-              "role": "warrior",
-              "text": "Le Guerrier tente de remonter une marche que le combat lui a déjà refusée.",
-              "buttonText": "Tenter de remonter la dernière marche.",
-              "stage": "Le corps avance encore un instant alors que la salle a déjà décidé l'inverse."
-            },
-            {
-              "id": "scene_fail_braise_sage",
-              "role": "sage",
-              "text": "Le Sage entend au-dessus de lui des mots qu'il ne pourra plus empêcher.",
-              "buttonText": "Entendre les mots du rite détourné.",
-              "stage": "L'écoute devient un supplice plus net qu'une blessure."
-            },
-            {
-              "id": "scene_fail_braise_ranger",
-              "role": "ranger",
-              "text": "Le Ranger voit la lumière rouge gagner l'escalier avant leurs pas.",
-              "buttonText": "Voir la lumière rouge gagner l'escalier.",
-              "stage": "Le regard mesure exactement ce qui leur manque, et ce manque est trop grand."
-            }
-          ],
-          "outcomes": {
-            "scene_fail_braise_warrior": { "narration": "Toute charge a un point au-delà duquel elle ne rattrape plus rien." },
-            "scene_fail_braise_sage": { "narration": "Connaître le bon rite n'aide pas toujours à vivre assez longtemps pour le dire." },
-            "scene_fail_braise_ranger": { "narration": "La meilleure vue du monde ne sert plus quand l'instant décisif est déjà passé." }
-          }
-        }
-      ],
-      "options": [
-        { "id": "A", "text": "Laisser la nuit aller jusqu'au bout.", "defaultVisible": true, "next": [{ "to": null }] }
-      ],
-      "unlockRules": [],
-      "outcomeByOption": {
-        "A": { "text": "À Salace Morgul, la braise trouve enfin le temps qu'il lui fallait." }
       }
     }
   ]

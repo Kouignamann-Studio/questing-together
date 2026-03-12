@@ -6,11 +6,11 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
   TextStyle,
   View,
-  StyleProp,
 } from 'react-native';
 
 import { CombatStatusCard } from '@/components/story/combat-status-card';
@@ -56,11 +56,18 @@ type SceneFeedCardProps = {
   fullBleed?: boolean;
 };
 
-const LINE_REVEAL_CADENCE_MS = 360;
-const LINE_FADE_DURATION_MS = 2400;
-const LINE_FADE_EASING = Easing.out(Easing.cubic);
+const WORD_REVEAL_CADENCE_MS = 120;
+const WORD_FADE_DURATION_MS = 300;
 const FOOTER_FADE_DURATION_MS = 500;
 const FOOTER_REVEAL_BUFFER_MS = 120;
+
+function splitIntoWordTokens(text: string) {
+  return text.split(/(\s+)/).filter((token) => token.length > 0);
+}
+
+function getWordRevealCount(text: string) {
+  return splitIntoWordTokens(text).reduce((count, token) => count + (/^\s+$/.test(token) ? 0 : 1), 0);
+}
 
 function StoryText({
   text,
@@ -73,35 +80,88 @@ function StoryText({
   animate: boolean;
   startDelay?: number;
 }) {
-  const opacity = useRef(new Animated.Value(animate ? 0 : 1)).current;
+  const tokenMeta = useMemo(() => {
+    let wordIndex = 0;
+
+    return splitIntoWordTokens(text).map((token) => {
+      if (/^\s+$/.test(token)) {
+        return { token, isWhitespace: true as const, wordIndex: -1 };
+      }
+
+      const currentWordIndex = wordIndex;
+      wordIndex += 1;
+      return { token, isWhitespace: false as const, wordIndex: currentWordIndex };
+    });
+  }, [text]);
+
+  const wordCount = useMemo(
+    () => tokenMeta.reduce((count, part) => count + (part.isWhitespace ? 0 : 1), 0),
+    [tokenMeta]
+  );
+  const revealDurationMs = useMemo(
+    () =>
+      wordCount > 0
+        ? (wordCount - 1) * WORD_REVEAL_CADENCE_MS + WORD_FADE_DURATION_MS
+        : 0,
+    [wordCount]
+  );
+  const revealClock = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!animate) {
-      opacity.setValue(1);
+    if (wordCount === 0) {
       return;
     }
 
-    opacity.setValue(0);
+    if (!animate) {
+      revealClock.setValue(revealDurationMs);
+      return;
+    }
+
+    revealClock.setValue(0);
+    let revealAnimation: Animated.CompositeAnimation | null = null;
 
     const startTimer = setTimeout(() => {
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: LINE_FADE_DURATION_MS,
-        easing: LINE_FADE_EASING,
-        useNativeDriver: true,
-      }).start();
+      revealAnimation = Animated.timing(revealClock, {
+        toValue: revealDurationMs,
+        duration: revealDurationMs,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      });
+      revealAnimation.start();
     }, startDelay);
 
     return () => {
       clearTimeout(startTimer);
-      opacity.stopAnimation();
+      revealAnimation?.stop();
+      revealClock.stopAnimation();
     };
-  }, [animate, opacity, startDelay, text]);
+  }, [animate, revealClock, revealDurationMs, startDelay, text, wordCount]);
+
+  if (tokenMeta.length === 0 || wordCount === 0) {
+    return <Text style={style}>{text}</Text>;
+  }
 
   return (
-    <Animated.View style={{ opacity }}>
-      <Text style={style}>{text}</Text>
-    </Animated.View>
+    <Text style={style}>
+      {tokenMeta.map((part, tokenIndex) => {
+        if (part.isWhitespace) {
+          return part.token;
+        }
+
+        const wordStartMs = part.wordIndex * WORD_REVEAL_CADENCE_MS;
+        const opacity = revealClock.interpolate({
+          inputRange: [wordStartMs, wordStartMs + WORD_FADE_DURATION_MS],
+          outputRange: [0, 1],
+          extrapolate: 'clamp',
+        });
+
+        return (
+          <Animated.Text key={`${tokenIndex}-${part.token}`} style={{ opacity }}>
+            {part.token}
+          </Animated.Text>
+        );
+      })}
+    </Text>
   );
 }
 
@@ -198,13 +258,14 @@ export function SceneFeedCard({
     for (let index = animateFromIndex; index < journalEntries.length; index += 1) {
       const units = getEntryAnimationUnits(journalEntries[index]);
       units.forEach(({ key, text }) => {
-        if (!text) return;
+        const wordCount = getWordRevealCount(text);
+        if (wordCount === 0) return;
         delays.set(key, delayCursor);
-        delayCursor += LINE_REVEAL_CADENCE_MS;
+        delayCursor += wordCount * WORD_REVEAL_CADENCE_MS;
       });
     }
 
-    const totalDurationMs = delayCursor > 0 ? delayCursor - LINE_REVEAL_CADENCE_MS + LINE_FADE_DURATION_MS : 0;
+    const totalDurationMs = delayCursor > 0 ? delayCursor - WORD_REVEAL_CADENCE_MS + WORD_FADE_DURATION_MS : 0;
     return { delays, totalDurationMs };
   }, [animateFromIndex, journalEntries]);
 
