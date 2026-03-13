@@ -1,6 +1,8 @@
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 
+import { AnimatedBarFill } from '@/components/story/animated-bar-fill';
+
 type PartyStatusTone = 'ready' | 'waiting' | 'neutral' | 'offline';
 
 type PartyStatusRow = {
@@ -79,7 +81,7 @@ export function PartyTopBar({ partyHp, partyHpMax, rows, variant = 'default' }: 
         ]}
       >
         <View style={[styles.hpFillClip, isCompact && styles.hpFillClipCompact]}>
-          <View style={[styles.hpFill, { width: `${percent * 100}%` }]} />
+          <AnimatedBarFill percent={percent} style={styles.hpFill} />
         </View>
         <Image source={partyHealthFrame} style={styles.hpFrame} resizeMode="stretch" />
         <Text

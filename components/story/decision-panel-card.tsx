@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ImageBackground, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
 
 import { ChoiceIntentPortraitPlayer, ChoiceIntentPortraits } from '@/components/story/choice-intent-portraits';
 import { CombatStatusCard } from '@/components/story/combat-status-card';
@@ -118,6 +118,13 @@ export function DecisionPanelCard({
 }: DecisionPanelCardProps) {
   const [activeTab, setActiveTab] = useState<TabId>('actions');
   const [draftOptionId, setDraftOptionId] = useState<OptionId | null>(null);
+  const hasSeenFirstLayoutTransitionRef = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (resolvedOption) {
@@ -149,6 +156,43 @@ export function DecisionPanelCard({
       setActiveTab('decisions');
     }
   }, [isStoryEnded, isTimedScene, localConfirmedOption, resolvedOption]);
+
+  useEffect(() => {
+    if (!hasSeenFirstLayoutTransitionRef.current) {
+      hasSeenFirstLayoutTransitionRef.current = true;
+      return;
+    }
+
+    LayoutAnimation.configureNext({
+      duration: 420,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+      delete: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+    });
+  }, [
+    actions.length,
+    activeTab,
+    allowSkip,
+    canAct,
+    canVote,
+    continuedCount,
+    hiddenOptionCount,
+    isEndingScene,
+    isStoryEnded,
+    isTimedScene,
+    localConfirmedOption,
+    localSelectedActionId,
+    resolvedOption,
+    visibleOptions.length,
+  ]);
 
   const endingContent = (
     <View style={styles.endingWrap}>

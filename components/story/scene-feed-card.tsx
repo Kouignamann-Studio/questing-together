@@ -4,13 +4,16 @@ import {
   Animated,
   Easing,
   Image,
+  LayoutAnimation,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleProp,
   StyleSheet,
   Text,
   TextStyle,
+  UIManager,
   View,
 } from 'react-native';
 
@@ -64,6 +67,8 @@ const WORD_FADE_DURATION_MS = 300;
 const FOOTER_FADE_DURATION_MS = 500;
 const FOOTER_REVEAL_BUFFER_MS = 120;
 const SEEN_FEED_STORAGE_PREFIX = 'scene-feed-seen';
+const AUTO_SCROLL_DURATION_MS = 420;
+const LAYOUT_TRANSITION_DURATION_MS = 420;
 
 type PersistedFeedState = {
   storyInstanceKey: string;
@@ -233,6 +238,14 @@ export function SceneFeedCard({
 }: SceneFeedCardProps) {
   const scrollRef = useRef<ScrollView>(null);
   const autoScrollRef = useRef(true);
+  const hasInitializedScrollRef = useRef(false);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const hasSeenFirstLayoutTransitionRef = useRef(false);
+  const scrollMetricsRef = useRef({
+    contentHeight: 0,
+    layoutHeight: 0,
+    offsetY: 0,
+  });
   const [isSeenStateReady, setIsSeenStateReady] = useState(false);
   const seenEntryIdsRef = useRef<Set<string>>(new Set());
   const seenFooterSceneKeysRef = useRef<Set<string>>(new Set());
@@ -310,12 +323,96 @@ export function SceneFeedCard({
   }, [storageKey, storyInstanceKey]);
 
   useEffect(() => {
-    if (!journalEntries.length) return;
-    if (!isSeenStateReady) return;
-    if (autoScrollRef.current) {
-      scrollRef.current?.scrollToEnd({ animated: true });
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-  }, [isSeenStateReady, journalEntries.length]);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSeenStateReady) {
+      return;
+    }
+
+    if (!hasSeenFirstLayoutTransitionRef.current) {
+      hasSeenFirstLayoutTransitionRef.current = true;
+      return;
+    }
+
+    LayoutAnimation.configureNext({
+      duration: LAYOUT_TRANSITION_DURATION_MS,
+      create: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+      delete: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+        property: LayoutAnimation.Properties.opacity,
+      },
+    });
+  }, [footer, isSeenStateReady, journalEntries.length]);
+
+  const stopAutoScrollAnimation = () => {
+    if (scrollAnimationFrameRef.current === null) {
+      return;
+    }
+
+    cancelAnimationFrame(scrollAnimationFrameRef.current);
+    scrollAnimationFrameRef.current = null;
+  };
+
+  const scrollToBottom = (animated: boolean) => {
+    const { contentHeight, layoutHeight, offsetY } = scrollMetricsRef.current;
+    const targetY = Math.max(0, contentHeight - layoutHeight);
+
+    if (!animated) {
+      stopAutoScrollAnimation();
+      scrollRef.current?.scrollTo({ y: targetY, animated: false });
+      scrollMetricsRef.current.offsetY = targetY;
+      return;
+    }
+
+    const distance = targetY - offsetY;
+    if (distance <= 1) {
+      scrollRef.current?.scrollTo({ y: targetY, animated: false });
+      scrollMetricsRef.current.offsetY = targetY;
+      return;
+    }
+
+    stopAutoScrollAnimation();
+    const startY = offsetY;
+    const startAt = Date.now();
+
+    const step = () => {
+      const elapsedMs = Date.now() - startAt;
+      const progress = Math.min(1, elapsedMs / AUTO_SCROLL_DURATION_MS);
+      const easedProgress = Easing.out(Easing.cubic)(progress);
+      const nextY = startY + distance * easedProgress;
+
+      scrollRef.current?.scrollTo({ y: nextY, animated: false });
+      scrollMetricsRef.current.offsetY = nextY;
+
+      if (progress < 1) {
+        scrollAnimationFrameRef.current = requestAnimationFrame(step);
+        return;
+      }
+
+      scrollAnimationFrameRef.current = null;
+      scrollMetricsRef.current.offsetY = targetY;
+    };
+
+    scrollAnimationFrameRef.current = requestAnimationFrame(step);
+  };
 
   if (animationSignature && animationPlanRef.current.signature !== animationSignature) {
     const animatedEntryIds = new Set<string>();
@@ -425,15 +522,49 @@ export function SceneFeedCard({
           ref={scrollRef}
           style={styles.journalScroll}
           contentContainerStyle={styles.journalBlock}
+          nestedScrollEnabled
+          onLayout={(event) => {
+            scrollMetricsRef.current.layoutHeight = event.nativeEvent.layout.height;
+            if (!hasInitializedScrollRef.current && autoScrollRef.current && scrollMetricsRef.current.contentHeight > 0) {
+              hasInitializedScrollRef.current = true;
+              scrollToBottom(false);
+            }
+          }}
+          onScrollBeginDrag={stopAutoScrollAnimation}
           onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
             const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+            scrollMetricsRef.current = {
+              layoutHeight: layoutMeasurement.height,
+              offsetY: contentOffset.y,
+              contentHeight: contentSize.height,
+            };
             const paddingToBottom = 24;
             autoScrollRef.current = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
           }}
-          onContentSizeChange={() => {
-            if (autoScrollRef.current) {
-              scrollRef.current?.scrollToEnd({ animated: true });
+          onContentSizeChange={(_, contentHeight) => {
+            const previousContentHeight = scrollMetricsRef.current.contentHeight;
+            scrollMetricsRef.current.contentHeight = contentHeight;
+
+            if (scrollMetricsRef.current.layoutHeight <= 0) {
+              return;
             }
+
+            if (!autoScrollRef.current) {
+              return;
+            }
+
+            if (!hasInitializedScrollRef.current) {
+              hasInitializedScrollRef.current = true;
+              scrollToBottom(false);
+              return;
+            }
+
+            if (contentHeight > previousContentHeight + 1) {
+              scrollToBottom(true);
+              return;
+            }
+
+            scrollToBottom(false);
           }}
           scrollEventThrottle={16}>
           {isSeenStateReady

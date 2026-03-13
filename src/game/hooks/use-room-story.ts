@@ -410,6 +410,10 @@ function summarizeCombatEscape(round: number) {
   return `Round ${round}: the party calls for retreat and withdraws.`;
 }
 
+function summarizeCombatVictory(round: number, totalDamage: number) {
+  return `Round ${round}: party dealt ${totalDamage} and dropped the enemy before it could retaliate.`;
+}
+
 function computeCombatResolution({
   scene,
   actionsByStep,
@@ -447,47 +451,64 @@ function computeCombatResolution({
   for (const round of roundsSorted) {
     const actions = roundMap.get(round) ?? [];
     const uniquePlayers = new Set(actions.map((action) => action.playerId));
+    const allowRun = scene.combat.allowRun !== false;
+    let totalDamage = 0;
+    let totalBlock = 0;
+    let enemyAttackDelta = 0;
+    let runVotes = 0;
+
+    for (const action of actions) {
+      const effect = combatActionById.get(action.actionId)?.effect;
+      if (!effect) continue;
+      totalDamage += effect.damage ?? 0;
+      totalBlock += effect.block ?? 0;
+      enemyAttackDelta += effect.enemyAttackDelta ?? 0;
+      if (effect.run) {
+        runVotes += 1;
+      }
+      enemyHp = Math.max(0, enemyHp - (effect.damage ?? 0));
+
+      if (allowRun && runVotes >= runThreshold) {
+        roundLog.push({
+          round,
+          partyDamage: 0,
+          enemyDamage: totalDamage,
+          block: totalBlock,
+          enemyAttack: Math.max(0, scene.combat.enemyAttack + enemyAttackDelta),
+          runVotes,
+          summary: summarizeCombatEscape(round),
+        });
+        outcome = 'escape';
+        break;
+      }
+
+      if (enemyHp <= 0) {
+        roundLog.push({
+          round,
+          partyDamage: 0,
+          enemyDamage: totalDamage,
+          block: totalBlock,
+          enemyAttack: Math.max(0, scene.combat.enemyAttack + enemyAttackDelta),
+          runVotes,
+          summary: summarizeCombatVictory(round, totalDamage),
+        });
+        outcome = 'victory';
+        break;
+      }
+    }
+
+    if (outcome) {
+      lastResolvedRound = round;
+      break;
+    }
+
     if (uniquePlayers.size < expectedPlayerCount) {
       break;
     }
 
-    lastResolvedRound = round;
-    const allowRun = scene.combat.allowRun !== false;
-    const runVotes = actions.reduce((count, action) => {
-      const effect = combatActionById.get(action.actionId)?.effect;
-      return effect?.run ? count + 1 : count;
-    }, 0);
-
-    if (allowRun && runVotes >= runThreshold) {
-      roundLog.push({
-        round,
-        partyDamage: 0,
-        enemyDamage: 0,
-        block: 0,
-        enemyAttack: scene.combat.enemyAttack,
-        runVotes,
-        summary: summarizeCombatEscape(round),
-      });
-      outcome = 'escape';
-      break;
-    }
-
-    let totalDamage = 0;
-    let totalBlock = 0;
-    let enemyAttackDelta = 0;
-
-    actions.forEach((action) => {
-      const effect = combatActionById.get(action.actionId)?.effect;
-      if (!effect) return;
-      totalDamage += effect.damage ?? 0;
-      totalBlock += effect.block ?? 0;
-      enemyAttackDelta += effect.enemyAttackDelta ?? 0;
-    });
-
     const enemyAttack = Math.max(0, scene.combat.enemyAttack + enemyAttackDelta);
     const partyDamage = Math.max(0, enemyAttack - totalBlock);
 
-    enemyHp = Math.max(0, enemyHp - totalDamage);
     partyHp = Math.max(0, partyHp - partyDamage);
 
     roundLog.push({
@@ -500,10 +521,8 @@ function computeCombatResolution({
       summary: summarizeCombatRound(round, totalDamage, partyDamage, totalBlock, enemyAttack),
     });
 
-    if (enemyHp <= 0) {
-      outcome = 'victory';
-      break;
-    }
+    lastResolvedRound = round;
+
     if (partyHp <= 0) {
       outcome = 'defeat';
       break;

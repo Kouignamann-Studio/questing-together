@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AnimatedBarFill } from '@/components/story/animated-bar-fill';
 import { OptionId } from '@/src/story/story';
 
 type CombatRoundLog = {
@@ -51,7 +52,7 @@ export function CombatStatusCard({
       <View style={styles.healthBlock}>
         <Text style={[styles.healthLabel, isEmbedded && styles.healthLabelEmbedded]}>Party HP</Text>
         <View style={styles.healthBar}>
-          <View style={[styles.healthFill, { width: `${partyPercent * 100}%` }]} />
+          <AnimatedBarFill percent={partyPercent} style={styles.healthFill} />
         </View>
         <Text style={[styles.healthValue, isEmbedded && styles.healthValueEmbedded]}>
           {combatState.partyHp}/{combatState.partyHpMax}
@@ -61,7 +62,7 @@ export function CombatStatusCard({
       <View style={styles.healthBlock}>
         <Text style={[styles.healthLabel, isEmbedded && styles.healthLabelEmbedded]}>{combatState.enemyName}</Text>
         <View style={styles.healthBar}>
-          <View style={[styles.enemyFill, { width: `${enemyPercent * 100}%` }]} />
+          <AnimatedBarFill percent={enemyPercent} style={styles.enemyFill} />
         </View>
         <Text style={[styles.healthValue, isEmbedded && styles.healthValueEmbedded]}>
           {combatState.enemyHp}/{combatState.enemyHpMax}

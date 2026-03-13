@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AnimatedBarFill } from '@/components/story/animated-bar-fill';
+
 type PartyHpCardProps = {
   partyHp: number;
   partyHpMax: number;
@@ -14,7 +16,7 @@ export function PartyHpCard({ partyHp, partyHpMax }: PartyHpCardProps) {
     <View style={styles.card}>
       <Text style={styles.label}>Party Health</Text>
       <View style={styles.bar}>
-        <View style={[styles.fill, { width: `${percent * 100}%` }]} />
+        <AnimatedBarFill percent={percent} style={styles.fill} />
       </View>
       <Text style={styles.value}>
         {partyHp}/{partyHpMax}
