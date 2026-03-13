@@ -65,6 +65,13 @@ function withSchemaHint(message: string) {
   return message;
 }
 
+function normalizeDisplayNameErrorMessage(message: string) {
+  if (message.includes('room_players_display_name_format')) {
+    return 'Name must be 1-20 characters and cannot contain spaces.';
+  }
+  return message;
+}
+
 async function fetchRoomSnapshot(roomId: string): Promise<RoomRecord | null> {
   const { data, error } = await supabase
     .from('rooms')
@@ -293,7 +300,7 @@ export function useRoomConnection(): UseRoomConnectionResult {
         if (error) throw error;
         await refreshRoomState(room.id);
       } catch (error) {
-        setRoomError(getErrorMessage(error, 'Failed to set display name'));
+        setRoomError(normalizeDisplayNameErrorMessage(getErrorMessage(error, 'Failed to set display name')));
       } finally {
         setIsBusy(false);
       }

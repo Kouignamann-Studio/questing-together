@@ -65,7 +65,13 @@ alter table if exists public.room_players add column if not exists display_name 
 alter table public.room_players drop constraint if exists room_players_display_name_format;
 alter table public.room_players
   add constraint room_players_display_name_format
-  check (display_name is null or display_name ~ '^[^\\s]+$');
+  check (
+    display_name is null
+    or (
+      char_length(btrim(display_name)) between 1 and 20
+      and display_name !~ '[[:space:]]'
+    )
+  );
 alter table if exists public.room_messages add column if not exists scene_id text;
 
 create table if not exists public.push_subscriptions (
@@ -585,7 +591,7 @@ begin
   if v_trimmed = '' then
     raise exception 'Name cannot be empty';
   end if;
-  if v_trimmed ~ '\\s' then
+  if v_trimmed ~ '[[:space:]]' then
     raise exception 'Name cannot contain spaces';
   end if;
   if char_length(v_trimmed) > 20 then
