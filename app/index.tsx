@@ -278,6 +278,8 @@ export default function IndexScreen() {
                       visibleOptions={roomStory.visibleOptions}
                       hiddenOptionCount={roomStory.hiddenOptionCount}
                       riskyUnlockedOptionIds={roomStory.riskyUnlockedOptionIds}
+                      optionIntentByOptionId={roomStory.optionIntentByOptionId}
+                      localSelectedOption={roomStory.localSelectedOption}
                       localConfirmedOption={roomStory.localConfirmedOption}
                       voteCounts={roomStory.voteCounts}
                       confirmedVoteCount={roomStory.confirmedVoteCount}
@@ -293,6 +295,7 @@ export default function IndexScreen() {
                       timedStatusText={roomStory.timedStatusText}
                       timedAllowEarly={roomStory.timedAllowEarly}
                       timedWaitingText={roomStory.timedWaitingText}
+                      onSelectOption={roomStory.selectOption}
                       onConfirmOption={roomStory.confirmOption}
                       onContinueToNextScene={roomStory.continueToNextScene}
                       onFinishTimedScene={() => roomStory.finishTimedScene(true)}

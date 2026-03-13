@@ -42,6 +42,13 @@ type OptionConfirmPayload = {
   nextSceneId: SceneId | null;
 };
 
+type OptionSelectPayload = {
+  sceneId: SceneId;
+  stepId: string;
+  optionId: OptionId;
+  playerId: PlayerId;
+};
+
 type SceneResolvePayload = {
   sceneId: SceneId;
   optionId: OptionId;
@@ -68,6 +75,7 @@ type SceneTimerPayload = {
 };
 
 type SceneConfirmedVotes = Partial<Record<PlayerId, OptionId>>;
+type SceneSelectedVotes = Partial<Record<PlayerId, OptionId>>;
 type SceneContinuedBy = Partial<Record<PlayerId, boolean>>;
 type SceneActionsByStep = Partial<Record<string, SceneActionPayload[]>>;
 
@@ -75,6 +83,7 @@ type StoryReduction = {
   currentSceneId: SceneId;
   sceneSequence: SceneId[];
   actionsBySceneStep: Partial<Record<SceneId, SceneActionsByStep>>;
+  selectedVotesByScene: Partial<Record<SceneId, SceneSelectedVotes>>;
   confirmedVotesByScene: Partial<Record<SceneId, SceneConfirmedVotes>>;
   resolvedOptionByScene: Partial<Record<SceneId, OptionId>>;
   resolutionModeByScene: Partial<Record<SceneId, 'majority' | 'random' | 'combat' | 'timed'>>;
@@ -87,6 +96,12 @@ type SceneHistoryItem = {
   sceneTitle: string;
   optionId: OptionId;
   outcomeText: string;
+};
+
+type OptionIntent = {
+  playerId: PlayerId;
+  roleId: RoleId | null;
+  confirmed: boolean;
 };
 
 type JournalEntry =
@@ -140,7 +155,7 @@ type UseRoomStoryResult = {
   storyError: string | null;
   currentScene: Scene;
   journalEntries: JournalEntry[];
-  combatLog: Array<{ id: string; text: string }>;
+  combatLog: { id: string; text: string }[];
   combatState: CombatState | null;
   isCombatScene: boolean;
   isTimedScene: boolean;
@@ -152,13 +167,15 @@ type UseRoomStoryResult = {
   timedWaitingText: string | null;
   phaseLabel: string;
   phaseStatusText: string;
-  availableActions: Array<{ id: string; text: string; isDisabled?: boolean; hpDelta?: number; effectText?: string }>;
+  availableActions: { id: string; text: string; isDisabled?: boolean; hpDelta?: number; effectText?: string }[];
   localSelectedActionId: string | null;
   canAct: boolean;
   allowSkip: boolean;
   visibleOptions: Scene['options'];
   hiddenOptionCount: number;
   riskyUnlockedOptionIds: Set<OptionId>;
+  optionIntentByOptionId: Record<OptionId, OptionIntent[]>;
+  localSelectedOption: OptionId | null;
   localConfirmedOption: OptionId | null;
   voteCounts: Record<OptionId, number>;
   confirmedVoteCount: number;
@@ -174,6 +191,7 @@ type UseRoomStoryResult = {
   sceneHistory: SceneHistoryItem[];
   takeAction: (actionId: string) => void;
   skipAction: () => void;
+  selectOption: (optionId: OptionId) => void;
   confirmOption: (optionId: OptionId) => void;
   continueToNextScene: () => void;
   finishTimedScene: (force?: boolean) => void;
@@ -315,6 +333,23 @@ function parseOptionConfirmPayload(payload: unknown): OptionConfirmPayload | nul
     optionId: candidate.optionId,
     playerId: candidate.playerId,
     nextSceneId: (nextSceneId ?? null) as SceneId | null,
+  };
+}
+
+function parseOptionSelectPayload(payload: unknown): OptionSelectPayload | null {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const candidate = payload as Record<string, unknown>;
+  if (!isSceneId(candidate.sceneId)) return null;
+  if (typeof candidate.stepId !== 'string' || !candidate.stepId) return null;
+  if (!isOptionId(candidate.optionId)) return null;
+  if (!isPlayerId(candidate.playerId)) return null;
+
+  return {
+    sceneId: candidate.sceneId,
+    stepId: candidate.stepId,
+    optionId: candidate.optionId,
+    playerId: candidate.playerId,
   };
 }
 
@@ -520,6 +555,7 @@ function reduceStory(events: RoomEventRow[]): StoryReduction {
     currentSceneId: STORY_START_SCENE_ID,
     sceneSequence: [STORY_START_SCENE_ID],
     actionsBySceneStep: {},
+    selectedVotesByScene: {},
     confirmedVotesByScene: {},
     resolvedOptionByScene: {},
     resolutionModeByScene: {},
@@ -532,6 +568,7 @@ function reduceStory(events: RoomEventRow[]): StoryReduction {
       state.currentSceneId = STORY_START_SCENE_ID;
       state.sceneSequence = [STORY_START_SCENE_ID];
       state.actionsBySceneStep = {};
+      state.selectedVotesByScene = {};
       state.confirmedVotesByScene = {};
       state.resolvedOptionByScene = {};
       state.resolutionModeByScene = {};
@@ -561,6 +598,20 @@ function reduceStory(events: RoomEventRow[]): StoryReduction {
       return;
     }
 
+    if (event.type === 'option_select') {
+      const payload = parseOptionSelectPayload(event.payload_json);
+      if (!payload) return;
+
+      if (payload.sceneId !== state.currentSceneId) return;
+      if (state.resolvedOptionByScene[payload.sceneId]) return;
+      if (state.confirmedVotesByScene[payload.sceneId]?.[payload.playerId]) return;
+
+      const sceneSelections = state.selectedVotesByScene[payload.sceneId] ?? {};
+      sceneSelections[payload.playerId] = payload.optionId;
+      state.selectedVotesByScene[payload.sceneId] = sceneSelections;
+      return;
+    }
+
     if (event.type === 'option_confirm') {
       const payload = parseOptionConfirmPayload(event.payload_json);
       if (!payload) return;
@@ -572,6 +623,10 @@ function reduceStory(events: RoomEventRow[]): StoryReduction {
       if (sceneVotes[payload.playerId]) return;
       sceneVotes[payload.playerId] = payload.optionId;
       state.confirmedVotesByScene[payload.sceneId] = sceneVotes;
+
+      const sceneSelections = state.selectedVotesByScene[payload.sceneId] ?? {};
+      sceneSelections[payload.playerId] = payload.optionId;
+      state.selectedVotesByScene[payload.sceneId] = sceneSelections;
       return;
     }
 
@@ -1195,6 +1250,11 @@ export function useRoomStory({
   }, [visibleOptions]);
 
   const localConfirmedOption = currentVotes[localPlayerId] ?? null;
+  const currentSelectedVotes = useMemo(
+    () => reduced.selectedVotesByScene[currentScene.id] ?? {},
+    [currentScene.id, reduced.selectedVotesByScene]
+  );
+  const localSelectedOption = currentSelectedVotes[localPlayerId] ?? null;
   const voteCounts = useMemo(() => {
     const counts: Record<OptionId, number> = { A: 0, B: 0, C: 0 };
     (Object.values(currentVotes) as OptionId[]).forEach((optionId) => {
@@ -1204,6 +1264,31 @@ export function useRoomStory({
   }, [currentVotes]);
 
   const confirmedVoteCount = Object.keys(currentVotes).length;
+
+  const optionIntentByOptionId = useMemo(() => {
+    const intents: Record<OptionId, OptionIntent[]> = {
+      A: [],
+      B: [],
+      C: [],
+    };
+
+    players.forEach((player) => {
+      if (player.id === localPlayerId) return;
+
+      const confirmedOption = currentVotes[player.id];
+      const selectedOption = currentSelectedVotes[player.id];
+      const optionId = confirmedOption ?? selectedOption;
+      if (!optionId) return;
+
+      intents[optionId].push({
+        playerId: player.id,
+        roleId: playerRoleById[player.id] ?? null,
+        confirmed: Boolean(confirmedOption),
+      });
+    });
+
+    return intents;
+  }, [currentSelectedVotes, currentVotes, localPlayerId, playerRoleById]);
 
   const isStoryEnded = useMemo(() => {
     if (!currentScene.isEnding) return false;
@@ -1410,6 +1495,42 @@ export function useRoomStory({
     ]
   );
 
+  const selectOption = useCallback(
+    async (optionId: OptionId) => {
+      if (!roomId || resolvedOption || isStoryEnded || localConfirmedOption || !canVote || !currentStepId) return;
+
+      const isVisible = visibleOptions.some((option) => option.id === optionId);
+      if (!isVisible) return;
+      if (currentSelectedVotes[localPlayerId] === optionId) return;
+
+      const { error } = await supabase.rpc('story_select_option', {
+        p_room_id: roomId,
+        p_scene_id: currentScene.id,
+        p_step_id: currentStepId,
+        p_option_id: optionId,
+      });
+
+      if (error) {
+        setStoryError(error.message);
+        return;
+      }
+
+      setStoryError(null);
+    },
+    [
+      canVote,
+      currentScene.id,
+      currentSelectedVotes,
+      currentStepId,
+      isStoryEnded,
+      localConfirmedOption,
+      localPlayerId,
+      resolvedOption,
+      roomId,
+      visibleOptions,
+    ]
+  );
+
   const finishTimedScene = useCallback(
     async (force?: boolean) => {
       if (!roomId || !isTimedScene || resolvedOption) return;
@@ -1521,6 +1642,8 @@ export function useRoomStory({
     visibleOptions,
     hiddenOptionCount,
     riskyUnlockedOptionIds,
+    optionIntentByOptionId,
+    localSelectedOption,
     localConfirmedOption,
     voteCounts,
     confirmedVoteCount,
@@ -1536,6 +1659,7 @@ export function useRoomStory({
     sceneHistory,
     takeAction,
     skipAction,
+    selectOption,
     confirmOption,
     continueToNextScene,
     finishTimedScene,

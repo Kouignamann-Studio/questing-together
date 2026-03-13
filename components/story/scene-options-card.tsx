@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ChoiceIntentPortraitPlayer, ChoiceIntentPortraits } from '@/components/story/choice-intent-portraits';
 import { OptionId, SceneOption } from '@/src/story/story';
 
 type SceneOptionsCardProps = {
   visibleOptions: SceneOption[];
   hiddenOptionCount: number;
   riskyUnlockedOptionIds: Set<OptionId>;
+  optionIntentByOptionId: Record<OptionId, ChoiceIntentPortraitPlayer[]>;
+  localSelectedOption: OptionId | null;
   localConfirmedOption: OptionId | null;
   voteCounts: Record<OptionId, number>;
   confirmedVoteCount: number;
@@ -18,6 +21,7 @@ type SceneOptionsCardProps = {
   isStoryEnded: boolean;
   canVote: boolean;
   voteLockReason: string | null;
+  onSelectOption: (optionId: OptionId) => void;
   onConfirmOption: (optionId: OptionId) => void;
   onContinueToNextScene: () => void;
   onResetStory: () => void;
@@ -29,6 +33,8 @@ export function SceneOptionsCard({
   visibleOptions,
   hiddenOptionCount,
   riskyUnlockedOptionIds,
+  optionIntentByOptionId,
+  localSelectedOption,
   localConfirmedOption,
   voteCounts,
   confirmedVoteCount,
@@ -40,6 +46,7 @@ export function SceneOptionsCard({
   isStoryEnded,
   canVote,
   voteLockReason,
+  onSelectOption,
   onConfirmOption,
   onContinueToNextScene,
   onResetStory,
@@ -59,10 +66,15 @@ export function SceneOptionsCard({
       return;
     }
 
+    if (localSelectedOption) {
+      setDraftOptionId(localSelectedOption);
+      return;
+    }
+
     if (draftOptionId && !visibleOptions.some((option) => option.id === draftOptionId)) {
       setDraftOptionId(null);
     }
-  }, [draftOptionId, localConfirmedOption, resolvedOption, visibleOptions]);
+  }, [draftOptionId, localConfirmedOption, localSelectedOption, resolvedOption, visibleOptions]);
 
   const selectedOptionLabel = useMemo(() => {
     if (!draftOptionId) return '...';
@@ -97,7 +109,7 @@ export function SceneOptionsCard({
             <Text style={styles.hiddenText}>All options are now revealed.</Text>
           )}
 
-          <Text style={styles.promptText}>What do you do?</Text>
+          <Text style={styles.promptText}>Vote for the party&apos;s next move.</Text>
 
           <View style={styles.optionsList}>
             {visibleOptions.map((option) => {
@@ -105,23 +117,28 @@ export function SceneOptionsCard({
               const isResolved = resolvedOption === option.id;
               const isRisky = riskyUnlockedOptionIds.has(option.id);
               const isDisabled = Boolean(resolvedOption) || Boolean(localConfirmedOption) || !canVote;
+              const isLockedSelected = Boolean(localConfirmedOption) && localConfirmedOption === option.id;
 
               return (
                 <Pressable
                   key={option.id}
                   disabled={isDisabled}
-                  onPress={() => setDraftOptionId(option.id)}
+                  onPress={() => {
+                    setDraftOptionId(option.id);
+                    onSelectOption(option.id);
+                  }}
                   style={[
                     styles.optionButton,
                     isSelected && styles.optionButtonSelected,
                     isResolved && styles.optionButtonResolved,
-                    isDisabled && !isResolved && styles.optionButtonDisabled,
+                    isDisabled && !isResolved && !isLockedSelected && styles.optionButtonDisabled,
                   ]}>
                   <View style={styles.optionHeader}>
                     <Text style={styles.optionId}>{option.id}</Text>
                     {isRisky ? <Text style={styles.riskyBadge}>Risky</Text> : null}
                   </View>
                   <Text style={styles.optionText}>{option.text}</Text>
+                  <ChoiceIntentPortraits players={optionIntentByOptionId[option.id] ?? []} placement="bottomRight" />
                   <Text style={styles.voteCountText}>Votes: {voteCounts[option.id]}</Text>
                 </Pressable>
               );
@@ -224,12 +241,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionButton: {
+    position: 'relative',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#7a5c3a',
     backgroundColor: '#3b2a1d',
     padding: 12,
     gap: 5,
+    overflow: 'visible',
   },
   optionButtonSelected: {
     borderColor: '#d2a869',

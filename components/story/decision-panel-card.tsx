@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ChoiceIntentPortraitPlayer, ChoiceIntentPortraits } from '@/components/story/choice-intent-portraits';
 import { CombatStatusCard } from '@/components/story/combat-status-card';
 import { SceneActionsCard } from '@/components/story/scene-actions-card';
 import { SceneOptionsCard } from '@/components/story/scene-options-card';
@@ -33,7 +34,7 @@ type DecisionPanelCardProps = {
     outcome: 'victory' | 'defeat' | 'escape' | null;
     allowRun: boolean;
   } | null;
-  combatLog: Array<{ id: string; text: string }>;
+  combatLog: { id: string; text: string }[];
   phaseLabel: string;
   statusText: string;
   actions: SceneActionChoice[];
@@ -45,6 +46,8 @@ type DecisionPanelCardProps = {
   visibleOptions: SceneOption[];
   hiddenOptionCount: number;
   riskyUnlockedOptionIds: Set<OptionId>;
+  optionIntentByOptionId: Record<OptionId, ChoiceIntentPortraitPlayer[]>;
+  localSelectedOption: OptionId | null;
   localConfirmedOption: OptionId | null;
   voteCounts: Record<OptionId, number>;
   confirmedVoteCount: number;
@@ -60,6 +63,7 @@ type DecisionPanelCardProps = {
   timedStatusText: string | null;
   timedAllowEarly: boolean;
   timedWaitingText: string | null;
+  onSelectOption: (optionId: OptionId) => void;
   onConfirmOption: (optionId: OptionId) => void;
   onContinueToNextScene: () => void;
   onFinishTimedScene: () => void;
@@ -87,6 +91,8 @@ export function DecisionPanelCard({
   visibleOptions,
   hiddenOptionCount,
   riskyUnlockedOptionIds,
+  optionIntentByOptionId,
+  localSelectedOption,
   localConfirmedOption,
   voteCounts,
   confirmedVoteCount,
@@ -102,6 +108,7 @@ export function DecisionPanelCard({
   timedStatusText,
   timedAllowEarly,
   timedWaitingText,
+  onSelectOption,
   onConfirmOption,
   onContinueToNextScene,
   onFinishTimedScene,
@@ -123,10 +130,15 @@ export function DecisionPanelCard({
       return;
     }
 
+    if (localSelectedOption) {
+      setDraftOptionId(localSelectedOption);
+      return;
+    }
+
     if (draftOptionId && !visibleOptions.some((option) => option.id === draftOptionId)) {
       setDraftOptionId(null);
     }
-  }, [draftOptionId, localConfirmedOption, resolvedOption, visibleOptions]);
+  }, [draftOptionId, localConfirmedOption, localSelectedOption, resolvedOption, visibleOptions]);
 
   useEffect(() => {
     if (isTimedScene) {
@@ -232,7 +244,7 @@ export function DecisionPanelCard({
         ) : (
           <>
             <View style={styles.promptSpacer} />
-            <Text style={styles.journalPrompt}>What does your party decide?</Text>
+            <Text style={styles.journalPrompt}>Vote for the party&apos;s next move.</Text>
 
             {!canVote ? <Text style={styles.voteLockedText}>{voteLockReason ?? 'Voting locked.'}</Text> : null}
 
@@ -241,25 +253,40 @@ export function DecisionPanelCard({
                 const isSelected = option.id === draftOptionId;
                 const isResolved = resolvedOption === option.id;
                 const isDisabled = Boolean(resolvedOption) || Boolean(localConfirmedOption) || !canVote;
+                const isLockedSelected = Boolean(localConfirmedOption) && localConfirmedOption === option.id;
 
                 return (
                   <Pressable
                     key={option.id}
                     disabled={isDisabled}
-                    onPress={() => setDraftOptionId(option.id)}
+                    onPress={() => {
+                      setDraftOptionId(option.id);
+                      onSelectOption(option.id);
+                    }}
                     style={[
                       styles.textureButton,
                       isSelected && styles.textureButtonSelected,
                       isResolved && styles.textureButtonResolved,
-                      isDisabled && !isResolved && styles.textureButtonDisabled,
+                      isDisabled && !isResolved && !isLockedSelected && styles.textureButtonDisabled,
                     ]}>
                     <ImageBackground
-                      source={isDisabled ? buttonTextureDisabled : isSelected || isResolved ? buttonTextureSelected : buttonTexture}
+                      source={
+                        isSelected || isResolved
+                          ? buttonTextureSelected
+                          : isDisabled
+                            ? buttonTextureDisabled
+                            : buttonTexture
+                      }
                       style={styles.textureBg}
                       imageStyle={styles.textureImage}
                       resizeMode="stretch"
                     >
                       <Text style={styles.textureText}>{option.text}</Text>
+                      <ChoiceIntentPortraits
+                        players={optionIntentByOptionId[option.id] ?? []}
+                        size="compact"
+                        placement="topRight"
+                      />
                     </ImageBackground>
                   </Pressable>
                 );
@@ -385,6 +412,8 @@ export function DecisionPanelCard({
             visibleOptions={visibleOptions}
             hiddenOptionCount={hiddenOptionCount}
             riskyUnlockedOptionIds={riskyUnlockedOptionIds}
+            optionIntentByOptionId={optionIntentByOptionId}
+            localSelectedOption={localSelectedOption}
             localConfirmedOption={localConfirmedOption}
             voteCounts={voteCounts}
             confirmedVoteCount={confirmedVoteCount}
@@ -396,6 +425,7 @@ export function DecisionPanelCard({
             isStoryEnded={isStoryEnded}
           canVote={canVote}
           voteLockReason={voteLockReason}
+          onSelectOption={onSelectOption}
           onConfirmOption={onConfirmOption}
           onContinueToNextScene={onContinueToNextScene}
           onResetStory={onResetStory}
@@ -509,10 +539,12 @@ const styles = StyleSheet.create({
     opacity: 0.95,
   },
   textureBg: {
+    position: 'relative',
     paddingVertical: 12,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   textureImage: {
     borderRadius: 10,

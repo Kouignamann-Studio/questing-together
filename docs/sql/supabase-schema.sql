@@ -923,6 +923,138 @@ begin
 end;
 $$;
 
+create or replace function public.story_select_option(
+  p_room_id uuid,
+  p_scene_id text,
+  p_step_id text,
+  p_option_id text
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_player_id public.player_id;
+  v_room_status public.room_status;
+  v_current_scene_id text;
+  v_player_count int := 0;
+  v_action_count int := 0;
+  v_event_id bigint;
+  v_last_selected_option text;
+begin
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select r.status
+  into v_room_status
+  from public.rooms r
+  where r.id = p_room_id
+  for update;
+
+  if v_room_status is null then
+    raise exception 'Room not found';
+  end if;
+
+  if v_room_status <> 'in_progress' then
+    raise exception 'Adventure not started';
+  end if;
+
+  select rp.player_id
+  into v_player_id
+  from public.room_players rp
+  where rp.room_id = p_room_id
+    and rp.user_id = v_user_id;
+
+  if v_player_id is null then
+    raise exception 'Not a room member';
+  end if;
+
+  select count(*)
+  into v_player_count
+  from public.room_players rp
+  where rp.room_id = p_room_id;
+
+  v_current_scene_id := public.story_current_scene_id(p_room_id);
+  if p_scene_id <> v_current_scene_id then
+    raise exception 'Scene is no longer active';
+  end if;
+
+  if p_option_id not in ('A', 'B', 'C') then
+    raise exception 'Invalid option';
+  end if;
+
+  if exists (
+    select 1
+    from public.room_events re
+    where re.room_id = p_room_id
+      and re.id > public.story_last_reset_id(p_room_id)
+      and re.type = 'scene_resolve'
+      and re.payload_json->>'sceneId' = p_scene_id
+  ) then
+    return null;
+  end if;
+
+  select count(distinct re.payload_json->>'playerId')
+  into v_action_count
+  from public.room_events re
+  where re.room_id = p_room_id
+    and re.id > public.story_last_reset_id(p_room_id)
+    and re.type = 'scene_action'
+    and re.payload_json->>'sceneId' = p_scene_id
+    and re.payload_json->>'stepId' = p_step_id;
+
+  if v_action_count < v_player_count then
+    raise exception 'Waiting for all reactions before voting';
+  end if;
+
+  if exists (
+    select 1
+    from public.room_events re
+    where re.room_id = p_room_id
+      and re.id > public.story_last_reset_id(p_room_id)
+      and re.type = 'option_confirm'
+      and re.payload_json->>'sceneId' = p_scene_id
+      and re.payload_json->>'playerId' = v_player_id::text
+  ) then
+    return null;
+  end if;
+
+  select re.payload_json->>'optionId'
+  into v_last_selected_option
+  from public.room_events re
+  where re.room_id = p_room_id
+    and re.id > public.story_last_reset_id(p_room_id)
+    and re.type = 'option_select'
+    and re.payload_json->>'sceneId' = p_scene_id
+    and re.payload_json->>'playerId' = v_player_id::text
+  order by re.id desc
+  limit 1;
+
+  if v_last_selected_option = p_option_id then
+    return null;
+  end if;
+
+  insert into public.room_events (room_id, actor_user_id, type, payload_json)
+  values (
+    p_room_id,
+    v_user_id,
+    'option_select',
+    jsonb_build_object(
+      'sceneId', p_scene_id,
+      'stepId', p_step_id,
+      'optionId', p_option_id,
+      'playerId', v_player_id::text
+    )
+  )
+  returning id into v_event_id;
+
+  return v_event_id;
+end;
+$$;
+
 create or replace function public.story_confirm_option(
   p_room_id uuid,
   p_scene_id text,
@@ -1622,6 +1754,7 @@ grant execute on function public.story_set_display_name(uuid, text) to authentic
 grant execute on function public.story_set_target_player_count(uuid, int) to authenticated;
 grant execute on function public.story_start_adventure(uuid, text) to authenticated;
 grant execute on function public.story_take_action(uuid, text, text, text) to authenticated;
+grant execute on function public.story_select_option(uuid, text, text, text) to authenticated;
 grant execute on function public.story_confirm_option(uuid, text, text, text, text) to authenticated;
 grant execute on function public.story_resolve_combat(uuid, text, text, text) to authenticated;
 grant execute on function public.story_start_timer(uuid, text, text, int) to authenticated;
