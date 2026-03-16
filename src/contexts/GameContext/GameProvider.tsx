@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useAnonymousAuth } from '@/api/hooks/use-anonymous-auth';
 import { useRoomConnection } from '@/api/hooks/use-room-connection';
 import { playerNameById } from '@/constants/constants';
-import { GameContext } from '@/contexts/GameContext';
+import { GameContext } from '@/contexts/GameContext/GameContext';
 import { usePartyEmotes } from '@/hooks/usePartyEmotes';
 import { useRoomStory } from '@/hooks/useRoomStory';
 import type { PlayerId, RoleId } from '@/types/player';
