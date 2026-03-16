@@ -17,25 +17,19 @@ A cooperative multiplayer storytelling RPG built with [Expo](https://expo.dev) a
 
 2. Set up environment variables
 
-   The `.env` file is encrypted with [dotenvx](https://dotenvx.com/). To decrypt it you need the private key (`DOTENV_PRIVATE_KEY`).
+   Create a `.env` file at the project root:
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
 
-   - Get the key from a team member or your password manager
-   - Create a `.env.keys` file at the project root:
-     ```
-     DOTENV_PRIVATE_KEY="your-private-key-here"
-     ```
-   - Decrypt the `.env`:
-     ```bash
-     bun run env:decrypt
-     ```
+   Get the values from a team member or the Supabase dashboard.
 
 3. Start the app
 
    ```bash
    bun start
    ```
-
-   This automatically decrypts the env variables at runtime via dotenvx.
 
 ## Scripts
 
@@ -48,8 +42,35 @@ A cooperative multiplayer storytelling RPG built with [Expo](https://expo.dev) a
 | `bun run lint` | Lint & check with Biome |
 | `bun run lint:fix` | Auto-fix lint & format issues |
 | `bun run format` | Format all files with Biome |
-| `bun run env:decrypt` | Decrypt `.env` in place (requires `.env.keys`) |
-| `bun run env:encrypt` | Re-encrypt `.env` after editing values |
+| `bun run build:dev` | Build iOS development client (requires `expo start`) |
+| `bun run build:preview` | Build iOS preview (standalone, no server needed) |
+| `bun run update:preview` | Push an OTA update to preview builds |
+
+## Builds & distribution
+
+### Pour les devs (development build)
+
+```bash
+bun run build:dev
+```
+
+Installe l'app via le lien EAS, puis lance `expo start` sur ton Mac. L'app se connecte automatiquement au serveur de dev.
+
+### Pour les testeurs / designers (preview build)
+
+```bash
+bun run build:preview
+```
+
+App standalone qui tourne sans serveur de dev. Envoie le lien d'install aux testeurs, c'est tout.
+
+### Pusher une update (sans rebuild)
+
+```bash
+bun run update:preview
+```
+
+Met a jour l'app pour tous ceux qui ont le build preview installe. Pas besoin de refaire un build (limites a 30/mois). Seuls les changements natifs (nouveau plugin, nouvelle lib native) necessitent un rebuild.
 
 ## Project structure
 
@@ -57,8 +78,12 @@ A cooperative multiplayer storytelling RPG built with [Expo](https://expo.dev) a
 src/
   app/          # Expo Router file-based routes
   api/          # Supabase client & API hooks
-  components/   # UI components
-  features/     # Game logic, story engine & hooks
+  components/   # UI components (Card, Animated, Layout)
+  constants/    # Static data (storyConfig.json, constants)
+  features/     # Feature-specific components (lobby, combat, party, story, emote, timed)
+  hooks/        # Custom React hooks
+  types/        # TypeScript types (player, story)
+  utils/        # Utility functions & story config loader
   assets/       # Fonts, images
 supabase/
   functions/    # Supabase Edge Functions (Deno)
@@ -68,7 +93,9 @@ supabase/
 
 - **Bun** - package manager & script runner
 - **Biome** - linter & formatter (replaces ESLint + Prettier)
+- **Husky** - pre-commit hook (lint avant chaque commit)
 - **TypeScript** - strict mode
+- **EAS** - builds & OTA updates
 
 ## Multiplayer
 
@@ -79,7 +106,7 @@ supabase/
 - Each player may take at most one action per scene (or choose "no reaction").
 - Decisions: one default option visible; hidden options unlock from action outcomes.
 - Vote resolution: majority wins, random on tie, then advance scene.
-- Story content lives in `src/features/story-data.json` and is validated at runtime.
+- Story content lives in `src/constants/storyConfig.json` and is validated at runtime.
 - Branching story graph with tag-driven routing + multiple endings.
 - Optional combat scenes (shared combat actions, persistent party HP, automatic resolution).
 - Timed rest/travel scenes (server-authoritative timers, automatic advance).

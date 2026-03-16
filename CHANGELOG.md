@@ -9,6 +9,20 @@
 - Simplified `storyConfig.ts`: removed redundant aliases (`STORY_SCENES`, `STORY_START_SCENE_ID`, `SCENE_ID_SET`)
 - Renamed `STORY_DATA` to `STORY_CONFIG`
 - Split `src/components/story/` into `components/Card/` and `components/Animated/`
+- Split monolithic `index.tsx` into Expo Router route groups: `(public)/` and `(game)/`
+- Added `GameContext` to share game state across routes
+- Removed ESLint config (replaced by Biome)
+
+### Add
+- **NativeWind v5** + **Tailwind CSS v4** for utility-first styling (`className` prop)
+- **Husky** pre-commit hook (runs lint before each commit)
+- **EAS builds** configured for iOS (development + preview profiles)
+- **EAS Update** for OTA updates without rebuilding
+- `expo-updates` and `expo-dev-client` dependencies
+- `CHANGELOG.md`
+
+### Remove
+- `dotenvx` — replaced by plain `.env` (gitignored)
 
 ## 2026-03-15
 

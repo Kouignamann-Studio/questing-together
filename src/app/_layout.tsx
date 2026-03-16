@@ -1,7 +1,8 @@
+import '../../global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Asset } from 'expo-asset';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -24,6 +25,7 @@ import imgPortraitFrame from '@/assets/images/T_PortraitFrame.png';
 import imgRangerPortrait from '@/assets/images/T_RangerPortrait.png';
 import imgSagePortrait from '@/assets/images/T_SagePortrait.png';
 import imgWarriorPortrait from '@/assets/images/T_WarriorPortrait.png';
+import { GameProvider } from '@/contexts/GameContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -91,10 +93,10 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
+      <GameProvider>
+        <Slot />
+        <StatusBar style="auto" />
+      </GameProvider>
     </ThemeProvider>
   );
 }
