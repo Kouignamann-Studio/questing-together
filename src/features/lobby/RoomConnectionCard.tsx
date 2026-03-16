@@ -1,15 +1,12 @@
 import { useState } from 'react';
-import {
-  Image,
-  ImageBackground,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Image, ImageBackground, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import homeScreenArt from '@/assets/images/T_HomeScreen_Art.png';
+import homeScreenTitleFrame from '@/assets/images/T_HomeScreen_TitleFrame.png';
+import { CodeInput } from '@/components/ui/CodeInput';
+import { TexturedButton } from '@/components/ui/TexturedButton';
+import { Typography } from '@/components/ui/Typography';
+import { colors } from '@/constants/colors';
 
 type RoomConnectionCardProps = {
   isBusy: boolean;
@@ -18,17 +15,12 @@ type RoomConnectionCardProps = {
   onJoinRoom: (code: string) => void;
 };
 
-import buttonTexture from '@/assets/images/T_Button.png';
-import buttonTextureDisabled from '@/assets/images/T_Button_Disabled.png';
-import homeScreenArt from '@/assets/images/T_HomeScreen_Art.png';
-import homeScreenTitleFrame from '@/assets/images/T_HomeScreen_TitleFrame.png';
-
-export function RoomConnectionCard({
+const RoomConnectionCard = ({
   isBusy,
   errorText,
   onCreateRoom,
   onJoinRoom,
-}: RoomConnectionCardProps) {
+}: RoomConnectionCardProps) => {
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [joinCode, setJoinCode] = useState('');
@@ -54,29 +46,20 @@ export function RoomConnectionCard({
             style={[styles.titleFrameWrap, { height: titleFrameHeight, width: titleFrameWidth }]}
           >
             <Image source={homeScreenTitleFrame} style={styles.titleFrame} resizeMode="stretch" />
-            <Text style={styles.title}>À L’AVENTURE, COMPAGNONS</Text>
+            <Typography variant="title">À L'AVENTURE, COMPAGNONS</Typography>
           </View>
-          <Text style={styles.subtitle}>Multiplayer Text RPG Adventure</Text>
+          <Typography variant="subtitle">Multiplayer Text RPG Adventure</Typography>
         </View>
 
         <View style={[styles.bottomBlock, { marginBottom: actionsBottomOffset }]}>
-          <Pressable
+          <TexturedButton
             disabled={isBusy}
             onPress={onCreateRoom}
-            style={[styles.textureButtonWrap, isBusy && styles.disabled]}
-          >
-            <ImageBackground
-              source={isBusy ? buttonTextureDisabled : buttonTexture}
-              resizeMode="stretch"
-              imageStyle={styles.textureImage}
-              style={styles.textureButton}
-            >
-              <Text style={styles.textureButtonLabel}>{isBusy ? 'Working...' : 'Create Room'}</Text>
-              <Text style={styles.textureButtonHint}>Start a new party</Text>
-            </ImageBackground>
-          </Pressable>
+            label={isBusy ? 'Working...' : 'Create Room'}
+            hint="Start a new party"
+          />
 
-          <Pressable
+          <TexturedButton
             disabled={showJoinInput && !canJoin}
             onPress={() => {
               if (!showJoinInput) {
@@ -86,44 +69,24 @@ export function RoomConnectionCard({
               if (!canJoin) return;
               onJoinRoom(joinCode);
             }}
-            style={[styles.textureButtonWrap, showJoinInput && !canJoin && styles.disabled]}
-          >
-            <ImageBackground
-              source={showJoinInput && !canJoin ? buttonTextureDisabled : buttonTexture}
-              resizeMode="stretch"
-              imageStyle={styles.textureImage}
-              style={styles.textureButton}
-            >
-              <Text style={styles.textureButtonLabel}>
-                {showJoinInput ? 'Join With Code' : 'Join Room'}
-              </Text>
-              <Text style={styles.textureButtonHint}>
-                {showJoinInput
-                  ? 'Confirm to enter the selected room'
-                  : 'Enter a room code to join your party'}
-              </Text>
-            </ImageBackground>
-          </Pressable>
+            label={showJoinInput ? 'Join With Code' : 'Join Room'}
+            hint={
+              showJoinInput
+                ? 'Confirm to enter the selected room'
+                : 'Enter a room code to join your party'
+            }
+          />
 
           {showJoinInput ? (
-            <TextInput
-              value={joinCode}
-              onChangeText={(text) => setJoinCode(text.toUpperCase())}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={8}
-              placeholder="ROOM CODE"
-              placeholderTextColor="#8f7250"
-              style={styles.input}
-            />
+            <CodeInput value={joinCode} onChangeText={(text) => setJoinCode(text.toUpperCase())} />
           ) : null}
 
-          {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+          {errorText ? <Typography variant="error">{errorText}</Typography> : null}
         </View>
       </View>
     </ImageBackground>
   );
-}
+};
 
 const styles = StyleSheet.create({
   screen: {
@@ -136,7 +99,7 @@ const styles = StyleSheet.create({
   },
   overlayTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(24, 16, 12, 0.12)',
+    backgroundColor: colors.backgroundOverlay,
   },
   content: {
     flex: 1,
@@ -163,82 +126,12 @@ const styles = StyleSheet.create({
     width: undefined,
     height: undefined,
   },
-  title: {
-    fontSize: 30,
-    color: '#573505',
-    textAlign: 'center',
-    fontFamily: 'Besley',
-    fontWeight: '700',
-    letterSpacing: 0.1,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#f1ddbc',
-    textAlign: 'center',
-    fontFamily: 'Besley',
-    marginBottom: 0,
-  },
   bottomBlock: {
     width: '100%',
     alignItems: 'center',
     gap: 10,
     marginTop: 'auto',
   },
-  textureButtonWrap: {
-    width: '100%',
-    maxWidth: 420,
-  },
-  textureButton: {
-    minHeight: 66,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  textureImage: {
-    borderRadius: 10,
-  },
-  textureButtonLabel: {
-    color: '#f8f1e2',
-    fontSize: 16,
-    fontFamily: 'Besley',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  textureButtonHint: {
-    color: '#edd9b4',
-    fontSize: 9,
-    fontFamily: 'Besley',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#dec39e',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#f8f1e2',
-    backgroundColor: 'rgba(35, 24, 16, 0.62)',
-    fontSize: 17,
-    fontFamily: 'Besley',
-    textAlign: 'center',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    width: '100%',
-    maxWidth: 320,
-    marginTop: -2,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#ffcac0',
-    fontFamily: 'Besley',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
 });
+
+export { RoomConnectionCard };

@@ -1,7 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 import { useGame } from '@/contexts/GameContext';
 
-export default function PublicLayout() {
+const PublicLayout = () => {
   const game = useGame();
 
   if (!game.auth.isAuthReady) return null;
@@ -15,4 +15,6 @@ export default function PublicLayout() {
       <Stack.Screen name="index" />
     </Stack>
   );
-}
+};
+
+export default PublicLayout;

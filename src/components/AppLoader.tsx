@@ -2,31 +2,25 @@ import { Asset } from 'expo-asset';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { preloadFonts } from '@/assets/fonts';
+import { preloadImages } from '@/assets/images';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
 void SplashScreen.preventAutoHideAsync();
 
 type AppLoaderProps = {
-  fonts: Record<string, number>;
-  images: number[];
   children: ReactNode;
 };
 
-const AppLoader = ({ fonts, images, children }: AppLoaderProps) => {
-  const [fontsLoaded, fontsError] = useFonts(fonts);
+const AppLoader = ({ children }: AppLoaderProps) => {
+  const [fontsLoaded, fontsError] = useFonts(preloadFonts);
   const [imagesLoaded, setImagesLoaded] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    Asset.loadAsync(images)
+    Asset.loadAsync(preloadImages)
       .catch((error) => console.warn('Image preload failed', error))
-      .finally(() => {
-        if (!controller.signal.aborted) setImagesLoaded(true);
-      });
-
-    return () => controller.abort();
-  }, [images]);
+      .finally(() => setImagesLoaded(true));
+  }, []);
 
   const onLayoutRootView = useCallback(() => {
     void SplashScreen.hideAsync();
@@ -35,11 +29,7 @@ const AppLoader = ({ fonts, images, children }: AppLoaderProps) => {
   if (fontsError) throw fontsError;
   if (!fontsLoaded || !imagesLoaded) return null;
 
-  return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      {children}
-    </View>
-  );
+  return <ScreenContainer onLayout={onLayoutRootView}>{children}</ScreenContainer>;
 };
 
 export default AppLoader;
