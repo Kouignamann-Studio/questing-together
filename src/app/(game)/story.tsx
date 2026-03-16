@@ -1,21 +1,136 @@
 import { Redirect } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import paperTexture from '@/assets/images/T_Background_Paper.png';
-import { TiledBackground } from '@/components/layout';
+import { Stack, TiledBackground } from '@/components';
+import { colors } from '@/constants/colors';
+import { DecisionProvider } from '@/contexts/DecisionContext';
 import { useGame } from '@/contexts/GameContext';
 import { PartyEmoteOverlay } from '@/features/emote/PartyEmoteOverlay';
 import { StatusOverlay } from '@/features/party/StatusOverlay';
-import { DecisionPanelCard } from '@/features/story/DecisionPanelCard';
-import { SceneFeedCard } from '@/features/story/SceneFeedCard';
-import { StoryHeader } from '@/features/story/StoryHeader';
+import StoryHeader from '@/features/story/components/header/StoryHeader';
+import SceneFeedCard from '@/features/story/components/scene/SceneFeedCard';
+import DecisionPanelCard from '@/features/story/DecisionPanelCard';
+import type {
+  ActionState,
+  CombatData,
+  SceneState,
+  TimedData,
+  VoteState,
+} from '@/features/story/types';
 
 export default function StoryScreen() {
   const game = useGame();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const [resolvedHeaderHeight, setResolvedHeaderHeight] = useState(0);
+  const rs = game.roomStory;
+
+  const scene: SceneState = useMemo(
+    () => ({
+      isEnding: Boolean(rs.currentScene.isEnding),
+      isCombat: rs.isCombatScene,
+      isTimed: rs.isTimedScene,
+      phaseLabel: rs.phaseLabel,
+      statusText: rs.phaseStatusText,
+    }),
+    [
+      rs.currentScene.isEnding,
+      rs.isCombatScene,
+      rs.isTimedScene,
+      rs.phaseLabel,
+      rs.phaseStatusText,
+    ],
+  );
+
+  const actionState: ActionState = useMemo(
+    () => ({
+      items: rs.availableActions,
+      localSelectedId: rs.localSelectedActionId,
+      canAct: rs.canAct,
+      allowSkip: rs.allowSkip,
+      onTake: rs.takeAction,
+      onSkip: rs.skipAction,
+    }),
+    [
+      rs.availableActions,
+      rs.localSelectedActionId,
+      rs.canAct,
+      rs.allowSkip,
+      rs.takeAction,
+      rs.skipAction,
+    ],
+  );
+
+  const voteState: VoteState = useMemo(
+    () => ({
+      visibleOptions: rs.visibleOptions,
+      hiddenOptionCount: rs.hiddenOptionCount,
+      riskyUnlockedOptionIds: rs.riskyUnlockedOptionIds,
+      optionIntentByOptionId: rs.optionIntentByOptionId,
+      localSelected: rs.localSelectedOption,
+      localConfirmed: rs.localConfirmedOption,
+      voteCounts: rs.voteCounts,
+      confirmedCount: rs.confirmedVoteCount,
+      expectedPlayerCount: rs.expectedPlayerCount,
+      resolved: rs.resolvedOption,
+      resolutionMode: rs.resolutionMode,
+      localHasContinued: rs.localHasContinued,
+      continuedCount: rs.continuedCount,
+      isStoryEnded: rs.isStoryEnded,
+      canVote: rs.canVote,
+      lockReason: rs.voteLockReason,
+      onSelect: rs.selectOption,
+      onConfirm: rs.confirmOption,
+      onContinue: rs.continueToNextScene,
+    }),
+    [
+      rs.visibleOptions,
+      rs.hiddenOptionCount,
+      rs.riskyUnlockedOptionIds,
+      rs.optionIntentByOptionId,
+      rs.localSelectedOption,
+      rs.localConfirmedOption,
+      rs.voteCounts,
+      rs.confirmedVoteCount,
+      rs.expectedPlayerCount,
+      rs.resolvedOption,
+      rs.resolutionMode,
+      rs.localHasContinued,
+      rs.continuedCount,
+      rs.isStoryEnded,
+      rs.canVote,
+      rs.voteLockReason,
+      rs.selectOption,
+      rs.confirmOption,
+      rs.continueToNextScene,
+    ],
+  );
+
+  const combatData: CombatData = useMemo(
+    () => ({ state: rs.combatState, log: rs.combatLog }),
+    [rs.combatState, rs.combatLog],
+  );
+
+  const timedData: TimedData = useMemo(
+    () => ({
+      endsAt: rs.timedEndsAt,
+      durationSeconds: rs.timedDurationSeconds,
+      statusText: rs.timedStatusText,
+      allowEarly: rs.timedAllowEarly,
+      waitingText: rs.timedWaitingText,
+      onFinish: () => rs.finishTimedScene(true),
+    }),
+    [
+      rs.timedEndsAt,
+      rs.timedDurationSeconds,
+      rs.timedStatusText,
+      rs.timedAllowEarly,
+      rs.timedWaitingText,
+      rs.finishTimedScene,
+    ],
+  );
 
   if (!game.room || !game.isStoryView) {
     return <Redirect href="/(game)/lobby" />;
@@ -27,117 +142,80 @@ export default function StoryScreen() {
   const storyHeaderInsetTop = Math.max(headerMinHeight, resolvedHeaderHeight) + 16;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f4ead7' }}>
-      <TiledBackground source={paperTexture} />
-      <StoryHeader
-        headerMinHeight={headerMinHeight}
-        headerVerticalPadding={headerVerticalPadding}
-        insets={insets}
-        partyHp={game.roomStory.partyHp}
-        partyHpMax={game.roomStory.partyHpMax}
-        partyStatusRows={game.partyStatusRows}
-        hasTechAlert={game.hasTechAlert}
-        onToggleStatusPanel={() => game.setShowStatusPanel((v) => !v)}
-        onLayout={(event) => {
-          const measured = Math.ceil(event.nativeEvent.layout.height);
-          setResolvedHeaderHeight((prev) => (Math.abs(prev - measured) > 1 ? measured : prev));
-        }}
-      />
-      <ScrollView
-        contentContainerStyle={{
-          padding: 0,
-          gap: 0,
-          paddingTop: storyHeaderInsetTop,
-          paddingBottom: 140 + insets.bottom,
-          flexGrow: 1,
-        }}
-      >
-        <View style={{ gap: 0, flex: 1, width: '100%', paddingHorizontal: 0 }}>
-          <SceneFeedCard
-            fullBleed
-            sceneId={game.roomStory.currentScene.id}
-            sceneTitle={
-              game.roomStory.currentScene.journalTitle ?? game.roomStory.currentScene.title
-            }
-            persistenceScopeKey={game.roomId}
-            storyInstanceKey={game.roomStory.storyInstanceKey}
-            journalEntries={game.roomStory.journalEntries}
-            sceneHistory={game.roomStory.sceneHistory}
-            footer={
-              <DecisionPanelCard
-                embedded
-                isEndingScene={Boolean(game.roomStory.currentScene.isEnding)}
-                isCombatScene={game.roomStory.isCombatScene}
-                isTimedScene={game.roomStory.isTimedScene}
-                combatState={game.roomStory.combatState}
-                combatLog={game.roomStory.combatLog}
-                phaseLabel={game.roomStory.phaseLabel}
-                statusText={game.roomStory.phaseStatusText}
-                actions={game.roomStory.availableActions}
-                localSelectedActionId={game.roomStory.localSelectedActionId}
-                canAct={game.roomStory.canAct}
-                allowSkip={game.roomStory.allowSkip}
-                onTakeAction={game.roomStory.takeAction}
-                onSkipAction={game.roomStory.skipAction}
-                visibleOptions={game.roomStory.visibleOptions}
-                hiddenOptionCount={game.roomStory.hiddenOptionCount}
-                riskyUnlockedOptionIds={game.roomStory.riskyUnlockedOptionIds}
-                optionIntentByOptionId={game.roomStory.optionIntentByOptionId}
-                localSelectedOption={game.roomStory.localSelectedOption}
-                localConfirmedOption={game.roomStory.localConfirmedOption}
-                voteCounts={game.roomStory.voteCounts}
-                confirmedVoteCount={game.roomStory.confirmedVoteCount}
-                expectedPlayerCount={game.roomStory.expectedPlayerCount}
-                resolvedOption={game.roomStory.resolvedOption}
-                resolutionMode={game.roomStory.resolutionMode}
-                localHasContinued={game.roomStory.localHasContinued}
-                continuedCount={game.roomStory.continuedCount}
-                isStoryEnded={game.roomStory.isStoryEnded}
-                canVote={game.roomStory.canVote}
-                voteLockReason={game.roomStory.voteLockReason}
-                timedEndsAt={game.roomStory.timedEndsAt}
-                timedDurationSeconds={game.roomStory.timedDurationSeconds}
-                timedStatusText={game.roomStory.timedStatusText}
-                timedAllowEarly={game.roomStory.timedAllowEarly}
-                timedWaitingText={game.roomStory.timedWaitingText}
-                onSelectOption={game.roomStory.selectOption}
-                onConfirmOption={game.roomStory.confirmOption}
-                onContinueToNextScene={game.roomStory.continueToNextScene}
-                onFinishTimedScene={() => game.roomStory.finishTimedScene(true)}
-                onResetStory={game.roomStory.resetStory}
-                canResetStory={game.isHost}
-              />
-            }
-          />
-        </View>
-      </ScrollView>
-
-      {game.showStatusPanel ? (
-        <StatusOverlay
-          bottomInset={insets.bottom}
-          roomCode={game.room?.code ?? null}
-          roomError={game.roomConnection.roomError}
-          storyError={game.roomStory.storyError}
-          players={game.roomConnection.players}
-          localRole={game.localRole}
+    <DecisionProvider
+      scene={scene}
+      actions={actionState}
+      vote={voteState}
+      combat={combatData}
+      timed={timedData}
+      onResetStory={rs.resetStory}
+      canResetStory={game.isHost}
+      embedded
+    >
+      <Stack flex={1} style={{ backgroundColor: colors.backgroundPaper }}>
+        <TiledBackground source={paperTexture} />
+        <StoryHeader
+          headerMinHeight={headerMinHeight}
+          headerVerticalPadding={headerVerticalPadding}
+          insets={insets}
+          partyHp={rs.partyHp}
+          partyHpMax={rs.partyHpMax}
           partyStatusRows={game.partyStatusRows}
-          isHost={game.isHost}
-          isBusy={game.roomConnection.isBusy}
-          onResetStory={() => void game.roomStory.resetStory()}
-          onLeaveRoom={() => void game.roomConnection.leaveRoom()}
+          hasTechAlert={game.hasTechAlert}
+          onToggleStatusPanel={() => game.setShowStatusPanel((v) => !v)}
+          onLayout={(event) => {
+            const measured = Math.ceil(event.nativeEvent.layout.height);
+            setResolvedHeaderHeight((prev) => (Math.abs(prev - measured) > 1 ? measured : prev));
+          }}
         />
-      ) : null}
+        <ScrollView
+          contentContainerStyle={{
+            paddingTop: storyHeaderInsetTop,
+            paddingBottom: 140 + insets.bottom,
+            flexGrow: 1,
+          }}
+        >
+          <Stack flex={1} style={{ width: '100%' }}>
+            <SceneFeedCard
+              fullBleed
+              sceneId={rs.currentScene.id}
+              sceneTitle={rs.currentScene.journalTitle ?? rs.currentScene.title}
+              persistenceScopeKey={game.roomId}
+              storyInstanceKey={rs.storyInstanceKey}
+              journalEntries={rs.journalEntries}
+              sceneHistory={rs.sceneHistory}
+              footer={<DecisionPanelCard />}
+            />
+          </Stack>
+        </ScrollView>
 
-      {game.localPlayerId && game.localRole ? (
-        <PartyEmoteOverlay
-          playerLabelById={game.playerDisplayNameById}
-          playerRoleById={game.playerRoleById}
-          visibleEmotes={game.partyEmotes.visibleEmotes}
-          errorText={game.partyEmotes.emoteError}
-          onClearVisibleEmote={game.partyEmotes.clearVisibleEmote}
-          onSendEmote={game.partyEmotes.sendEmote}
-        />
-      ) : null}
-    </View>
+        {game.showStatusPanel ? (
+          <StatusOverlay
+            bottomInset={insets.bottom}
+            roomCode={game.room?.code ?? null}
+            roomError={game.roomConnection.roomError}
+            storyError={rs.storyError}
+            players={game.roomConnection.players}
+            localRole={game.localRole}
+            partyStatusRows={game.partyStatusRows}
+            isHost={game.isHost}
+            isBusy={game.roomConnection.isBusy}
+            onResetStory={() => void rs.resetStory()}
+            onLeaveRoom={() => void game.roomConnection.leaveRoom()}
+          />
+        ) : null}
+
+        {game.localPlayerId && game.localRole ? (
+          <PartyEmoteOverlay
+            playerLabelById={game.playerDisplayNameById}
+            playerRoleById={game.playerRoleById}
+            visibleEmotes={game.partyEmotes.visibleEmotes}
+            errorText={game.partyEmotes.emoteError}
+            onClearVisibleEmote={game.partyEmotes.clearVisibleEmote}
+            onSendEmote={game.partyEmotes.sendEmote}
+          />
+        ) : null}
+      </Stack>
+    </DecisionProvider>
   );
 }

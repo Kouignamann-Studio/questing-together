@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import homeScreenArt from '@/assets/images/T_HomeScreen_Art.png';
 import homeScreenTitleFrame from '@/assets/images/T_HomeScreen_TitleFrame.png';
-import { FramedTitle, Typography } from '@/components/display';
-import { CodeInput, TexturedButton } from '@/components/input';
-import { ActionGroup, BackgroundArt, ContentContainer, Stack } from '@/components/layout';
+import {
+  ActionGroup,
+  BackgroundArt,
+  CodeInput,
+  ContentContainer,
+  FramedTitle,
+  Stack,
+  TexturedButton,
+  Typography,
+} from '@/components';
 import { useHomeScreenLayout } from '@/utils/homeScreenLayout';
 
 type RoomConnectionCardProps = {

@@ -4,6 +4,7 @@ const colors = {
   backgroundPaper: '#f4ead7',
   backgroundOverlay: 'rgba(24, 16, 12, 0.12)',
   backgroundInput: 'rgba(35, 24, 16, 0.62)',
+  backgroundInputLight: '#f8efdf',
   backgroundCard: '#3b1901',
   backgroundCardTransparent: '#33160000',
 
@@ -14,19 +15,25 @@ const colors = {
   textDark: '#573505',
   textBlack: '#000000',
   textPlaceholder: '#8f7250',
+  textPlaceholderCool: '#64748b',
+  textInputDark: '#4d3625',
   textParchment: '#f4ead7',
   textParchmentDark: '#3b2a1d',
   textName: '#554011',
   textRole: '#d3c2a4',
   textRoleParchment: '#e9dcc6',
+  textOnTexture: '#f2e4ca',
+  textOnTextureSubtle: '#efdcbb',
   textStatus: '#f3e8d0',
 
   // Accents
   error: '#ffcac0',
   errorDark: '#f3b3a4',
+  errorInline: '#9c3f32',
   errorButton: '#b35b4a',
   errorButtonBg: '#f1d0c6',
   errorButtonText: '#6b2f25',
+  success: '#5f7a45',
 
   // Overlay
   backgroundOverlayPanel: 'rgba(244, 234, 215, 0.98)',
@@ -44,6 +51,7 @@ const colors = {
 
   // Borders
   borderLight: '#dec39e',
+  borderInput: '#c2a377',
   borderCard: '#6f4e2e',
   borderCardTransparent: '#c9a87a00',
   borderOverlay: '#c9a87a',
@@ -93,6 +101,40 @@ const colors = {
   emoteToastBorder: '#d4c19e',
   emoteToastName: '#d8c49f',
 
+  // Scene options
+  warningText: '#f0b872',
+  riskyBadgeBg: '#6a2a1c',
+  riskyBadgeText: '#f7d2c9',
+  optionSelectedBorder: '#d2a869',
+  optionResolvedBorder: '#8ac27a',
+  optionSelectedBg: '#4b3624',
+  confirmBg: '#6b4428',
+  confirmBorder: '#a57a4a',
+  textVoteSummary: '#c9b69a',
+  textSelected: '#e2d4ba',
+
+  // Intent
+  intentConfirmedBorder: '#ffb300',
+
+  // Tabs
+  tabBg: '#2a1d14',
+  tabBorder: '#7a5c3a',
+  tabActiveBg: '#5a3a22',
+  tabActiveBorder: '#c9a87a',
+  tabText: '#d3c2a4',
+  tabActiveText: '#f7f0df',
+
+  // Action sub-text
+  textSubAction: '#f0d6a7',
+  textPhaseLabel: '#e0bf88',
+  textDisabledAction: '#c9b69a',
+
+  // Action card
+  actionActiveBg: '#4b3624',
+  actionSelectedBg: '#5a3e27',
+  actionSelectedBorder: '#d9be8f',
+  hpNegative: '#e39b8e',
+
   // Subtitle
   subtitleLight: '#f1ddbc',
 
@@ -110,6 +152,13 @@ const colors = {
   statusOffline: '#4a2219',
   statusOfflineBorder: '#b35b4a',
   statusOfflineParchment: '#f1d0c6',
+
+  // Story feed
+  textTransition: '#7a5c39',
+  textDialogue: '#413129',
+
+  // Header
+  dotsButtonBg: 'rgba(36, 27, 19, 0.55)',
 } as const;
 
 export { colors };

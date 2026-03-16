@@ -11,14 +11,14 @@ import {
   Platform,
   ScrollView,
   type StyleProp,
-  StyleSheet,
   Text,
   type TextStyle,
   UIManager,
-  View,
 } from 'react-native';
 import dividerLarge from '@/assets/images/T_Divider_L.png';
 import dividerSmall from '@/assets/images/T_Divider_S.png';
+import { Stack, Typography } from '@/components';
+import { colors } from '@/constants/colors';
 import CombatStatusCard from '@/features/combat/CombatStatusCard';
 
 type SceneHistoryItem = {
@@ -189,8 +189,8 @@ function StoryText({
 function quoted(text: string) {
   const trimmed = text.trim();
   if (!trimmed) return text;
-  if (/^["“«]/.test(trimmed)) return text;
-  return `"${text}"`;
+  if (/^["\u201C\u00AB]/.test(trimmed)) return text;
+  return `\u201C${text}\u201D`;
 }
 
 function getEntryAnimationUnits(item: JournalEntry): { key: string; text: string }[] {
@@ -233,7 +233,7 @@ function getEntryAnimationUnits(item: JournalEntry): { key: string; text: string
   return units;
 }
 
-export function SceneFeedCard({
+const SceneFeedCard = ({
   sceneId,
   sceneTitle,
   persistenceScopeKey,
@@ -243,7 +243,7 @@ export function SceneFeedCard({
   header,
   footer,
   fullBleed = false,
-}: SceneFeedCardProps) {
+}: SceneFeedCardProps) => {
   const scrollRef = useRef<ScrollView>(null);
   const autoScrollRef = useRef(true);
   const hasInitializedScrollRef = useRef(false);
@@ -529,14 +529,60 @@ export function SceneFeedCard({
   const getStartDelay = (animationKey: string) => animationPlan.delays.get(animationKey) ?? 0;
 
   return (
-    <View style={[styles.card, fullBleed && styles.cardFull]}>
-      <View style={[styles.bookSheet, fullBleed && styles.bookSheetFull]}>
-        {header ? <View style={styles.headerBlock}>{header}</View> : null}
-        <Text style={styles.sectionTitle}>{`*${sceneTitle ?? 'Scene'}*`}</Text>
+    <Stack
+      gap={10}
+      flex={1}
+      style={[
+        {
+          backgroundColor: colors.backgroundCombatCard,
+          borderRadius: 12,
+          padding: 10,
+          borderWidth: 1,
+          borderColor: colors.borderCard,
+        },
+        fullBleed && {
+          backgroundColor: 'transparent',
+          borderWidth: 0,
+          padding: 0,
+        },
+      ]}
+    >
+      <Stack
+        gap={12}
+        flex={1}
+        style={[
+          {
+            backgroundColor: colors.backgroundPaper,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.borderOverlay,
+            padding: 14,
+          },
+          fullBleed && {
+            borderRadius: 0,
+            borderWidth: 0,
+            backgroundColor: 'transparent',
+          },
+        ]}
+      >
+        {header ? <Stack gap={12}>{header}</Stack> : null}
+        <Typography
+          variant="caption"
+          style={{
+            fontWeight: '400',
+            color: colors.combatTitleEmbedded,
+            letterSpacing: 0.6,
+            fontStyle: 'italic',
+            textAlign: 'center',
+            marginTop: 32,
+          }}
+        >
+          {`*${sceneTitle ?? 'Scene'}*`}
+        </Typography>
         <ScrollView
           ref={scrollRef}
-          style={styles.journalScroll}
-          contentContainerStyle={styles.journalBlock}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: 12, paddingTop: 4, paddingBottom: 4 }}
           nestedScrollEnabled
           onLayout={(event) => {
             scrollMetricsRef.current.layoutHeight = event.nativeEvent.layout.height;
@@ -594,33 +640,56 @@ export function SceneFeedCard({
 
                 if (item.kind === 'transition') {
                   return (
-                    <View key={item.id} style={styles.transitionWrap}>
+                    <Stack key={item.id} gap={6} align="center" style={{ paddingVertical: 6 }}>
                       <StoryText
                         text={item.text}
-                        style={styles.transitionText}
+                        style={{
+                          fontSize: 12,
+                          paddingTop: 4,
+                          paddingBottom: 4,
+                          fontStyle: 'italic',
+                          color: colors.textTransition,
+                          textAlign: 'center',
+                          fontFamily: 'Besley',
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-transition`)}
                       />
-                    </View>
+                    </Stack>
                   );
                 }
 
                 if (item.kind === 'narration') {
                   return (
-                    <View key={item.id} style={styles.narrativeParagraph}>
+                    <Stack
+                      key={item.id}
+                      style={{
+                        borderLeftWidth: 0,
+                        borderLeftColor: colors.combatTitleEmbedded,
+                        paddingLeft: 28,
+                        paddingRight: 28,
+                        paddingVertical: 24,
+                      }}
+                    >
                       <StoryText
                         text={item.text}
-                        style={styles.narrativeText}
+                        style={{
+                          fontSize: 17,
+                          lineHeight: 32,
+                          color: colors.combatTitleEmbedded,
+                          fontFamily: 'Besley',
+                          fontWeight: '500',
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-narration`)}
                       />
-                    </View>
+                    </Stack>
                   );
                 }
 
                 if (item.kind === 'combat_summary') {
                   return (
-                    <View key={item.id} style={styles.combatSummaryWrap}>
+                    <Stack key={item.id} style={{ marginLeft: 28, marginTop: 6, marginBottom: 6 }}>
                       <CombatStatusCard
                         combatState={item.combatState}
                         combatLog={item.combatLog}
@@ -628,57 +697,116 @@ export function SceneFeedCard({
                         showResolutionStatus={false}
                         embedded
                       />
-                    </View>
+                    </Stack>
                   );
                 }
 
                 if (item.kind === 'npc') {
                   return (
-                    <View key={item.id} style={[styles.dialogueWrap, styles.dialogueNpc]}>
+                    <Stack key={item.id} gap={12} style={{ marginLeft: 28 }}>
                       <StoryText
                         text={item.speaker}
-                        style={styles.dialogueSpeaker}
+                        style={{
+                          fontSize: 14,
+                          fontWeight: '600',
+                          color: colors.combatTitleEmbedded,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.6,
+                          fontFamily: 'Besley',
+                          marginTop: 12,
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-speaker`)}
                       />
                       {item.aside ? (
                         <StoryText
                           text={item.aside}
-                          style={styles.dialogueAside}
+                          style={{
+                            fontSize: 16,
+                            fontWeight: '400',
+                            lineHeight: 20,
+                            color: colors.textDialogue,
+                            fontStyle: 'italic',
+                            fontFamily: 'Besley',
+                            marginTop: 4,
+                            marginBottom: 12,
+                          }}
                           animate={shouldAnimate}
                           startDelay={getStartDelay(`${item.id}-aside`)}
                         />
                       ) : null}
                       <StoryText
                         text={quoted(item.text)}
-                        style={styles.dialogueLine}
+                        style={{
+                          fontSize: 16,
+                          lineHeight: 20,
+                          color: colors.textDialogue,
+                          fontFamily: 'Besley',
+                          fontWeight: '400',
+                          fontStyle: 'italic',
+                          marginTop: 4,
+                          marginBottom: 12,
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-line`)}
                       />
                       {item.narration ? (
                         <StoryText
                           text={item.narration}
-                          style={styles.actionNarration}
+                          style={{
+                            marginTop: 6,
+                            fontSize: 17,
+                            lineHeight: 26,
+                            color: colors.textDialogue,
+                            fontFamily: 'Besley',
+                            fontWeight: '500',
+                          }}
                           animate={shouldAnimate}
                           startDelay={getStartDelay(`${item.id}-narration`)}
                         />
                       ) : null}
-                    </View>
+                    </Stack>
                   );
                 }
 
                 return (
-                  <View key={item.id} style={[styles.dialogueWrap, styles.dialoguePlayer]}>
+                  <Stack key={item.id} gap={12} style={{ marginLeft: 28 }}>
                     <Image
                       source={dividerSmall}
-                      style={styles.actionDivider}
+                      style={{
+                        width: '50%',
+                        alignSelf: 'center',
+                        aspectRatio: 400 / 22,
+                        opacity: 0.75,
+                        marginVertical: 2,
+                      }}
                       resizeMode="contain"
                     />
-                    <Text style={styles.dialogueSpeaker}>{item.speaker}</Text>
+                    <Typography
+                      variant="body"
+                      style={{
+                        fontWeight: '600',
+                        color: colors.combatTitleEmbedded,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.6,
+                        marginTop: 12,
+                      }}
+                    >
+                      {item.speaker}
+                    </Typography>
                     {item.stage ? (
                       <StoryText
                         text={item.stage}
-                        style={styles.dialogueAside}
+                        style={{
+                          fontSize: 16,
+                          fontWeight: '400',
+                          lineHeight: 20,
+                          color: colors.textDialogue,
+                          fontStyle: 'italic',
+                          fontFamily: 'Besley',
+                          marginTop: 4,
+                          marginBottom: 12,
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-stage`)}
                       />
@@ -687,7 +815,16 @@ export function SceneFeedCard({
                       <StoryText
                         key={`${item.id}-line-${lineIndex}`}
                         text={quoted(line)}
-                        style={styles.dialogueLine}
+                        style={{
+                          fontSize: 16,
+                          lineHeight: 20,
+                          color: colors.textDialogue,
+                          fontFamily: 'Besley',
+                          fontWeight: '400',
+                          fontStyle: 'italic',
+                          marginTop: 4,
+                          marginBottom: 12,
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-line-${lineIndex}`)}
                       />
@@ -695,170 +832,36 @@ export function SceneFeedCard({
                     {item.narration ? (
                       <StoryText
                         text={item.narration}
-                        style={styles.actionNarration}
+                        style={{
+                          marginTop: 6,
+                          fontSize: 17,
+                          lineHeight: 26,
+                          color: colors.textDialogue,
+                          fontFamily: 'Besley',
+                          fontWeight: '500',
+                        }}
                         animate={shouldAnimate}
                         startDelay={getStartDelay(`${item.id}-narration`)}
                       />
                     ) : null}
-                  </View>
+                  </Stack>
                 );
               })
             : null}
         </ScrollView>
         {footer && isSeenStateReady ? (
-          <Animated.View style={[styles.journalFooter, { opacity: footerOpacity }]}>
-            <Image source={dividerLarge} style={styles.journalDivider} resizeMode="contain" />
+          <Animated.View style={{ marginTop: 6, gap: 10, opacity: footerOpacity }}>
+            <Image
+              source={dividerLarge}
+              style={{ width: '100%', aspectRatio: 400 / 22, alignSelf: 'center' }}
+              resizeMode="contain"
+            />
             {footer}
           </Animated.View>
         ) : null}
-      </View>
-    </View>
+      </Stack>
+    </Stack>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#2a1d14',
-    borderRadius: 12,
-    padding: 10,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#6f4e2e',
-    flex: 1,
-  },
-  cardFull: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    padding: 0,
-  },
-  bookSheet: {
-    backgroundColor: '#f4ead7',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#c9a87a',
-    padding: 14,
-    gap: 12,
-    flex: 1,
-  },
-  bookSheetFull: {
-    borderRadius: 0,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-  },
-  headerBlock: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#47332a',
-    letterSpacing: 0.6,
-    fontFamily: 'Besley',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  narrativeParagraph: {
-    borderLeftWidth: 0,
-    borderLeftColor: '#47332a',
-    paddingLeft: 28,
-    paddingRight: 28,
-    paddingVertical: 24,
-  },
-  narrativeText: {
-    fontSize: 17,
-    lineHeight: 32,
-    color: '#47332a',
-    fontFamily: 'Besley',
-    fontWeight: '500',
-  },
-  journalScroll: {
-    flex: 1,
-  },
-  journalBlock: {
-    gap: 12,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  transitionWrap: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    gap: 6,
-  },
-  transitionText: {
-    fontSize: 12,
-    paddingTop: 4,
-    paddingBottom: 4,
-    fontStyle: 'italic',
-    color: '#7a5c39',
-    textAlign: 'center',
-    fontFamily: 'Besley',
-  },
-  dialogueWrap: {
-    gap: 12,
-  },
-  dialogueNpc: {
-    marginLeft: 28,
-  },
-  dialoguePlayer: {
-    marginLeft: 28,
-  },
-  combatSummaryWrap: {
-    marginLeft: 28,
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  dialogueSpeaker: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#47332a',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontFamily: 'Besley',
-    marginTop: 12,
-  },
-  dialogueAside: {
-    fontSize: 16,
-    fontWeight: '400',
-    lineHeight: 20,
-    color: '#413129',
-    fontStyle: 'italic',
-    fontFamily: 'Besley',
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  dialogueLine: {
-    fontSize: 16,
-    lineHeight: 20,
-    color: '#413129',
-    fontFamily: 'Besley',
-    fontWeight: '400',
-    fontStyle: 'italic',
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  actionNarration: {
-    marginTop: 6,
-    fontSize: 17,
-    lineHeight: 26,
-    color: '#413129',
-    fontFamily: 'Besley',
-    fontWeight: '500',
-  },
-  journalFooter: {
-    marginTop: 6,
-    gap: 10,
-  },
-  journalDivider: {
-    width: '100%',
-    aspectRatio: 400 / 22,
-    alignSelf: 'center',
-  },
-  actionDivider: {
-    width: '50%',
-    alignSelf: 'center',
-    aspectRatio: 400 / 22,
-    opacity: 0.75,
-    marginVertical: 2,
-  },
-});
+export default SceneFeedCard;

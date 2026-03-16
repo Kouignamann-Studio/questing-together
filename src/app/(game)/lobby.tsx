@@ -1,13 +1,14 @@
 import { Redirect } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import paperTexture from '@/assets/images/T_Background_Paper.png';
-import { TiledBackground } from '@/components/layout';
+import { PillButton, Stack, TiledBackground, Typography } from '@/components';
+import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
-import { LobbyView } from '@/features/lobby/LobbyView';
+import LobbyView from '@/features/lobby/LobbyView';
 import type { RoleId } from '@/types/player';
 
-export default function LobbyScreen() {
+const LobbyScreen = () => {
   const game = useGame();
   const insets = useSafeAreaInsets();
 
@@ -19,24 +20,22 @@ export default function LobbyScreen() {
 
   if (!game.roomStory.isReady) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: '#f4ead7',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
+      <Stack
+        flex={1}
+        align="center"
+        justify="center"
+        style={{ backgroundColor: colors.backgroundPaper }}
       >
         <TiledBackground source={paperTexture} />
-        <Text style={{ fontSize: 14, color: '#d0c0a6', fontFamily: 'Besley' }}>
+        <Typography variant="body" style={{ fontSize: 14, color: colors.textSecondary }}>
           Syncing room state...
-        </Text>
-      </View>
+        </Typography>
+      </Stack>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f4ead7' }}>
+    <Stack flex={1} style={{ backgroundColor: colors.backgroundPaper }}>
       <TiledBackground source={paperTexture} />
       <ScrollView
         contentContainerStyle={{
@@ -48,14 +47,14 @@ export default function LobbyScreen() {
         }}
       >
         {game.roomConnection.roomError ? (
-          <Text style={{ fontSize: 13, color: '#f3b3a4' }}>
+          <Typography variant="error" style={{ fontSize: 13, color: colors.errorDark }}>
             Room error: {game.roomConnection.roomError}
-          </Text>
+          </Typography>
         ) : null}
         {game.roomStory.storyError ? (
-          <Text style={{ fontSize: 13, color: '#f3b3a4' }}>
+          <Typography variant="error" style={{ fontSize: 13, color: colors.errorDark }}>
             Story sync error: {game.roomStory.storyError}
-          </Text>
+          </Typography>
         ) : null}
 
         {game.isLobby ? (
@@ -78,40 +77,29 @@ export default function LobbyScreen() {
             onLeaveRoom={() => void game.roomConnection.leaveRoom()}
           />
         ) : !game.localPlayerId ? (
-          <Text style={{ fontSize: 14, color: '#d0c0a6', fontFamily: 'Besley' }}>
+          <Typography variant="body" style={{ fontSize: 14, color: colors.textSecondary }}>
             Syncing your player slot...
-          </Text>
+          </Typography>
         ) : !game.isAdventureStarted || !game.localRole ? (
           <>
-            <Text style={{ fontSize: 14, color: '#d0c0a6', fontFamily: 'Besley' }}>
+            <Typography variant="body" style={{ fontSize: 14, color: colors.textSecondary }}>
               {!game.isAdventureStarted
                 ? 'Waiting for adventure to start...'
                 : 'This room is in progress but your role is not assigned.'}
-            </Text>
-            <View style={{ marginTop: -4, flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <Pressable
+            </Typography>
+            <Stack direction="row" justify="flex-end" style={{ marginTop: -4 }}>
+              <PillButton
+                label={game.roomConnection.isBusy ? 'Leaving...' : 'Leave Room'}
+                variant="danger"
                 disabled={game.roomConnection.isBusy}
                 onPress={() => void game.roomConnection.leaveRoom()}
-                style={[
-                  {
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: '#b35b4a',
-                    backgroundColor: '#f1d0c6',
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                  },
-                  game.roomConnection.isBusy && { opacity: 0.5 },
-                ]}
-              >
-                <Text style={{ color: '#6b2f25', fontSize: 12, fontWeight: '700' }}>
-                  {game.roomConnection.isBusy ? 'Leaving...' : 'Leave Room'}
-                </Text>
-              </Pressable>
-            </View>
+              />
+            </Stack>
           </>
         ) : null}
       </ScrollView>
-    </View>
+    </Stack>
   );
-}
+};
+
+export default LobbyScreen;

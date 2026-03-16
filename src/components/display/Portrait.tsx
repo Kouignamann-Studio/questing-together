@@ -1,6 +1,8 @@
-import { Image, type ImageSourcePropType, View, type ViewStyle } from 'react-native';
+import { Image, type ImageSourcePropType, type ViewStyle } from 'react-native';
 import portraitFrame from '@/assets/images/T_PortraitFrame.png';
 import Typography from '@/components/display/Typography';
+import Stack from '@/components/layout/Stack';
+import { colors } from '@/constants/colors';
 
 type PortraitProps = {
   source: ImageSourcePropType;
@@ -8,6 +10,7 @@ type PortraitProps = {
   size?: number;
   nameColor?: string;
   nameFontSize?: number;
+  highlighted?: boolean;
   style?: ViewStyle;
 };
 
@@ -17,18 +20,29 @@ const Portrait = ({
   size = 84,
   nameColor,
   nameFontSize = 16,
+  highlighted = false,
   style,
 }: PortraitProps) => {
   return (
-    <View style={[{ alignItems: 'center' }, style]}>
-      <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <Stack align="center" style={style}>
+      <Stack
+        align="center"
+        justify="center"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 999,
+          borderWidth: highlighted ? 1.5 : 0,
+          borderColor: highlighted ? colors.intentConfirmedBorder : 'transparent',
+        }}
+      >
         <Image source={portraitFrame} style={{ width: '100%', height: '100%' }} />
         <Image
           source={source}
           resizeMode="contain"
           style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 2 }}
         />
-      </View>
+      </Stack>
       {name ? (
         <Typography
           variant="body"
@@ -37,7 +51,7 @@ const Portrait = ({
           {name}
         </Typography>
       ) : null}
-    </View>
+    </Stack>
   );
 };
 
