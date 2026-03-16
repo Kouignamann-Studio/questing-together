@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { AnimatedBarFill } from '@/components';
+import { AnimatedBarFill } from '@/components/display';
 
 type PartyHpCardProps = {
   partyHp: number;

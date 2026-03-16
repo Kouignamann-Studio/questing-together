@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AnimatedBarFill } from '@/components';
+import { AnimatedBarFill } from '@/components/display';
 
 type TimedStatusCardProps = {
   label: string;

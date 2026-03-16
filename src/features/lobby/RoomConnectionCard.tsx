@@ -2,14 +2,9 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import homeScreenArt from '@/assets/images/T_HomeScreen_Art.png';
 import homeScreenTitleFrame from '@/assets/images/T_HomeScreen_TitleFrame.png';
-import {
-  BackgroundArt,
-  CodeInput,
-  ContentContainer,
-  FramedTitle,
-  TexturedButton,
-  Typography,
-} from '@/components';
+import { FramedTitle, Typography } from '@/components/display';
+import { CodeInput, TexturedButton } from '@/components/input';
+import { ActionGroup, BackgroundArt, ContentContainer } from '@/components/layout';
 import { useHomeScreenLayout } from '@/utils/homeScreenLayout';
 
 type RoomConnectionCardProps = {
@@ -43,25 +38,18 @@ const RoomConnectionCard = ({
       style={{ minHeight, marginTop: -insets.top, marginBottom: -insets.bottom }}
     >
       <ContentContainer>
-        <View style={{ width: '100%', alignItems: 'center', gap: 8, marginTop: titleTopOffset }}>
+        <View style={{ width: '100%', alignItems: 'center', gap: 16, marginTop: titleTopOffset }}>
           <FramedTitle
             source={homeScreenTitleFrame}
             style={{ height: titleFrameHeight, width: titleFrameWidth, marginTop: 2 }}
           >
-            <Typography variant="title">À L'AVENTURE, COMPAGNONS</Typography>
+            <Typography variant="title">À L'AVENTURE,</Typography>
+            <Typography variant="title">COMPAGNONS</Typography>
           </FramedTitle>
           <Typography variant="subtitle">Multiplayer Text RPG Adventure</Typography>
         </View>
 
-        <View
-          style={{
-            width: '100%',
-            alignItems: 'center',
-            gap: 10,
-            marginTop: 'auto',
-            marginBottom: actionsBottomOffset,
-          }}
-        >
+        <ActionGroup style={{ marginBottom: actionsBottomOffset }}>
           <TexturedButton
             disabled={isBusy}
             onPress={onCreateRoom}
@@ -92,10 +80,10 @@ const RoomConnectionCard = ({
           ) : null}
 
           {errorText ? <Typography variant="error">{errorText}</Typography> : null}
-        </View>
+        </ActionGroup>
       </ContentContainer>
     </BackgroundArt>
   );
 };
 
-export { RoomConnectionCard };
+export default RoomConnectionCard;

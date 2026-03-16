@@ -1,9 +1,8 @@
 import { Image, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
-
 import headerTexture from '@/assets/images/T_Background_Header.png';
 import headerBorderTexture from '@/assets/images/T_HeaderBorder.png';
-import { PartyTopBar } from '@/features/party/PartyTopBar';
+import PartyTopBar from '@/features/party/PartyTopBar';
 import type { PartyStatusRow } from '@/utils/buildPartyStatusRows';
 
 type StoryHeaderProps = {

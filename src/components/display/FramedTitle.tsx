@@ -1,14 +1,20 @@
+import type { ReactNode } from 'react';
 import { Image, type ImageSourcePropType, StyleSheet, View, type ViewStyle } from 'react-native';
 
 type FramedTitleProps = {
   source: ImageSourcePropType;
   style?: ViewStyle;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 const FramedTitle = ({ source, style, children }: FramedTitleProps) => {
   return (
-    <View style={[{ alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }, style]}>
+    <View
+      style={[
+        { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', paddingBottom: 8 },
+        style,
+      ]}
+    >
       <Image
         source={source}
         resizeMode="stretch"

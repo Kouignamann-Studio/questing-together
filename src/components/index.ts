@@ -1,9 +1,3 @@
-export { default as AnimatedBarFill } from './display/AnimatedBarFill';
-export { default as FramedTitle } from './display/FramedTitle';
-export { default as Typography } from './display/Typography';
-export { default as CodeInput } from './input/CodeInput';
-export { default as TexturedButton } from './input/TexturedButton';
-export { default as BackgroundArt } from './layout/BackgroundArt';
-export { default as ContentContainer } from './layout/ContentContainer';
-export { default as ScreenContainer } from './layout/ScreenContainer';
-export { default as TiledBackground } from './layout/TiledBackground';
+export * from '@/components/display';
+export * from '@/components/input';
+export * from '@/components/layout';

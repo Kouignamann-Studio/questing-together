@@ -28,10 +28,32 @@ const colors = {
   errorButtonBg: '#f1d0c6',
   errorButtonText: '#6b2f25',
 
+  // Overlay
+  backgroundOverlayPanel: 'rgba(244, 234, 215, 0.98)',
+  textOverlayHeading: '#4b3420',
+  textOverlayBody: '#6f4e2e',
+  textOverlayAccent: '#6b4a2a',
+
+  // Pill buttons
+  pillDefaultBg: '#f2e3c7',
+  pillDefaultBorder: '#8a6a3a',
+  pillDefaultText: '#5a4028',
+  pillDangerBg: '#f1d0c6',
+  pillDangerBorder: '#b35b4a',
+  pillDangerText: '#6b2f25',
+
   // Borders
   borderLight: '#dec39e',
   borderCard: '#6f4e2e',
   borderCardTransparent: '#c9a87a00',
+  borderOverlay: '#c9a87a',
+
+  // Top bar
+  backgroundTopBar: '#3b2a1d',
+  backgroundTopBarParchment: '#f0e2c9',
+  textAvatarName: '#f3e8d0',
+  textAvatarNameParchment: '#5f4325',
+  hpFill: 'rgba(43, 120, 50, 0.30)',
 
   // Subtitle
   subtitleLight: '#f1ddbc',

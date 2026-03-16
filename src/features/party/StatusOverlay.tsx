@@ -1,4 +1,7 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { Typography } from '@/components/display';
+import { PillButton } from '@/components/input';
+import { colors } from '@/constants/colors';
 import { roles } from '@/constants/constants';
 import PartyStatusCard from '@/features/party/PartyStatusCard';
 import type { PlayerId, RoleId } from '@/types/player';
@@ -32,117 +35,74 @@ export function StatusOverlay({
   onLeaveRoom,
 }: StatusOverlayProps) {
   return (
-    <View style={[styles.roomStatusOverlay, { bottom: 24 + bottomInset }]}>
-      <ScrollView
-        style={styles.roomStatusScroll}
-        contentContainerStyle={styles.roomStatusScrollContent}
-      >
-        {roomError ? <Text style={styles.errorText}>Room error: {roomError}</Text> : null}
-        {storyError ? <Text style={styles.errorText}>Story sync error: {storyError}</Text> : null}
-        {roomCode ? <Text style={styles.roomBanner}>Room code: {roomCode}</Text> : null}
+    <View
+      style={{
+        position: 'absolute',
+        left: 12,
+        right: 12,
+        bottom: 24 + bottomInset,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.borderOverlay,
+        backgroundColor: colors.backgroundOverlayPanel,
+        padding: 12,
+        shadowColor: colors.textBlack,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 14,
+      }}
+    >
+      <ScrollView style={{ maxHeight: 280 }} contentContainerStyle={{ gap: 8 }}>
+        {roomError ? (
+          <Typography variant="error" style={{ fontSize: 13, color: colors.errorDark }}>
+            Room error: {roomError}
+          </Typography>
+        ) : null}
+        {storyError ? (
+          <Typography variant="error" style={{ fontSize: 13, color: colors.errorDark }}>
+            Story sync error: {storyError}
+          </Typography>
+        ) : null}
+        {roomCode ? (
+          <Typography
+            variant="body"
+            style={{ fontSize: 13, fontWeight: '700', color: colors.textOverlayHeading }}
+          >
+            Room code: {roomCode}
+          </Typography>
+        ) : null}
         {players.length ? (
-          <Text style={styles.roomPlayersLine}>
+          <Typography
+            variant="body"
+            style={{ marginTop: -6, fontSize: 12, color: colors.textOverlayBody }}
+          >
             Players: {players.map((p) => p.display_name || p.player_id).join(', ')}
-          </Text>
+          </Typography>
         ) : null}
         {localRole ? (
-          <Text style={styles.characterLine}>
+          <Typography
+            variant="body"
+            style={{
+              marginTop: -6,
+              fontSize: 12,
+              fontWeight: '700',
+              color: colors.textOverlayAccent,
+            }}
+          >
             You are {roles.find((r) => r.id === localRole)?.label ?? localRole}.
-          </Text>
+          </Typography>
         ) : null}
         <PartyStatusCard title="Party Status" rows={partyStatusRows} variant="parchment" />
-        <View style={styles.roomControls}>
-          {isHost ? (
-            <Pressable onPress={onResetStory} style={styles.resetStoryButton}>
-              <Text style={styles.resetStoryButtonText}>Restart Adventure</Text>
-            </Pressable>
-          ) : null}
-          <Pressable
+        <View style={{ marginTop: -4, flexDirection: 'row', justifyContent: 'flex-end' }}>
+          {isHost ? <PillButton label="Restart Adventure" onPress={onResetStory} /> : null}
+          <PillButton
+            label={isBusy ? 'Leaving...' : 'Leave Room'}
+            variant="danger"
             disabled={isBusy}
             onPress={onLeaveRoom}
-            style={[styles.leaveRoomButton, isBusy && styles.leaveRoomButtonDisabled]}
-          >
-            <Text style={styles.leaveRoomButtonText}>{isBusy ? 'Leaving...' : 'Leave Room'}</Text>
-          </Pressable>
+          />
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  roomStatusOverlay: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#c9a87a',
-    backgroundColor: 'rgba(244, 234, 215, 0.98)',
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-  },
-  roomStatusScroll: {
-    maxHeight: 280,
-  },
-  roomStatusScrollContent: {
-    gap: 8,
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#f3b3a4',
-  },
-  roomBanner: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#4b3420',
-  },
-  roomPlayersLine: {
-    marginTop: -6,
-    fontSize: 12,
-    color: '#6f4e2e',
-  },
-  characterLine: {
-    marginTop: -6,
-    fontSize: 12,
-    color: '#6b4a2a',
-    fontWeight: '700',
-  },
-  roomControls: {
-    marginTop: -4,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  leaveRoomButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#b35b4a',
-    backgroundColor: '#f1d0c6',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  leaveRoomButtonDisabled: {
-    opacity: 0.5,
-  },
-  leaveRoomButtonText: {
-    color: '#6b2f25',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  resetStoryButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#8a6a3a',
-    backgroundColor: '#f2e3c7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  resetStoryButtonText: {
-    color: '#5a4028',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-});

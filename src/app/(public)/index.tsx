@@ -1,6 +1,7 @@
-import { ScreenContainer, Typography } from '@/components';
+import { Typography } from '@/components/display';
+import { ScreenContainer } from '@/components/layout';
 import { useGame } from '@/contexts/GameContext';
-import { RoomConnectionCard } from '@/features/lobby/RoomConnectionCard';
+import RoomConnectionCard from '@/features/lobby/RoomConnectionCard';
 
 const HomeScreen = () => {
   const game = useGame();
