@@ -7,6 +7,7 @@ const colors = {
   backgroundInputLight: '#f8efdf',
   backgroundCard: '#3b1901',
   backgroundCardTransparent: '#33160000',
+  backgroundDisabled: '#ede6da',
 
   // Text
   textPrimary: '#f8f1e2',
@@ -16,6 +17,7 @@ const colors = {
   textBlack: '#000000',
   textPlaceholder: '#8f7250',
   textPlaceholderCool: '#64748b',
+  textDisabled: '#a89880',
   textInputDark: '#4d3625',
   textParchment: '#f4ead7',
   textParchmentDark: '#3b2a1d',

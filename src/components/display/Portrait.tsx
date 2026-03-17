@@ -11,6 +11,7 @@ type PortraitProps = {
   nameColor?: string;
   nameFontSize?: number;
   highlighted?: boolean;
+  highlightColor?: string;
   style?: ViewStyle;
 };
 
@@ -21,6 +22,7 @@ const Portrait = ({
   nameColor,
   nameFontSize = 16,
   highlighted = false,
+  highlightColor,
   style,
 }: PortraitProps) => {
   return (
@@ -33,7 +35,9 @@ const Portrait = ({
           height: size,
           borderRadius: 999,
           borderWidth: highlighted ? 1.5 : 0,
-          borderColor: highlighted ? colors.intentConfirmedBorder : 'transparent',
+          borderColor: highlighted
+            ? (highlightColor ?? colors.intentConfirmedBorder)
+            : 'transparent',
         }}
       >
         <Image source={portraitFrame} style={{ width: '100%', height: '100%' }} />

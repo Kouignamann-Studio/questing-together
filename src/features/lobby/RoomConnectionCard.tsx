@@ -59,6 +59,7 @@ const RoomConnectionCard = ({
 
         <ActionGroup style={{ marginBottom: actionsBottomOffset }}>
           <Button
+            size="lg"
             disabled={isBusy}
             onPress={onCreateRoom}
             label={isBusy ? 'Working...' : 'Create Room'}
@@ -66,6 +67,7 @@ const RoomConnectionCard = ({
           />
 
           <Button
+            size="lg"
             disabled={showJoinInput && !canJoin}
             onPress={() => {
               if (!showJoinInput) {
