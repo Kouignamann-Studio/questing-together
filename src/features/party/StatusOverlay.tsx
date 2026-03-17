@@ -1,46 +1,25 @@
 import { ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '@/components/display';
 import { PillButton } from '@/components/input';
 import { colors } from '@/constants/colors';
 import { roles } from '@/constants/constants';
+import { useGame } from '@/contexts/GameContext';
 import PartyStatusCard from '@/features/party/PartyStatusCard';
-import type { PlayerId, RoleId } from '@/types/player';
-import type { PartyStatusRow } from '@/utils/buildPartyStatusRows';
 
-type StatusOverlayProps = {
-  bottomInset: number;
-  roomCode: string | null;
-  roomError: string | null;
-  storyError: string | null;
-  players: Array<{ display_name: string | null; player_id: PlayerId }>;
-  localRole: RoleId | null;
-  partyStatusRows: PartyStatusRow[];
-  isHost: boolean;
-  isBusy: boolean;
-  onResetStory: () => void;
-  onLeaveRoom: () => void;
-};
+export function StatusOverlay() {
+  const insets = useSafeAreaInsets();
+  const game = useGame();
+  const roomStory = game.roomStory;
+  const connection = game.roomConnection;
 
-export function StatusOverlay({
-  bottomInset,
-  roomCode,
-  roomError,
-  storyError,
-  players,
-  localRole,
-  partyStatusRows,
-  isHost,
-  isBusy,
-  onResetStory,
-  onLeaveRoom,
-}: StatusOverlayProps) {
   return (
     <View
       style={{
         position: 'absolute',
         left: 12,
         right: 12,
-        bottom: 24 + bottomInset,
+        bottom: 24 + insets.bottom,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: colors.borderOverlay,
@@ -53,33 +32,33 @@ export function StatusOverlay({
       }}
     >
       <ScrollView style={{ maxHeight: 280 }} contentContainerStyle={{ gap: 8 }}>
-        {roomError ? (
+        {connection.roomError ? (
           <Typography variant="error" style={{ fontSize: 13, color: colors.errorDark }}>
-            Room error: {roomError}
+            Room error: {connection.roomError}
           </Typography>
         ) : null}
-        {storyError ? (
+        {roomStory.storyError ? (
           <Typography variant="error" style={{ fontSize: 13, color: colors.errorDark }}>
-            Story sync error: {storyError}
+            Story sync error: {roomStory.storyError}
           </Typography>
         ) : null}
-        {roomCode ? (
+        {game.room?.code ? (
           <Typography
             variant="body"
             style={{ fontSize: 13, fontWeight: '700', color: colors.textOverlayHeading }}
           >
-            Room code: {roomCode}
+            Room code: {game.room.code}
           </Typography>
         ) : null}
-        {players.length ? (
+        {connection.players.length ? (
           <Typography
             variant="body"
             style={{ marginTop: -6, fontSize: 12, color: colors.textOverlayBody }}
           >
-            Players: {players.map((p) => p.display_name || p.player_id).join(', ')}
+            Players: {connection.players.map((p) => p.display_name || p.player_id).join(', ')}
           </Typography>
         ) : null}
-        {localRole ? (
+        {game.localRole ? (
           <Typography
             variant="body"
             style={{
@@ -89,17 +68,19 @@ export function StatusOverlay({
               color: colors.textOverlayAccent,
             }}
           >
-            You are {roles.find((r) => r.id === localRole)?.label ?? localRole}.
+            You are {roles.find((r) => r.id === game.localRole)?.label ?? game.localRole}.
           </Typography>
         ) : null}
-        <PartyStatusCard title="Party Status" rows={partyStatusRows} variant="parchment" />
+        <PartyStatusCard title="Party Status" rows={game.partyStatusRows} variant="parchment" />
         <View style={{ marginTop: -4, flexDirection: 'row', justifyContent: 'flex-end' }}>
-          {isHost ? <PillButton label="Restart Adventure" onPress={onResetStory} /> : null}
+          {game.isHost ? (
+            <PillButton label="Restart Adventure" onPress={() => void roomStory.resetStory()} />
+          ) : null}
           <PillButton
-            label={isBusy ? 'Leaving...' : 'Leave Room'}
+            label={connection.isBusy ? 'Leaving...' : 'Leave Room'}
             variant="danger"
-            disabled={isBusy}
-            onPress={onLeaveRoom}
+            disabled={connection.isBusy}
+            onPress={() => void connection.leaveRoom()}
           />
         </View>
       </ScrollView>

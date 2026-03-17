@@ -1,37 +1,24 @@
-import { PillButton, Stack, Typography } from '@/components';
+import { EmptyState, PillButton, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
+import { useGame } from '@/contexts/GameContext';
 import { RoleOnboardingCard } from '@/features/lobby/RoleOnboardingCard';
-import type { PlayerId, RoleId } from '@/types/player';
+import type { RoleId } from '@/types/player';
 
-type LobbyViewProps = {
-  localPlayerId: PlayerId | null;
-  localDisplayName: string;
-  roomCode: string | null;
-  targetPlayerCount: number;
-  players: Array<{ playerId: PlayerId; roleId: RoleId | null; displayName: string | null }>;
-  isHost: boolean;
-  isBusy: boolean;
-  onSetDisplayName: (name: string) => void;
-  onSelectRole: (roleId: RoleId) => void;
-  onSetTargetPlayerCount: (count: number) => void;
-  onStartAdventure: () => void;
-  onLeaveRoom: () => void;
-};
+const LobbyView = () => {
+  const { roomConnection, localPlayerId, localDisplayName, isHost, room } = useGame();
 
-const LobbyView = ({
-  localPlayerId,
-  localDisplayName,
-  roomCode,
-  targetPlayerCount,
-  players,
-  isHost,
-  isBusy,
-  onSetDisplayName,
-  onSelectRole,
-  onSetTargetPlayerCount,
-  onStartAdventure,
-  onLeaveRoom,
-}: LobbyViewProps) => {
+  const players = roomConnection.players.map((p) => ({
+    playerId: p.player_id,
+    roleId: p.role_id,
+    displayName: p.display_name,
+  }));
+
+  const handleSetDisplayName = (name: string) => roomConnection.setDisplayName(name);
+  const handleSelectRole = (roleId: RoleId) => roomConnection.selectRole(roleId);
+  const handleSetTargetPlayerCount = (c: number) => roomConnection.setTargetPlayerCount(c);
+  const handleStartAdventure = () => roomConnection.startAdventure();
+  const handleLeaveRoom = () => roomConnection.leaveRoom();
+
   return (
     <Stack
       gap={12}
@@ -44,19 +31,15 @@ const LobbyView = ({
         backgroundColor: colors.backgroundCardTransparent,
       }}
     >
-      <Typography
-        variant="title"
-        style={{ fontSize: 24, textAlign: 'center', color: colors.textOverlayHeading }}
-      >
+      <Typography variant="heading" style={{ color: colors.textOverlayHeading }}>
         {"À l'Aventure Compagnons"}
       </Typography>
 
       {localPlayerId ? (
         <Typography
-          variant="body"
+          variant="bodySm"
           style={{
             marginTop: -2,
-            fontSize: 13,
             fontWeight: '600',
             textAlign: 'center',
             color: colors.textOverlayAccent,
@@ -66,12 +49,9 @@ const LobbyView = ({
         </Typography>
       ) : null}
 
-      {roomCode ? (
-        <Typography
-          variant="body"
-          style={{ fontSize: 14, fontWeight: '700', color: colors.textOverlayHeading }}
-        >
-          Room code: {roomCode}
+      {room?.code ? (
+        <Typography variant="body" style={{ fontWeight: '700', color: colors.textOverlayHeading }}>
+          Room code: {room.code}
         </Typography>
       ) : null}
 
@@ -79,25 +59,23 @@ const LobbyView = ({
         <RoleOnboardingCard
           localPlayerId={localPlayerId}
           players={players}
-          targetPlayerCount={targetPlayerCount}
+          targetPlayerCount={room?.target_player_count ?? 1}
           isHost={isHost}
-          isBusy={isBusy}
-          onSetDisplayName={onSetDisplayName}
-          onSelectRole={onSelectRole}
-          onSetTargetPlayerCount={onSetTargetPlayerCount}
-          onStartAdventure={onStartAdventure}
+          isBusy={roomConnection.isBusy}
+          onSetDisplayName={handleSetDisplayName}
+          onSelectRole={handleSelectRole}
+          onSetTargetPlayerCount={handleSetTargetPlayerCount}
+          onStartAdventure={handleStartAdventure}
         />
       ) : (
-        <Typography variant="body" style={{ fontSize: 14, color: colors.textSecondary }}>
-          Syncing your player slot...
-        </Typography>
+        <EmptyState text="Syncing your player slot..." />
       )}
       <Stack direction="row" justify="flex-end" style={{ marginTop: -4 }}>
         <PillButton
-          label={isBusy ? 'Leaving...' : 'Leave Room'}
+          label={roomConnection.isBusy ? 'Leaving...' : 'Leave Room'}
           variant="danger"
-          disabled={isBusy}
-          onPress={onLeaveRoom}
+          disabled={roomConnection.isBusy}
+          onPress={handleLeaveRoom}
         />
       </Stack>
     </Stack>

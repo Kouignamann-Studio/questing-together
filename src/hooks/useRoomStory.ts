@@ -150,7 +150,7 @@ type UseRoomStoryOptions = {
   playerRoleById?: Partial<Record<PlayerId, RoleId | null>>;
 };
 
-type UseRoomStoryResult = {
+export type UseRoomStoryResult = {
   isReady: boolean;
   storyError: string | null;
   storyInstanceKey: string;

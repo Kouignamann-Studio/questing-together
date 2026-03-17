@@ -1,35 +1,23 @@
 import { Image, type LayoutChangeEvent, Pressable } from 'react-native';
-import type { EdgeInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import headerTexture from '@/assets/images/T_Background_Header.png';
 import headerBorderTexture from '@/assets/images/T_HeaderBorder.png';
 import { Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
+import { useGame } from '@/contexts/GameContext';
 import PartyTopBar from '@/features/party/PartyTopBar';
-import type { PartyStatusRow } from '@/utils/buildPartyStatusRows';
 
 type StoryHeaderProps = {
   headerMinHeight: number;
   headerVerticalPadding: number;
-  insets: EdgeInsets;
-  partyHp: number;
-  partyHpMax: number;
-  partyStatusRows: PartyStatusRow[];
-  hasTechAlert: boolean;
-  onToggleStatusPanel: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
 };
 
-const StoryHeader = ({
-  headerMinHeight,
-  headerVerticalPadding,
-  insets,
-  partyHp,
-  partyHpMax,
-  partyStatusRows,
-  hasTechAlert,
-  onToggleStatusPanel,
-  onLayout,
-}: StoryHeaderProps) => {
+const StoryHeader = ({ headerMinHeight, headerVerticalPadding, onLayout }: StoryHeaderProps) => {
+  const insets = useSafeAreaInsets();
+  const game = useGame();
+  const roomStory = game.roomStory;
+
   return (
     <Stack
       onLayout={onLayout}
@@ -98,7 +86,7 @@ const StoryHeader = ({
               justifyContent: 'center',
               backgroundColor: colors.dotsButtonBg,
             }}
-            onPress={onToggleStatusPanel}
+            onPress={() => game.setShowStatusPanel((v) => !v)}
           >
             <Typography
               variant="body"
@@ -111,7 +99,7 @@ const StoryHeader = ({
             >
               ...
             </Typography>
-            {hasTechAlert ? (
+            {game.hasTechAlert ? (
               <Stack
                 style={{
                   position: 'absolute',
@@ -127,9 +115,9 @@ const StoryHeader = ({
           </Pressable>
         </Stack>
         <PartyTopBar
-          partyHp={partyHp}
-          partyHpMax={partyHpMax}
-          rows={partyStatusRows}
+          partyHp={roomStory.partyHp}
+          partyHpMax={roomStory.partyHpMax}
+          rows={game.partyStatusRows}
           variant="overlay"
         />
       </Stack>

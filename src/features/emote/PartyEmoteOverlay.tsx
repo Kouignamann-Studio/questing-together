@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ErrorBadge, FloatingToast, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { PARTY_EMOTES } from '@/constants/constants';
-import type { EmoteText, PartyEmote, PlayerId, RoleId } from '@/types/player';
+import { useGame } from '@/contexts/GameContext';
+import type { EmoteText } from '@/types/player';
 import { getEmoteMenuCenter } from '@/utils/getEmoteMenuCenter';
 import { portraitByRole } from '@/utils/portraitByRole';
 import {
@@ -13,15 +14,6 @@ import {
   resolveHighlightedEmote,
 } from '@/utils/resolveHighlightedEmote';
 
-type PartyEmoteOverlayProps = {
-  playerLabelById: Partial<Record<PlayerId, string>>;
-  playerRoleById: Partial<Record<PlayerId, RoleId | null>>;
-  visibleEmotes: PartyEmote[];
-  errorText: string | null;
-  onClearVisibleEmote: (id: string) => void;
-  onSendEmote: (emote: EmoteText) => void;
-};
-
 const LAUNCHER_SIZE = 72;
 const MENU_VISUAL_SIZE = 164;
 const OPTION_RADIUS = 112;
@@ -29,16 +21,11 @@ const OPTION_BUBBLE_SIZE = 82;
 const KNOB_TRAVEL = 26;
 const DRAG_THRESHOLD = 8;
 
-export const PartyEmoteOverlay = ({
-  playerLabelById,
-  playerRoleById,
-  visibleEmotes,
-  errorText,
-  onClearVisibleEmote,
-  onSendEmote,
-}: PartyEmoteOverlayProps) => {
+export const PartyEmoteOverlay = () => {
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const game = useGame();
+  const emotes = game.partyEmotes;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [launcherLayout, setLauncherLayout] = useState<{
     x: number;
@@ -63,9 +50,9 @@ export const PartyEmoteOverlay = ({
   const selectEmote = React.useCallback(
     (emote: EmoteText) => {
       closeMenu();
-      onSendEmote(emote);
+      emotes.sendEmote(emote);
     },
-    [closeMenu, onSendEmote],
+    [closeMenu, emotes.sendEmote],
   );
 
   const panResponder = useMemo(
@@ -144,7 +131,7 @@ export const PartyEmoteOverlay = ({
         }}
         {...panResponder.panHandlers}
       >
-        {errorText ? (
+        {emotes.emoteError ? (
           <ErrorBadge
             textAlign="right"
             style={{
@@ -154,7 +141,7 @@ export const PartyEmoteOverlay = ({
               maxWidth: 180,
             }}
           >
-            {errorText}
+            {emotes.emoteError}
           </ErrorBadge>
         ) : null}
         <Stack
@@ -301,13 +288,13 @@ export const PartyEmoteOverlay = ({
           zIndex: 18,
         }}
       >
-        {visibleEmotes.map((emote) => (
+        {emotes.visibleEmotes.map((emote) => (
           <FloatingToast
             key={emote.id}
-            portrait={portraitByRole(playerRoleById[emote.playerId])}
-            name={playerLabelById[emote.playerId] ?? emote.playerId}
+            portrait={portraitByRole(game.playerRoleById[emote.playerId])}
+            name={game.playerDisplayNameById[emote.playerId] ?? emote.playerId}
             text={emote.text}
-            onDone={() => onClearVisibleEmote(emote.id)}
+            onDone={() => emotes.clearVisibleEmote(emote.id)}
           />
         ))}
       </Stack>

@@ -12,14 +12,11 @@ import type {
   TimedData,
   VoteState,
 } from '@/features/story/types/types';
+import type { UseRoomStoryResult } from '@/hooks/useRoomStory';
 import type { OptionId } from '@/types/story';
 
 type DecisionProviderProps = {
-  scene: SceneState;
-  actions: ActionState;
-  vote: VoteState;
-  combat: CombatData;
-  timed: TimedData;
+  roomStory: UseRoomStoryResult;
   onResetStory: () => void;
   canResetStory: boolean;
   embedded: boolean;
@@ -27,11 +24,7 @@ type DecisionProviderProps = {
 };
 
 export function DecisionProvider({
-  scene,
-  actions,
-  vote,
-  combat,
-  timed,
+  roomStory,
   onResetStory,
   canResetStory,
   embedded,
@@ -63,6 +56,111 @@ export function DecisionProvider({
       },
     });
   }, []);
+
+  const scene: SceneState = useMemo(
+    () => ({
+      isEnding: Boolean(roomStory.currentScene.isEnding),
+      isCombat: roomStory.isCombatScene,
+      isTimed: roomStory.isTimedScene,
+      phaseLabel: roomStory.phaseLabel,
+      statusText: roomStory.phaseStatusText,
+    }),
+    [
+      roomStory.currentScene.isEnding,
+      roomStory.isCombatScene,
+      roomStory.isTimedScene,
+      roomStory.phaseLabel,
+      roomStory.phaseStatusText,
+    ],
+  );
+
+  const actions: ActionState = useMemo(
+    () => ({
+      items: roomStory.availableActions,
+      localSelectedId: roomStory.localSelectedActionId,
+      canAct: roomStory.canAct,
+      allowSkip: roomStory.allowSkip,
+      onTake: roomStory.takeAction,
+      onSkip: roomStory.skipAction,
+    }),
+    [
+      roomStory.availableActions,
+      roomStory.localSelectedActionId,
+      roomStory.canAct,
+      roomStory.allowSkip,
+      roomStory.takeAction,
+      roomStory.skipAction,
+    ],
+  );
+
+  const vote: VoteState = useMemo(
+    () => ({
+      visibleOptions: roomStory.visibleOptions,
+      hiddenOptionCount: roomStory.hiddenOptionCount,
+      riskyUnlockedOptionIds: roomStory.riskyUnlockedOptionIds,
+      optionIntentByOptionId: roomStory.optionIntentByOptionId,
+      localSelected: roomStory.localSelectedOption,
+      localConfirmed: roomStory.localConfirmedOption,
+      voteCounts: roomStory.voteCounts,
+      confirmedCount: roomStory.confirmedVoteCount,
+      expectedPlayerCount: roomStory.expectedPlayerCount,
+      resolved: roomStory.resolvedOption,
+      resolutionMode: roomStory.resolutionMode,
+      localHasContinued: roomStory.localHasContinued,
+      continuedCount: roomStory.continuedCount,
+      isStoryEnded: roomStory.isStoryEnded,
+      canVote: roomStory.canVote,
+      lockReason: roomStory.voteLockReason,
+      onSelect: roomStory.selectOption,
+      onConfirm: roomStory.confirmOption,
+      onContinue: roomStory.continueToNextScene,
+    }),
+    [
+      roomStory.visibleOptions,
+      roomStory.hiddenOptionCount,
+      roomStory.riskyUnlockedOptionIds,
+      roomStory.optionIntentByOptionId,
+      roomStory.localSelectedOption,
+      roomStory.localConfirmedOption,
+      roomStory.voteCounts,
+      roomStory.confirmedVoteCount,
+      roomStory.expectedPlayerCount,
+      roomStory.resolvedOption,
+      roomStory.resolutionMode,
+      roomStory.localHasContinued,
+      roomStory.continuedCount,
+      roomStory.isStoryEnded,
+      roomStory.canVote,
+      roomStory.voteLockReason,
+      roomStory.selectOption,
+      roomStory.confirmOption,
+      roomStory.continueToNextScene,
+    ],
+  );
+
+  const combat: CombatData = useMemo(
+    () => ({ state: roomStory.combatState, log: roomStory.combatLog }),
+    [roomStory.combatState, roomStory.combatLog],
+  );
+
+  const timed: TimedData = useMemo(
+    () => ({
+      endsAt: roomStory.timedEndsAt,
+      durationSeconds: roomStory.timedDurationSeconds,
+      statusText: roomStory.timedStatusText,
+      allowEarly: roomStory.timedAllowEarly,
+      waitingText: roomStory.timedWaitingText,
+      onFinish: () => roomStory.finishTimedScene(true),
+    }),
+    [
+      roomStory.timedEndsAt,
+      roomStory.timedDurationSeconds,
+      roomStory.timedStatusText,
+      roomStory.timedAllowEarly,
+      roomStory.timedWaitingText,
+      roomStory.finishTimedScene,
+    ],
+  );
 
   const activeTab = useMemo<TabId>(() => {
     if (scene.isTimed) return 'actions';
