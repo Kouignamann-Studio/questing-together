@@ -1,12 +1,5 @@
-import type { ReactNode } from 'react';
-import {
-  Image,
-  Pressable,
-  type PressableProps,
-  StyleSheet,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { type ReactNode, useState } from 'react';
+import { Image, Pressable, type PressableProps, View, type ViewStyle } from 'react-native';
 import buttonTexture from '@/assets/images/T_Button.png';
 import buttonTextureDisabled from '@/assets/images/T_Button_Disabled.png';
 import buttonTextureSelected from '@/assets/images/T_Button_Selected.png';
@@ -38,13 +31,15 @@ const sizeStyles: Record<ButtonSize, ViewStyle> = {
     minHeight: 44,
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingTop: 6,
+    paddingBottom: 10,
   },
   lg: {
     minHeight: 66,
     borderRadius: 10,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
 };
 
@@ -101,6 +96,7 @@ const Button = ({
   style,
   ...props
 }: ButtonProps) => {
+  const [measuredSize, setMeasuredSize] = useState({ width: 0, height: 0 });
   const hasTexture = textured && variant in textureByVariant;
   const texture = disabled ? buttonTextureDisabled : (textureByVariant[variant] ?? buttonTexture);
   const isCompact = size === 'xs' || size === 'sm';
@@ -136,6 +132,10 @@ const Button = ({
       {...props}
     >
       <View
+        onLayout={(e) => {
+          const { width: w, height: h } = e.nativeEvent.layout;
+          setMeasuredSize({ width: Math.ceil(w), height: Math.ceil(h) });
+        }}
         style={[
           {
             overflow: 'hidden',
@@ -148,18 +148,18 @@ const Button = ({
           disabled && { opacity: 0.5 },
         ]}
       >
-        {hasTexture ? (
+        {hasTexture && measuredSize.height > 0 ? (
           <Image
             source={texture}
             resizeMode="stretch"
-            style={[
-              StyleSheet.absoluteFillObject,
-              {
-                width: undefined,
-                height: undefined,
-                borderRadius: sizeStyles[size].borderRadius,
-              },
-            ]}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: measuredSize.width,
+              height: measuredSize.height,
+              borderRadius: sizeStyles[size].borderRadius,
+            }}
           />
         ) : null}
         {content}

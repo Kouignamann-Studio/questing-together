@@ -21,8 +21,6 @@ import { getReadyText } from '@/features/lobby/utils/getReadyText';
 import type { RoleId } from '@/types/player';
 import { portraitByRole } from '@/utils/portraitByRole';
 
-const BUTTON_HEIGHT = 40;
-
 function getPortraitColor(isSelected: boolean, isTaken: boolean, isFocused: boolean) {
   if (isSelected) return colors.success;
   if (isTaken) return colors.errorDark;
@@ -301,7 +299,6 @@ const LobbyContent = () => {
               label={isBusy ? 'Leaving...' : 'Leave Room'}
               variant="danger"
               size="sm"
-              height={BUTTON_HEIGHT}
               disabled={isBusy}
               onPress={() => roomConnection.leaveRoom()}
             />
@@ -312,18 +309,11 @@ const LobbyContent = () => {
                 label={isBusy ? 'Starting...' : 'Start Adventure'}
                 variant="validation"
                 size="sm"
-                height={BUTTON_HEIGHT}
                 disabled={!allPicked || isBusy}
                 onPress={() => roomConnection.startAdventure()}
               />
             ) : (
-              <Button
-                label="Waiting for host..."
-                variant="ghost"
-                size="sm"
-                height={BUTTON_HEIGHT}
-                disabled
-              />
+              <Button label="Waiting for host..." variant="ghost" size="sm" disabled />
             )}
           </Stack>
         </Stack>
