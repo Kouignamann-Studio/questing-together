@@ -18,6 +18,8 @@ type TypographyVariant =
 
 type TypographyProps = TextProps & {
   variant?: TypographyVariant;
+  bold?: boolean;
+  uppercase?: boolean;
 };
 
 const variantStyles: Record<TypographyVariant, object> = {
@@ -100,8 +102,18 @@ const variantStyles: Record<TypographyVariant, object> = {
   },
 };
 
-const Typography = ({ variant = 'body', style, ...props }: TypographyProps) => {
-  return <Text style={[variantStyles[variant], style]} {...props} />;
+const Typography = ({ variant = 'body', bold, uppercase, style, ...props }: TypographyProps) => {
+  return (
+    <Text
+      style={[
+        variantStyles[variant],
+        bold && { fontWeight: '700' as const },
+        uppercase && { textTransform: 'uppercase' as const },
+        style,
+      ]}
+      {...props}
+    />
+  );
 };
 
 export default Typography;

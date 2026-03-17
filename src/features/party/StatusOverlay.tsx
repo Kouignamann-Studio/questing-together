@@ -1,7 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '@/components/display';
-import { PillButton } from '@/components/input';
+import { Button } from '@/components/input';
 import { colors } from '@/constants/colors';
 import { roles } from '@/constants/constants';
 import { useGame } from '@/contexts/GameContext';
@@ -74,11 +74,17 @@ export function StatusOverlay() {
         <PartyStatusCard title="Party Status" rows={game.partyStatusRows} variant="parchment" />
         <View style={{ marginTop: -4, flexDirection: 'row', justifyContent: 'flex-end' }}>
           {game.isHost ? (
-            <PillButton label="Restart Adventure" onPress={() => void roomStory.resetStory()} />
+            <Button
+              label="Restart Adventure"
+              size="sm"
+              variant="ghost"
+              onPress={() => void roomStory.resetStory()}
+            />
           ) : null}
-          <PillButton
+          <Button
             label={connection.isBusy ? 'Leaving...' : 'Leave Room'}
             variant="danger"
+            size="sm"
             disabled={connection.isBusy}
             onPress={() => void connection.leaveRoom()}
           />

@@ -1,3 +1,4 @@
+export { default as Button } from '@/components/input/Button';
 export { default as CodeInput } from '@/components/input/CodeInput';
 export { default as ParchmentInput } from '@/components/input/ParchmentInput';
 export { default as PillButton } from '@/components/input/PillButton';

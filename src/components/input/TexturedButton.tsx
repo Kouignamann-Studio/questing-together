@@ -47,12 +47,12 @@ const TexturedButton = ({
     >
       <View
         style={{
-          minHeight: children ? 74 : 66,
+          minHeight: 66,
           borderRadius: 10,
           overflow: 'hidden',
           paddingHorizontal: 14,
           paddingVertical: 10,
-          alignItems: children ? undefined : 'center',
+          alignItems: children ? 'stretch' : 'center',
           justifyContent: 'center',
           gap: children ? 5 : 10,
         }}

@@ -1,4 +1,4 @@
-import { ActionSubText, Stack, TexturedButton, Typography } from '@/components';
+import { ActionSubText, Button, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import type { ActionState } from '@/features/story/types/types';
 import {
@@ -16,7 +16,7 @@ const EmbeddedActionButtons = ({ actions }: { actions: ActionState }) => {
         const hpLabel = formatHpLabel(action.hpDelta);
 
         return (
-          <TexturedButton
+          <Button
             key={action.id}
             variant={getActionVariant(isSelected)}
             disabled={isDisabled}
@@ -27,11 +27,11 @@ const EmbeddedActionButtons = ({ actions }: { actions: ActionState }) => {
               {action.text}
             </Typography>
             <ActionSubText hpLabel={hpLabel} effectText={action.effectText} />
-          </TexturedButton>
+          </Button>
         );
       })}
       {actions.allowSkip ? (
-        <TexturedButton
+        <Button
           disabled={!actions.canAct}
           onPress={actions.onSkip}
           label="Hold back (no reaction)"

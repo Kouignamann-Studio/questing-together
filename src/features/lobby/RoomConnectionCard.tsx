@@ -4,11 +4,11 @@ import homeScreenTitleFrame from '@/assets/images/T_HomeScreen_TitleFrame.png';
 import {
   ActionGroup,
   BackgroundArt,
+  Button,
   CodeInput,
   ContentContainer,
   FramedTitle,
   Stack,
-  TexturedButton,
   Typography,
 } from '@/components';
 import { useHomeScreenLayout } from '@/utils/homeScreenLayout';
@@ -58,14 +58,14 @@ const RoomConnectionCard = ({
         </Stack>
 
         <ActionGroup style={{ marginBottom: actionsBottomOffset }}>
-          <TexturedButton
+          <Button
             disabled={isBusy}
             onPress={onCreateRoom}
             label={isBusy ? 'Working...' : 'Create Room'}
             hint="Start a new party"
           />
 
-          <TexturedButton
+          <Button
             disabled={showJoinInput && !canJoin}
             onPress={() => {
               if (!showJoinInput) {

@@ -1,4 +1,4 @@
-import { Stack, TexturedButton, Typography } from '@/components';
+import { Button, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 
 type EndingContentProps = {
@@ -17,7 +17,7 @@ const EndingContent = ({ canResetStory, onResetStory, embedded }: EndingContentP
         Fin.
       </Typography>
       {canResetStory ? (
-        <TexturedButton variant="selected" label="Recommencer l'aventure" onPress={onResetStory} />
+        <Button variant="selected" label="Recommencer l'aventure" onPress={onResetStory} />
       ) : (
         <Typography
           variant="caption"

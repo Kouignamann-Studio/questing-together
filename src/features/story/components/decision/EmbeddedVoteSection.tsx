@@ -1,4 +1,4 @@
-import { Stack, TexturedButton, Typography } from '@/components';
+import { Button, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { ChoiceIntentPortraits } from '@/features/party/ChoiceIntentPortraits';
 import type { VoteState } from '@/features/story/types/types';
@@ -41,7 +41,7 @@ function ConfirmOrWaitingStatus({
   }
 
   return (
-    <TexturedButton
+    <Button
       variant="selected"
       disabled={!draftOptionId || !vote.canVote}
       onPress={() => draftOptionId && vote.onConfirm(draftOptionId)}
@@ -74,7 +74,7 @@ const EmbeddedVoteSection = ({ vote, draftOptionId }: EmbeddedVoteSectionProps) 
             Boolean(vote.localConfirmed) && vote.localConfirmed === option.id;
 
           return (
-            <TexturedButton
+            <Button
               key={option.id}
               variant={getOptionVariant(isSelected, isResolved)}
               disabled={isDisabled}
@@ -92,11 +92,11 @@ const EmbeddedVoteSection = ({ vote, draftOptionId }: EmbeddedVoteSectionProps) 
                 size="compact"
                 placement="topRight"
               />
-            </TexturedButton>
+            </Button>
           );
         })}
         {Array.from({ length: vote.hiddenOptionCount }).map((_, index) => (
-          <TexturedButton key={`hidden-${index}`} disabled label="????" style={{ maxWidth: 360 }} />
+          <Button key={`hidden-${index}`} disabled label="????" style={{ maxWidth: 360 }} />
         ))}
       </Stack>
 

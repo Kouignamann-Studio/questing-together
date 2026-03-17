@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
+  Button,
   Divider,
   ParchmentInput,
   SectionLabel,
   Select,
   Stack,
-  TexturedButton,
   Typography,
 } from '@/components';
 import { colors } from '@/constants/colors';
 import { playerNameById, roles } from '@/constants/constants';
+import { useGame } from '@/contexts/GameContext';
 import { getNameError } from '@/features/lobby/utils/getNameError';
 import { getReadyText } from '@/features/lobby/utils/getReadyText';
 import {
@@ -17,74 +18,53 @@ import {
   getRoleStatusText,
   getRoleTextureVariant,
 } from '@/features/lobby/utils/getRoleDisplayProps';
-import type { PlayerId, RoleId } from '@/types/player';
 
-type LobbyPlayer = {
-  playerId: PlayerId;
-  roleId: RoleId | null;
-  displayName: string | null;
-};
-
-type RoleOnboardingCardProps = {
-  localPlayerId: PlayerId;
-  players: LobbyPlayer[];
-  targetPlayerCount: number;
-  isHost: boolean;
-  isBusy: boolean;
-  onSetDisplayName: (name: string) => void;
-  onSelectRole: (roleId: RoleId) => void;
-  onSetTargetPlayerCount: (targetPlayerCount: number) => void;
-  onStartAdventure: () => void;
-};
-
-export function RoleOnboardingCard({
-  localPlayerId,
-  players,
-  targetPlayerCount,
-  isHost,
-  isBusy,
-  onSetDisplayName,
-  onSelectRole,
-  onSetTargetPlayerCount,
-  onStartAdventure,
-}: RoleOnboardingCardProps) {
-  // --- Name state ---
-  const existingName = players.find((p) => p.playerId === localPlayerId)?.displayName ?? '';
-  const [nameInput, setNameInput] = useState(existingName || '');
+const RoleOnboardingCard = () => {
+  // Hooks
+  const { roomConnection, localPlayerId, isHost, room } = useGame();
+  const [draftName, setDraftName] = useState<string | null>(null);
   const [nameTouched, setNameTouched] = useState(false);
-  useEffect(() => {
-    setNameInput(existingName);
-    setNameTouched(false);
-  }, [existingName]);
 
-  const normalizedName = useMemo(() => nameInput.trim(), [nameInput]);
-  const nameError = useMemo(
-    () => getNameError(normalizedName, players, localPlayerId),
-    [normalizedName, players, localPlayerId],
-  );
+  // Derived state
+  const { players, isBusy } = roomConnection;
+  const targetPlayerCount = room?.target_player_count ?? 1;
+  const localPlayer = players.find((p) => p.player_id === localPlayerId);
+  const existingName = localPlayer?.display_name ?? '';
+  const selectedRoleId = localPlayer?.role_id ?? null;
+  const assignedCount = players.filter((p) => p.role_id).length;
+  const allPicked =
+    players.length === targetPlayerCount && players.every((p) => Boolean(p.role_id));
+  const nameInput = draftName ?? existingName;
+  const normalizedName = nameInput.trim();
+  const nameError = localPlayerId ? getNameError(normalizedName, players, localPlayerId) : null;
   const isNameValid = nameError === null;
   const localNameSaved = Boolean(existingName);
 
-  // --- Role state ---
-  const canPickRole = localNameSaved;
-  const selectedRoleId = players.find((p) => p.playerId === localPlayerId)?.roleId ?? null;
-  const assignedRoleIds = new Set(players.map((p) => p.roleId).filter(Boolean) as RoleId[]);
-  const joinedPlayerCount = players.length;
-  const waitingForPlayers = joinedPlayerCount < targetPlayerCount;
-  const allPicked =
-    joinedPlayerCount === targetPlayerCount && players.every((p) => Boolean(p.roleId));
-  const partySizeOptions = [1, 2, 3].map((value) => ({
-    value,
-    label: `${value} ${value === 1 ? 'player' : 'players'}`,
-    disabled: value < joinedPlayerCount || isBusy,
-  }));
+  if (!localPlayerId) return null;
+
+  // Handlers
+  const handleNameChange = (text: string) => {
+    setNameTouched(true);
+    setDraftName(text);
+  };
 
   const handleSaveName = () => {
     setNameTouched(true);
     if (!isNameValid) return;
-    onSetDisplayName(normalizedName);
+    roomConnection.setDisplayName(normalizedName);
+    setDraftName(null);
+    setNameTouched(false);
   };
 
+  const handleNameSubmit = () => {
+    setNameTouched(true);
+    if (!isNameValid || isBusy) return;
+    roomConnection.setDisplayName(normalizedName);
+    setDraftName(null);
+    setNameTouched(false);
+  };
+
+  // Render
   return (
     <Stack gap={12} style={{ width: '100%', alignSelf: 'stretch' }}>
       <Typography variant="subheading">Pick Your Role</Typography>
@@ -101,15 +81,8 @@ export function RoleOnboardingCard({
         <SectionLabel style={{ color: colors.textOverlayAccent }}>Choose your name</SectionLabel>
         <ParchmentInput
           value={nameInput}
-          onChangeText={(text) => {
-            setNameTouched(true);
-            setNameInput(text);
-          }}
-          onSubmitEditing={() => {
-            setNameTouched(true);
-            if (!isNameValid || isBusy) return;
-            onSetDisplayName(normalizedName);
-          }}
+          onChangeText={handleNameChange}
+          onSubmitEditing={handleNameSubmit}
           autoCorrect={false}
           autoCapitalize="words"
           maxLength={20}
@@ -122,7 +95,7 @@ export function RoleOnboardingCard({
             {nameError}
           </Typography>
         ) : null}
-        <TexturedButton
+        <Button
           label={localNameSaved ? 'Update Name' : 'Save Name'}
           disabled={!isNameValid || isBusy}
           onPress={handleSaveName}
@@ -140,9 +113,13 @@ export function RoleOnboardingCard({
         {isHost ? (
           <Select
             value={targetPlayerCount}
-            options={partySizeOptions}
+            options={[1, 2, 3].map((value) => ({
+              value,
+              label: `${value} ${value === 1 ? 'player' : 'players'}`,
+              disabled: value < players.length || isBusy,
+            }))}
             disabled={isBusy}
-            onSelect={onSetTargetPlayerCount}
+            onSelect={(c: number) => roomConnection.setTargetPlayerCount(c)}
           />
         ) : (
           <Typography variant="caption" style={{ color: colors.textAvatarNameParchment }}>
@@ -154,30 +131,28 @@ export function RoleOnboardingCard({
       {/* Role list */}
       <Stack gap={8}>
         {roles.map((role) => {
-          const owner = players.find((p) => p.roleId === role.id);
-          const isTakenByOther = Boolean(owner && owner.playerId !== localPlayerId);
+          const owner = players.find((p) => p.role_id === role.id);
+          const isTakenByOther = Boolean(owner && owner.player_id !== localPlayerId);
           const isSelectedByLocal = selectedRoleId === role.id;
-          const isDisabled = isTakenByOther || isBusy || !canPickRole;
+          const isDisabled = isTakenByOther || isBusy || !localNameSaved;
 
           return (
-            <TexturedButton
+            <Button
               key={role.id}
               variant={getRoleTextureVariant(isSelectedByLocal)}
               disabled={isDisabled}
-              onPress={() => onSelectRole(role.id)}
+              onPress={() => roomConnection.selectRole(role.id)}
               style={{ opacity: getRoleOpacity(isTakenByOther, isDisabled) }}
             >
               <Stack direction="row" justify="space-between" align="center" gap={8}>
-                <Typography variant="body" style={{ fontWeight: '700', color: colors.textPrimary }}>
+                <Typography variant="body" bold style={{ color: colors.textPrimary }}>
                   {role.label}
                 </Typography>
                 <Typography
                   variant="fine"
-                  style={{
-                    color: colors.textOnTextureSubtle,
-                    fontWeight: '700',
-                    textTransform: 'uppercase',
-                  }}
+                  bold
+                  uppercase
+                  style={{ color: colors.textOnTextureSubtle }}
                 >
                   {getRoleStatusText(isSelectedByLocal, owner)}
                 </Typography>
@@ -185,7 +160,7 @@ export function RoleOnboardingCard({
               <Typography variant="caption" style={{ color: colors.textOnTexture, lineHeight: 17 }}>
                 {role.summary}
               </Typography>
-            </TexturedButton>
+            </Button>
           );
         })}
       </Stack>
@@ -193,14 +168,14 @@ export function RoleOnboardingCard({
       {/* Party assignment */}
       <Stack gap={3}>
         <SectionLabel style={{ marginBottom: 2 }}>Party Assignment</SectionLabel>
-        {players.map((player) => (
+        {players.map((p) => (
           <Typography
-            key={player.playerId}
+            key={p.player_id}
             variant="caption"
             style={{ color: colors.textAvatarNameParchment }}
           >
-            {player.displayName ?? playerNameById[player.playerId]}:{' '}
-            {player.roleId ? player.roleId.toUpperCase() : 'waiting...'}
+            {p.display_name ?? playerNameById[p.player_id]}:{' '}
+            {p.role_id ? p.role_id.toUpperCase() : 'waiting...'}
           </Typography>
         ))}
       </Stack>
@@ -211,22 +186,22 @@ export function RoleOnboardingCard({
         style={{ textAlign: 'center', color: colors.textOverlayAccent }}
       >
         {getReadyText(
-          canPickRole,
-          waitingForPlayers,
+          localNameSaved,
+          players.length < targetPlayerCount,
           allPicked,
-          joinedPlayerCount,
+          players.length,
           targetPlayerCount,
-          assignedRoleIds.size,
+          assignedCount,
         )}
       </Typography>
 
       {/* Start / host hint */}
       {isHost ? (
-        <TexturedButton
+        <Button
           label={isBusy ? 'Starting...' : 'Start Adventure'}
           variant="selected"
           disabled={!allPicked || isBusy}
-          onPress={onStartAdventure}
+          onPress={() => roomConnection.startAdventure()}
         />
       ) : (
         <Typography
@@ -238,4 +213,6 @@ export function RoleOnboardingCard({
       )}
     </Stack>
   );
-}
+};
+
+export default RoleOnboardingCard;

@@ -2,14 +2,14 @@ import { playerNameById } from '@/constants/constants';
 import type { PlayerId } from '@/types/player';
 
 type PlayerWithRole = {
-  playerId: PlayerId;
-  roleId: string | null;
-  displayName: string | null;
+  player_id: PlayerId;
+  role_id: string | null;
+  display_name: string | null;
 };
 
 function getRoleStatusText(isSelectedByLocal: boolean, owner: PlayerWithRole | undefined): string {
   if (isSelectedByLocal) return 'You';
-  if (owner) return `Taken by ${owner.displayName ?? playerNameById[owner.playerId]}`;
+  if (owner) return `Taken by ${owner.display_name ?? playerNameById[owner.player_id]}`;
   return 'Available';
 }
 

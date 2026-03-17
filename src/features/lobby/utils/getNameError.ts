@@ -1,8 +1,8 @@
 import type { PlayerId } from '@/types/player';
 
 type PlayerWithName = {
-  playerId: PlayerId;
-  displayName: string | null;
+  player_id: PlayerId;
+  display_name: string | null;
 };
 
 function getNameError(
@@ -16,9 +16,9 @@ function getNameError(
 
   const isDuplicate = players.some(
     (p) =>
-      p.playerId !== localPlayerId &&
-      p.displayName &&
-      p.displayName.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
+      p.player_id !== localPlayerId &&
+      p.display_name &&
+      p.display_name.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
   );
   if (isDuplicate) return 'Name is already taken.';
 
