@@ -42,10 +42,10 @@ app-example
 /ios
 /android
 
+.env
 .env.keys
 .idea
 supabase/.temp/
 
 .vscode
 .claude
-CLAUDE.md

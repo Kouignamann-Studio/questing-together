@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "kouignamann-studio",
     "name": "questing-together",
     "slug": "questing-together",
     "version": "1.0.0",
@@ -10,7 +11,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.xavierlaborie.questingtogether"
+      "bundleIdentifier": "com.xavierlaborie.questingtogether",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.xavierlaborie.questingtogether",
@@ -51,7 +55,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "764f4569-c23c-4abf-bb8a-c8074a5574e8"
+        "projectId": "b366599a-4588-49ab-9678-1b2644e89468"
       }
     }
   }

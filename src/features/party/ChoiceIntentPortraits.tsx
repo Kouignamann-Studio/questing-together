@@ -1,9 +1,6 @@
-import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native';
-import portraitFrame from '@/assets/images/T_PortraitFrame.png';
-import rangerPortrait from '@/assets/images/T_RangerPortrait.png';
-import sagePortrait from '@/assets/images/T_SagePortrait.png';
-import warriorPortrait from '@/assets/images/T_WarriorPortrait.png';
+import { Portrait, Stack } from '@/components';
 import type { PlayerId, RoleId } from '@/types/player';
+import { portraitByRole } from '@/utils/portraitByRole';
 
 export type ChoiceIntentPortraitPlayer = {
   playerId: PlayerId;
@@ -17,11 +14,15 @@ type ChoiceIntentPortraitsProps = {
   placement?: 'topRight' | 'bottomRight';
 };
 
-function portraitByRole(roleId: RoleId): ImageSourcePropType {
-  if (roleId === 'ranger') return rangerPortrait;
-  if (roleId === 'sage') return sagePortrait;
-  return warriorPortrait;
-}
+const sizeConfig = {
+  default: { portraitSize: 34, overlap: -10, overlayRight: -10 },
+  compact: { portraitSize: 30, overlap: -9, overlayRight: -8 },
+} as const;
+
+const placementStyle = {
+  topRight: { top: -10 },
+  bottomRight: { bottom: -10 },
+} as const;
 
 export function ChoiceIntentPortraits({
   players,
@@ -33,89 +34,32 @@ export function ChoiceIntentPortraits({
   );
   if (!visiblePlayers.length) return null;
 
+  const config = sizeConfig[size];
+
   return (
-    <View
+    <Stack
+      direction="row"
+      align="center"
       pointerEvents="none"
-      style={[
-        styles.overlay,
-        size === 'compact' ? styles.overlayCompact : styles.overlayDefault,
-        placement === 'bottomRight' ? styles.overlayBottomRight : styles.overlayTopRight,
-      ]}
+      style={{
+        position: 'absolute',
+        flexDirection: 'row-reverse',
+        right: config.overlayRight,
+        ...placementStyle[placement],
+      }}
     >
       {visiblePlayers.map((player, index) => (
-        <View
+        <Portrait
           key={player.playerId}
-          style={[
-            styles.portraitWrap,
-            size === 'compact' ? styles.portraitWrapCompact : styles.portraitWrapDefault,
-            index > 0 &&
-              (size === 'compact' ? styles.portraitStackCompact : styles.portraitStackDefault),
-            player.confirmed && styles.portraitWrapConfirmed,
-            { zIndex: visiblePlayers.length - index },
-          ]}
-        >
-          <Image source={portraitFrame} style={styles.portraitFrame} resizeMode="contain" />
-          <Image
-            source={portraitByRole(player.roleId)}
-            style={styles.portraitImage}
-            resizeMode="contain"
-          />
-        </View>
+          source={portraitByRole(player.roleId)}
+          size={config.portraitSize}
+          highlighted={player.confirmed}
+          style={{
+            zIndex: visiblePlayers.length - index,
+            marginRight: index > 0 ? config.overlap : 0,
+          }}
+        />
       ))}
-    </View>
+    </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-  },
-  overlayDefault: {
-    right: -10,
-  },
-  overlayCompact: {
-    right: -8,
-  },
-  overlayTopRight: {
-    top: -10,
-  },
-  overlayBottomRight: {
-    bottom: -10,
-  },
-  portraitWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    borderRadius: 999,
-  },
-  portraitWrapConfirmed: {
-    borderWidth: 1.5,
-    borderColor: '#ffb300',
-  },
-  portraitWrapDefault: {
-    width: 34,
-    height: 34,
-  },
-  portraitWrapCompact: {
-    width: 30,
-    height: 30,
-  },
-  portraitStackDefault: {
-    marginRight: -10,
-  },
-  portraitStackCompact: {
-    marginRight: -9,
-  },
-  portraitFrame: {
-    width: '100%',
-    height: '100%',
-  },
-  portraitImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-});
