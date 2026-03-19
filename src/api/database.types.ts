@@ -13,38 +13,94 @@ export type Database = {
           created_at: string;
           exp: number;
           gold: number;
+          hp: number;
+          hp_max: number;
           id: string;
           level: number;
           name: string;
           player_id: Database['public']['Enums']['player_id'];
           room_id: string;
+          taunt_turns_left: number;
           updated_at: string;
         };
         Insert: {
           created_at?: string;
           exp?: number;
           gold?: number;
+          hp?: number;
+          hp_max?: number;
           id?: string;
           level?: number;
           name: string;
           player_id: Database['public']['Enums']['player_id'];
           room_id: string;
+          taunt_turns_left?: number;
           updated_at?: string;
         };
         Update: {
           created_at?: string;
           exp?: number;
           gold?: number;
+          hp?: number;
+          hp_max?: number;
           id?: string;
           level?: number;
           name?: string;
           player_id?: Database['public']['Enums']['player_id'];
           room_id?: string;
+          taunt_turns_left?: number;
           updated_at?: string;
         };
         Relationships: [
           {
             foreignKeyName: 'characters_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'rooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      enemies: {
+        Row: {
+          attack: number;
+          created_at: string;
+          hp: number;
+          hp_max: number;
+          id: string;
+          is_dead: boolean;
+          level: number;
+          name: string;
+          position: number;
+          room_id: string;
+        };
+        Insert: {
+          attack?: number;
+          created_at?: string;
+          hp: number;
+          hp_max: number;
+          id?: string;
+          is_dead?: boolean;
+          level?: number;
+          name: string;
+          position: number;
+          room_id: string;
+        };
+        Update: {
+          attack?: number;
+          created_at?: string;
+          hp?: number;
+          hp_max?: number;
+          id?: string;
+          is_dead?: boolean;
+          level?: number;
+          name?: string;
+          position?: number;
+          room_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'enemies_room_id_fkey';
             columns: ['room_id'];
             isOneToOne: false;
             referencedRelation: 'rooms';
@@ -257,6 +313,22 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      cancel_adventure: { Args: { p_room_id: string }; Returns: boolean };
+      combat_ability: {
+        Args: { p_enemy_id?: string; p_room_id: string };
+        Returns: Json;
+      };
+      combat_attack: {
+        Args: { p_enemy_id: string; p_room_id: string };
+        Returns: Json;
+      };
+      combat_heal: {
+        Args: {
+          p_room_id: string;
+          p_target_player_id?: Database['public']['Enums']['player_id'];
+        };
+        Returns: Json;
+      };
       create_room:
         | {
             Args: { p_player_id?: Database['public']['Enums']['player_id'] };
@@ -305,6 +377,8 @@ export type Database = {
           taken_roles: Database['public']['Enums']['role_id'][];
         }[];
       };
+      reset_combat: { Args: { p_room_id: string }; Returns: boolean };
+      seed_enemies: { Args: { p_room_id: string }; Returns: number };
       send_room_emote: {
         Args: { p_emote: string; p_room_id: string; p_scene_id: string };
         Returns: number;

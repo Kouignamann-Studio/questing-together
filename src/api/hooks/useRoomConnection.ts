@@ -377,7 +377,8 @@ export function useRoomConnection(): UseRoomConnectionResult {
         p_start_scene_id: STORY_CONFIG.startSceneId,
       });
       if (error) throw error;
-      // Seed enemies for this room
+      // Reset combat state and re-seed enemies
+      await supabase.rpc('reset_combat', { p_room_id: room.id });
       await supabase.rpc('seed_enemies', { p_room_id: room.id });
     },
     onSuccess: () => {

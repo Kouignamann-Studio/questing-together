@@ -18,37 +18,43 @@ type CombatPortraitStripProps = {
 };
 
 const RING_SIZE = 80;
-const PORTRAIT_SIZE = 68;
+const PORTRAIT_SIZE = 72;
 const RING_WIDTH = 3;
 
 const HpRing = ({ hp, hpMax }: { hp: number; hpMax: number }) => {
   const percent = Math.max(0, Math.min(1, hp / Math.max(1, hpMax)));
+  const hpColor = percent > 0.25 ? '#2ecc40' : '#f44';
 
   return (
-    <View
-      style={{
-        position: 'absolute',
-        width: RING_SIZE,
-        height: RING_SIZE,
-        borderRadius: RING_SIZE / 2,
-        borderWidth: RING_WIDTH,
-        borderColor: colors.combatHealthBarBg,
-      }}
-    >
+    <>
       <View
         style={{
           position: 'absolute',
+          top: 0,
+          left: 0,
           width: RING_SIZE,
           height: RING_SIZE,
           borderRadius: RING_SIZE / 2,
           borderWidth: RING_WIDTH,
-          borderColor: percent > 0.25 ? '#2ecc40' : '#f44',
-          borderTopColor: percent >= 1 ? (percent > 0.25 ? '#2ecc40' : '#f44') : 'transparent',
+          borderColor: colors.combatHealthBarBg,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: RING_SIZE,
+          height: RING_SIZE,
+          borderRadius: RING_SIZE / 2,
+          borderWidth: RING_WIDTH,
+          borderColor: hpColor,
+          borderTopColor: percent >= 1 ? hpColor : 'transparent',
           transform: [{ rotate: '-90deg' }],
           opacity: percent > 0 ? 0.8 : 0,
         }}
       />
-    </View>
+    </>
   );
 };
 
