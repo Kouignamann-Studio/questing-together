@@ -1,3 +1,4 @@
+export { default as ActionButton } from '@/components/input/ActionButton';
 export { default as Button } from '@/components/input/Button';
 export { default as CodeInput } from '@/components/input/CodeInput';
 export { default as Select } from '@/components/input/Select';

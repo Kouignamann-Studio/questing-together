@@ -1,56 +1,57 @@
-import { Button, Stack } from '@/components';
-import { ActionSubText, Typography } from '@/components/display';
-import { colors } from '@/constants/colors';
-import { useDecision } from '@/contexts/DecisionContext/DecisionContext';
+import { useState } from 'react';
+import { ActionButton, Stack } from '@/components';
 import { useGame } from '@/contexts/GameContext';
-import {
-  formatHpLabel,
-  getActionOpacity,
-  getActionVariant,
-} from '@/features/story/utils/decisionHelpers';
+import type { RoleId } from '@/types/player';
 
-type GridSlot =
-  | {
-      type: 'action';
-      id: string;
-      text: string;
-      hpDelta?: number;
-      effectText?: string;
-      isDisabled?: boolean;
-    }
-  | { type: 'leave' }
-  | { type: 'empty' };
+const ABILITY_COOLDOWN = 5;
+const HEAL_COOLDOWN = 3;
 
-const CombatActionGrid = () => {
-  const { actions } = useDecision();
-  const { roomConnection } = useGame();
+type AbilityConfig = {
+  label: string;
+  icon: string;
+  subtitle: string;
+  damage: number;
+  aoe: boolean;
+};
 
-  // Build grid slots: actions first, then pad to even count, leave always last
-  const slots: GridSlot[] = actions.items.map((a) => ({
-    type: 'action' as const,
-    id: a.id,
-    text: a.text,
-    hpDelta: a.hpDelta,
-    effectText: a.effectText,
-    isDisabled: a.isDisabled,
-  }));
+const ABILITIES: Record<RoleId, AbilityConfig> = {
+  warrior: { label: 'Taunt', icon: '🛡️', subtitle: 'Taunt 3 turns', damage: 0, aoe: false },
+  sage: { label: 'Fireball', icon: '🔥', subtitle: '20 Damage', damage: 20, aoe: false },
+  ranger: { label: 'Arrows', icon: '🏹', subtitle: '7 Damage AoE', damage: 7, aoe: true },
+};
 
-  // Pad with empty to make room for leave as last slot in a 2-col grid
-  // Target: at least 4 slots, leave replaces the last one
-  while (slots.length < 3) {
-    slots.push({ type: 'empty' });
-  }
-  slots.push({ type: 'leave' });
+type CombatActionGridProps = {
+  onAttack: () => void;
+  onAbility: () => void;
+  onHeal: () => void;
+};
 
-  // Make even for 2-col grid
-  if (slots.length % 2 !== 0) {
-    slots.splice(slots.length - 1, 0, { type: 'empty' });
-  }
+const CombatActionGrid = ({ onAttack, onAbility, onHeal }: CombatActionGridProps) => {
+  const { localRole, roomConnection } = useGame();
+  const [abilityCooldown, setAbilityCooldown] = useState(0);
+  const [healCooldown, setHealCooldown] = useState(0);
 
-  const rows: [GridSlot, GridSlot][] = [];
-  for (let i = 0; i < slots.length; i += 2) {
-    rows.push([slots[i], slots[i + 1]]);
-  }
+  const ability = localRole ? ABILITIES[localRole] : null;
+
+  const handleAttack = () => {
+    onAttack();
+    setAbilityCooldown((c) => Math.max(0, c - 1));
+    setHealCooldown((c) => Math.max(0, c - 1));
+  };
+
+  const handleAbility = () => {
+    if (abilityCooldown > 0) return;
+    onAbility();
+    setAbilityCooldown(ABILITY_COOLDOWN);
+    setHealCooldown((c) => Math.max(0, c - 1));
+  };
+
+  const handleHeal = () => {
+    if (healCooldown > 0) return;
+    onHeal();
+    setHealCooldown(HEAL_COOLDOWN);
+    setAbilityCooldown((c) => Math.max(0, c - 1));
+  };
 
   const handleLeave = () => {
     void roomConnection.cancelAdventure();
@@ -58,95 +59,41 @@ const CombatActionGrid = () => {
 
   return (
     <Stack gap={8}>
-      {rows.map((row, rowIndex) => (
-        <Stack key={`row-${rowIndex}`} direction="row" gap={8}>
-          {row.map((slot, colIndex) => {
-            if (slot.type === 'empty') {
-              return (
-                <Stack
-                  key={`empty-${rowIndex}-${colIndex}`}
-                  flex={1}
-                  style={{
-                    padding: 14,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: colors.tabBorder,
-                    backgroundColor: colors.backgroundCombatCard,
-                    opacity: 0.4,
-                    minHeight: 72,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    style={{ color: colors.combatWaiting, fontSize: 12 }}
-                  >
-                    TBD
-                  </Typography>
-                </Stack>
-              );
-            }
-
-            if (slot.type === 'leave') {
-              return (
-                <Stack key="leave" flex={1}>
-                  <Button
-                    variant="danger"
-                    disabled={roomConnection.isBusy}
-                    onPress={handleLeave}
-                    style={{ minHeight: 72 }}
-                  >
-                    <Typography
-                      variant="body"
-                      style={{
-                        color: colors.textPrimary,
-                        textAlign: 'center',
-                        fontSize: 13,
-                        fontWeight: '600',
-                      }}
-                    >
-                      Run away
-                    </Typography>
-                    <ActionSubText hpLabel={null} effectText="Leave Room" />
-                  </Button>
-                </Stack>
-              );
-            }
-
-            const isSelected = slot.id === actions.localSelectedId;
-            const isDisabled = !actions.canAct || Boolean(slot.isDisabled);
-            const hpLabel = formatHpLabel(slot.hpDelta);
-
-            return (
-              <Stack key={slot.id} flex={1}>
-                <Button
-                  variant={getActionVariant(isSelected)}
-                  disabled={isDisabled}
-                  onPress={() => actions.onTake(slot.id)}
-                  style={{
-                    opacity: getActionOpacity(isDisabled, isSelected),
-                    minHeight: 72,
-                  }}
-                >
-                  <Typography
-                    variant="body"
-                    style={{
-                      color: colors.textPrimary,
-                      textAlign: 'center',
-                      fontSize: 13,
-                      fontWeight: '600',
-                    }}
-                  >
-                    {slot.text}
-                  </Typography>
-                  <ActionSubText hpLabel={hpLabel} effectText={slot.effectText} />
-                </Button>
-              </Stack>
-            );
-          })}
-        </Stack>
-      ))}
+      <Stack direction="row" gap={8}>
+        <ActionButton label="Attack" icon="⚔️" subtitle="10 Damage" onPress={handleAttack} />
+        <ActionButton
+          label={ability?.label ?? 'Ability'}
+          icon={ability?.icon ?? '✨'}
+          subtitle={ability?.subtitle ?? ''}
+          disabled={abilityCooldown > 0}
+          cooldownText={
+            abilityCooldown > 0
+              ? `cd: ${ABILITY_COOLDOWN - abilityCooldown}/${ABILITY_COOLDOWN}`
+              : undefined
+          }
+          onPress={handleAbility}
+        />
+      </Stack>
+      <Stack direction="row" gap={8}>
+        <ActionButton
+          label="Heal"
+          icon="💚"
+          subtitle="Heal 10 HP"
+          disabled={healCooldown > 0}
+          cooldownText={
+            healCooldown > 0 ? `cd: ${HEAL_COOLDOWN - healCooldown}/${HEAL_COOLDOWN}` : undefined
+          }
+          onPress={handleHeal}
+        />
+        <ActionButton
+          label="Run away"
+          icon="🏃"
+          subtitle="Leave Room"
+          variant="danger"
+          disabled={roomConnection.isBusy}
+          onPress={handleLeave}
+        />
+      </Stack>
     </Stack>
   );
 };

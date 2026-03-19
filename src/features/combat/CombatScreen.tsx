@@ -2,18 +2,15 @@ import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
-import { useDecision } from '@/contexts/DecisionContext/DecisionContext';
 import { useGame } from '@/contexts/GameContext';
 import CombatActionGrid from '@/features/combat/CombatActionGrid';
 import CombatHeader from '@/features/combat/CombatHeader';
 import type { CombatPlayer } from '@/features/combat/CombatPortraitStrip';
 import CombatPortraitStrip from '@/features/combat/CombatPortraitStrip';
-import CombatStatusCard from '@/features/combat/CombatStatusCard';
 import EnemyList from '@/features/combat/EnemyList';
 
 const CombatScreen = () => {
   const insets = useSafeAreaInsets();
-  const { combat } = useDecision();
   const { roomConnection, localPlayerId, playerDisplayNameById } = useGame();
 
   const localCharacter =
@@ -63,20 +60,21 @@ const CombatScreen = () => {
 
         <EnemyList />
 
-        {combat.state ? (
-          <CombatStatusCard
-            combatState={combat.state}
-            combatLog={combat.log}
-            resolvedOption={null}
-            showResolutionStatus={false}
-          />
-        ) : null}
-
         <CombatPortraitStrip players={combatPlayers} localPlayerId={localPlayerId} />
       </ScrollView>
 
       <BottomSheet size="sm">
-        <CombatActionGrid />
+        <CombatActionGrid
+          onAttack={() => {
+            // TODO: wire to combat RPC
+          }}
+          onAbility={() => {
+            // TODO: wire to combat RPC
+          }}
+          onHeal={() => {
+            // TODO: wire to combat RPC
+          }}
+        />
       </BottomSheet>
     </Stack>
   );
