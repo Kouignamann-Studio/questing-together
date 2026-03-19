@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
-import { supabase } from '@/api/supabase-client';
+import { supabase } from '@/api/supabaseClient';
 
 type UsePushRegistrationParams = {
   enabled: boolean;

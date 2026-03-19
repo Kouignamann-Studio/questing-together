@@ -1,7 +1,7 @@
 {
   "name": "questing-together",
   "main": "expo-router/entry",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -13,7 +13,8 @@
     "prepare": "husky",
     "build:dev": "eas build --profile development --platform ios",
     "build:preview": "eas build --profile preview --platform ios",
-    "update:preview": "eas update --channel preview"
+    "update:preview": "eas update --channel preview",
+    "db:types": "npx supabase gen types typescript --project-id jjomkrlwakrtshdnsrtu > src/api/database.types.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -22,6 +23,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@supabase/supabase-js": "^2.94.0",
+    "@tanstack/react-query": "^5.91.2",
     "dayjs": "^1.11.20",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",

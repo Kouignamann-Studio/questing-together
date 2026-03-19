@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase } from '@/api/supabase-client';
+import { supabase } from '@/api/supabaseClient';
 import {
   EVIDENCE_CONFIRMATION_COUNT,
   NO_REACTION_ACTION_ID,

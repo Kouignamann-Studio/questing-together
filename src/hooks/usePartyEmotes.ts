@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { supabase } from '@/api/supabase-client';
+import { supabase } from '@/api/supabaseClient';
 import { MAX_PARTY_EMOTES_PER_SCENE, PARTY_EMOTES } from '@/constants/constants';
 import type { EmoteText, PartyEmote, PlayerId } from '@/types/player';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type UsePartyEmotesOptions = {
   localPlayerId: PlayerId;
@@ -34,19 +35,6 @@ function normalizeEmoteErrorMessage(message: string) {
     return 'That emote is not valid.';
   }
   return message;
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error) return error.message;
-  if (error && typeof error === 'object') {
-    const maybe = error as { message?: unknown; details?: unknown; hint?: unknown };
-    const message = typeof maybe.message === 'string' ? maybe.message : null;
-    const details = typeof maybe.details === 'string' ? maybe.details : null;
-    const hint = typeof maybe.hint === 'string' ? maybe.hint : null;
-    const combined = [message, details, hint].filter(Boolean).join(' | ');
-    if (combined) return combined;
-  }
-  return fallback;
 }
 
 async function sendEmoteRpc(roomId: string, sceneId: string, emote: EmoteText) {
@@ -113,11 +101,10 @@ export function usePartyEmotes({ localPlayerId, roomId, currentSceneId }: UsePar
     const mapped = rows
       .map(toPartyEmote)
       .filter((message): message is PartyEmote => Boolean(message));
-    const maxId = rows.reduce(
-      (maxId, row) => (row.id > maxId ? row.id : maxId),
+    lastMessageIdRef.current = rows.reduce(
+      (acc, row) => (row.id > acc ? row.id : acc),
       lastMessageIdRef.current,
     );
-    lastMessageIdRef.current = maxId;
 
     if (!mapped.length) return;
 

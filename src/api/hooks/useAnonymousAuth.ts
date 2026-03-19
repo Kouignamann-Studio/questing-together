@@ -1,7 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
-import { supabase } from '@/api/supabase-client';
+import { supabase } from '@/api/supabaseClient';
 
 type UseAnonymousAuthResult = {
   isAuthReady: boolean;

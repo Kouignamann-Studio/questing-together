@@ -29,6 +29,14 @@
 - Import from `@/components` barrel, not from individual files (except internal cross-references within components/)
 - Respect Biome linting: `import type` for type-only imports, sorted imports/exports
 
+### Supabase & Data
+
+- DB types are auto-generated in `src/api/database.types.ts` — use these types for all Supabase queries, RPCs, and table references
+- Regenerate with `bun run db:types` after any schema change
+- API models (camelCase client types) live in `src/api/models/`
+- Supabase hooks live in `src/api/hooks/` (camelCase filenames)
+- Use TanStack Query (`useQuery`/`useMutation`) for all Supabase data fetching and mutations
+
 ### General
 
 - Reusable layout logic (responsive calculations, etc.) goes in `src/utils/` as custom hooks

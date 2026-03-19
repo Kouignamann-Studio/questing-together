@@ -1,0 +1,539 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: '14.4';
+  };
+  public: {
+    Tables: {
+      characters: {
+        Row: {
+          created_at: string;
+          exp: number;
+          gold: number;
+          id: string;
+          level: number;
+          name: string;
+          player_id: Database['public']['Enums']['player_id'];
+          room_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          exp?: number;
+          gold?: number;
+          id?: string;
+          level?: number;
+          name: string;
+          player_id: Database['public']['Enums']['player_id'];
+          room_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          exp?: number;
+          gold?: number;
+          id?: string;
+          level?: number;
+          name?: string;
+          player_id?: Database['public']['Enums']['player_id'];
+          room_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'characters_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'rooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      push_notification_dispatches: {
+        Row: {
+          created_at: string;
+          event_id: number;
+          room_id: string;
+          scene_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          event_id: number;
+          room_id: string;
+          scene_id: string;
+        };
+        Update: {
+          created_at?: string;
+          event_id?: number;
+          room_id?: string;
+          scene_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'push_notification_dispatches_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'rooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      push_subscriptions: {
+        Row: {
+          created_at: string;
+          expo_push_token: string;
+          platform: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          expo_push_token: string;
+          platform?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          expo_push_token?: string;
+          platform?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      room_events: {
+        Row: {
+          actor_user_id: string | null;
+          created_at: string;
+          id: number;
+          payload_json: Json;
+          room_id: string;
+          type: string;
+        };
+        Insert: {
+          actor_user_id?: string | null;
+          created_at?: string;
+          id?: number;
+          payload_json?: Json;
+          room_id: string;
+          type: string;
+        };
+        Update: {
+          actor_user_id?: string | null;
+          created_at?: string;
+          id?: number;
+          payload_json?: Json;
+          room_id?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'room_events_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'rooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      room_messages: {
+        Row: {
+          created_at: string;
+          id: number;
+          kind: Database['public']['Enums']['room_message_kind'];
+          player_id: Database['public']['Enums']['player_id'] | null;
+          room_id: string;
+          scene_id: string;
+          text: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: number;
+          kind?: Database['public']['Enums']['room_message_kind'];
+          player_id?: Database['public']['Enums']['player_id'] | null;
+          room_id: string;
+          scene_id: string;
+          text: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: number;
+          kind?: Database['public']['Enums']['room_message_kind'];
+          player_id?: Database['public']['Enums']['player_id'] | null;
+          room_id?: string;
+          scene_id?: string;
+          text?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'room_messages_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'rooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      room_players: {
+        Row: {
+          display_name: string | null;
+          id: string;
+          is_connected: boolean;
+          joined_at: string;
+          player_id: Database['public']['Enums']['player_id'];
+          role_id: Database['public']['Enums']['role_id'] | null;
+          room_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          display_name?: string | null;
+          id?: string;
+          is_connected?: boolean;
+          joined_at?: string;
+          player_id: Database['public']['Enums']['player_id'];
+          role_id?: Database['public']['Enums']['role_id'] | null;
+          room_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          display_name?: string | null;
+          id?: string;
+          is_connected?: boolean;
+          joined_at?: string;
+          player_id?: Database['public']['Enums']['player_id'];
+          role_id?: Database['public']['Enums']['role_id'] | null;
+          room_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'room_players_room_id_fkey';
+            columns: ['room_id'];
+            isOneToOne: false;
+            referencedRelation: 'rooms';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      rooms: {
+        Row: {
+          code: string;
+          created_at: string;
+          host_user_id: string;
+          id: string;
+          status: Database['public']['Enums']['room_status'];
+          target_player_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          host_user_id: string;
+          id?: string;
+          status?: Database['public']['Enums']['room_status'];
+          target_player_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          host_user_id?: string;
+          id?: string;
+          status?: Database['public']['Enums']['room_status'];
+          target_player_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      create_room:
+        | {
+            Args: { p_player_id?: Database['public']['Enums']['player_id'] };
+            Returns: {
+              room_code: string;
+              room_id: string;
+            }[];
+          }
+        | {
+            Args: {
+              p_display_name?: string;
+              p_player_id?: Database['public']['Enums']['player_id'];
+              p_role_id?: Database['public']['Enums']['role_id'];
+            };
+            Returns: {
+              room_code: string;
+              room_id: string;
+            }[];
+          };
+      generate_room_code: { Args: { p_length?: number }; Returns: string };
+      is_room_member: { Args: { p_room_id: string }; Returns: boolean };
+      join_room:
+        | {
+            Args: {
+              p_code: string;
+              p_player_id?: Database['public']['Enums']['player_id'];
+            };
+            Returns: string;
+          }
+        | {
+            Args: {
+              p_code: string;
+              p_display_name?: string;
+              p_player_id?: Database['public']['Enums']['player_id'];
+              p_role_id?: Database['public']['Enums']['role_id'];
+            };
+            Returns: string;
+          };
+      leave_room: { Args: { p_room_id: string }; Returns: boolean };
+      peek_room: {
+        Args: { p_code: string };
+        Returns: {
+          player_count: number;
+          room_id: string;
+          room_status: Database['public']['Enums']['room_status'];
+          taken_roles: Database['public']['Enums']['role_id'][];
+        }[];
+      };
+      send_room_emote: {
+        Args: { p_emote: string; p_room_id: string; p_scene_id: string };
+        Returns: number;
+      };
+      set_push_subscription: {
+        Args: { p_platform?: string; p_token: string };
+        Returns: boolean;
+      };
+      story_confirm_option: {
+        Args: {
+          p_next_scene_id: string;
+          p_option_id: string;
+          p_room_id: string;
+          p_scene_id: string;
+          p_step_id: string;
+        };
+        Returns: number;
+      };
+      story_continue_scene: {
+        Args: { p_room_id: string; p_scene_id: string };
+        Returns: number;
+      };
+      story_current_scene_id: { Args: { p_room_id: string }; Returns: string };
+      story_last_reset_id: { Args: { p_room_id: string }; Returns: number };
+      story_next_scene_id: { Args: { p_scene_id: string }; Returns: string };
+      story_reset: {
+        Args: { p_room_id: string; p_start_scene_id?: string };
+        Returns: number;
+      };
+      story_resolve_combat: {
+        Args: {
+          p_next_scene_id: string;
+          p_option_id: string;
+          p_room_id: string;
+          p_scene_id: string;
+        };
+        Returns: number;
+      };
+      story_resolve_timed_scene: {
+        Args: {
+          p_force: boolean;
+          p_next_scene_id: string;
+          p_option_id: string;
+          p_room_id: string;
+          p_scene_id: string;
+        };
+        Returns: number;
+      };
+      story_select_option: {
+        Args: {
+          p_option_id: string;
+          p_room_id: string;
+          p_scene_id: string;
+          p_step_id: string;
+        };
+        Returns: number;
+      };
+      story_select_role: {
+        Args: {
+          p_role_id: Database['public']['Enums']['role_id'];
+          p_room_id: string;
+        };
+        Returns: boolean;
+      };
+      story_set_display_name: {
+        Args: { p_display_name: string; p_room_id: string };
+        Returns: boolean;
+      };
+      story_set_target_player_count: {
+        Args: { p_room_id: string; p_target_player_count: number };
+        Returns: number;
+      };
+      story_start_adventure: {
+        Args: { p_room_id: string; p_start_scene_id?: string };
+        Returns: number;
+      };
+      story_start_timer: {
+        Args: {
+          p_duration_seconds: number;
+          p_room_id: string;
+          p_scene_id: string;
+          p_step_id: string;
+        };
+        Returns: number;
+      };
+      story_take_action: {
+        Args: {
+          p_action_id: string;
+          p_room_id: string;
+          p_scene_id: string;
+          p_step_id: string;
+        };
+        Returns: number;
+      };
+    };
+    Enums: {
+      player_id: 'p1' | 'p2' | 'p3';
+      role_id: 'sage' | 'warrior' | 'ranger';
+      room_message_kind: 'player' | 'separator' | 'system';
+      room_status: 'lobby' | 'in_progress' | 'finished';
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+};
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+      Row: infer R;
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
+      }
+      ? R
+      : never
+    : never;
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema['Tables']
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Insert: infer I;
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I;
+      }
+      ? I
+      : never
+    : never;
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema['Tables']
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Update: infer U;
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U;
+      }
+      ? U
+      : never
+    : never;
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema['Enums']
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+    : never;
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema['CompositeTypes']
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+    : never;
+
+export const Constants = {
+  public: {
+    Enums: {
+      player_id: ['p1', 'p2', 'p3'],
+      role_id: ['sage', 'warrior', 'ranger'],
+      room_message_kind: ['player', 'separator', 'system'],
+      room_status: ['lobby', 'in_progress', 'finished'],
+    },
+  },
+} as const;

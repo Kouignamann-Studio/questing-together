@@ -1,6 +1,6 @@
 import { createContext, type Dispatch, type SetStateAction, useContext } from 'react';
-import type { useAnonymousAuth } from '@/api/hooks/use-anonymous-auth';
-import type { useRoomConnection } from '@/api/hooks/use-room-connection';
+import type { useAnonymousAuth } from '@/api/hooks/useAnonymousAuth';
+import type { useRoomConnection } from '@/api/hooks/useRoomConnection';
 import type { usePartyEmotes } from '@/hooks/usePartyEmotes';
 import type { useRoomStory } from '@/hooks/useRoomStory';
 import type { PlayerId, RoleId } from '@/types/player';

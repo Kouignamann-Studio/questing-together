@@ -1,35 +1,20 @@
-import { useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  Alert,
   BottomSheet,
   Button,
   Divider,
   EmptyState,
   Portrait,
   Stack,
-  Stepper,
-  TextField,
   Typography,
 } from '@/components';
 import { colors } from '@/constants/colors';
 import { playerNameById, roles } from '@/constants/constants';
 import { useGame } from '@/contexts/GameContext';
-import { getNameError } from '@/features/lobby/utils/getNameError';
-import { getReadyText } from '@/features/lobby/utils/getReadyText';
-import type { RoleId } from '@/types/player';
 import { portraitByRole } from '@/utils/portraitByRole';
 
-function getPortraitColor(isSelected: boolean, isTaken: boolean, isFocused: boolean) {
-  if (isSelected) return colors.success;
-  if (isTaken) return colors.errorDark;
-  if (isFocused) return colors.textOverlayHeading;
-  return colors.textInputDark;
-}
-
 const LobbyContent = () => {
-  // Hooks
   const {
     roomConnection,
     localPlayerId,
@@ -41,31 +26,7 @@ const LobbyContent = () => {
     isHost,
   } = useGame();
   const insets = useSafeAreaInsets();
-  const [nameInput, setNameInput] = useState('');
-  const [focusedRoleId, setFocusedRoleId] = useState<RoleId | null>(null);
-
-  // Derived state
   const { players, isBusy } = roomConnection;
-  const targetPlayerCount = room?.target_player_count ?? 1;
-  const localPlayer = players.find((p) => p.player_id === localPlayerId);
-  const existingName = localPlayer?.display_name ?? '';
-  const selectedRoleId = localPlayer?.role_id ?? null;
-  const assignedCount = players.filter((p) => p.role_id).length;
-  const normalizedName = (nameInput || existingName).trim();
-  const nameError = localPlayerId ? getNameError(normalizedName, players, localPlayerId) : null;
-  const hasName = Boolean(existingName) || (normalizedName.length > 0 && nameError === null);
-  const localHasRole = Boolean(selectedRoleId || focusedRoleId);
-  const allPicked =
-    players.length === targetPlayerCount &&
-    players.every((p) => (p.player_id === localPlayerId ? localHasRole : Boolean(p.role_id))) &&
-    hasName;
-  const focusedRole = focusedRoleId ? roles.find((r) => r.id === focusedRoleId) : null;
-
-  // Handlers
-  const handlePortraitPress = (roleId: RoleId) => {
-    setFocusedRoleId(roleId);
-    void roomConnection.selectRole(roleId);
-  };
 
   // Early returns
   if (!isLobby) {
@@ -84,7 +45,6 @@ const LobbyContent = () => {
     return null;
   }
 
-  // Render
   return (
     <>
       <ScrollView
@@ -128,161 +88,45 @@ const LobbyContent = () => {
             <>
               <Divider />
 
-              {/* Name section */}
-              {!existingName ? (
-                <>
-                  <Typography
-                    variant="caption"
-                    bold
-                    style={{ color: colors.textAvatarNameParchment }}
-                  >
-                    Choose Your Name
-                  </Typography>
-                  <TextField
-                    value={nameInput}
-                    onChangeText={(text) => setNameInput(text.replace(/\s+/g, '-'))}
-                    onBlur={() => {
-                      const name = nameInput.trim();
-                      if (name.length > 0 && !nameError) {
-                        roomConnection.setDisplayName(name);
-                      }
-                    }}
-                    onSubmitEditing={() => {
-                      const name = nameInput.trim();
-                      if (name.length > 0 && !nameError) {
-                        roomConnection.setDisplayName(name);
-                      }
-                    }}
-                    autoCorrect={false}
-                    autoCapitalize="words"
-                    maxLength={20}
-                    editable={!isBusy}
-                    placeholder="Your adventurer name"
-                  />
-                </>
-              ) : null}
-
-              {/* Party size section */}
-              <Stack direction="row" align="center" justify="space-between">
-                <Typography
-                  variant="caption"
-                  bold
-                  style={{ color: colors.textAvatarNameParchment }}
-                >
-                  Party Size
-                </Typography>
-                {isHost ? (
-                  <Stepper
-                    value={targetPlayerCount}
-                    min={Math.max(1, players.length)}
-                    max={3}
-                    label={(v: number) => `${v} ${v === 1 ? 'player' : 'players'}`}
-                    disabled={isBusy}
-                    onValueChange={(c: number) => roomConnection.setTargetPlayerCount(c)}
-                  />
-                ) : (
-                  <Typography variant="caption" style={{ color: colors.textAvatarNameParchment }}>
-                    {targetPlayerCount} {targetPlayerCount === 1 ? 'player' : 'players'}
-                  </Typography>
-                )}
-              </Stack>
-
-              <Divider />
-
-              {/* Role portraits */}
+              {/* Party members */}
               <Typography variant="caption" bold style={{ color: colors.textAvatarNameParchment }}>
-                Pick Your Role
+                Party
               </Typography>
-              <Stack gap={8}>
-                <Stack direction="row" justify="space-evenly">
-                  {roles.map((role) => {
-                    const owner = players.find((p) => p.role_id === role.id);
-                    const isTakenByOther = Boolean(owner && owner.player_id !== localPlayerId);
-                    const isSelectedByLocal = selectedRoleId === role.id;
-                    const isFocused = focusedRoleId === role.id;
-                    const isDisabled = isTakenByOther || isBusy;
-                    const isDimmed = focusedRoleId !== null && !isFocused && !isSelectedByLocal;
-                    const ownerName =
-                      owner?.display_name ?? (owner ? playerNameById[owner.player_id] : undefined);
-                    const portraitColor = getPortraitColor(
-                      isSelectedByLocal,
-                      isTakenByOther,
-                      isFocused,
-                    );
-                    const portraitOpacity = isDimmed ? 0.35 : isDisabled ? 0.5 : 1;
-
-                    return (
-                      <Pressable
-                        key={role.id}
-                        disabled={isDisabled}
-                        onPress={() => handlePortraitPress(role.id)}
-                        style={{ alignItems: 'center', opacity: portraitOpacity }}
-                      >
+              <Stack direction="row" justify="space-evenly">
+                {players.map((p) => {
+                  const role = roles.find((r) => r.id === p.role_id);
+                  return (
+                    <Stack key={p.player_id} align="center" gap={2}>
+                      {p.role_id ? (
                         <Portrait
-                          source={portraitByRole(role.id)}
+                          source={portraitByRole(p.role_id)}
                           size={80}
-                          highlighted={isSelectedByLocal || isFocused || isTakenByOther}
-                          highlightColor={portraitColor}
-                          name={role.label}
-                          nameColor={portraitColor}
+                          highlighted
+                          highlightColor={colors.success}
+                          name={role?.label ?? ''}
+                          nameColor={colors.success}
                           nameFontSize={12}
                         />
-                        {ownerName ? (
-                          <Typography
-                            variant="fine"
-                            bold
-                            style={{ color: portraitColor, marginTop: 2 }}
-                          >
-                            {ownerName}
-                          </Typography>
-                        ) : null}
-                      </Pressable>
-                    );
-                  })}
-                </Stack>
+                      ) : null}
+                      <Typography
+                        variant="fine"
+                        bold
+                        style={{ color: colors.textAvatarNameParchment }}
+                      >
+                        {p.display_name ?? playerNameById[p.player_id]}
+                      </Typography>
+                    </Stack>
+                  );
+                })}
               </Stack>
 
-              {/* Focused role description */}
-              {focusedRole ? (
-                <Alert variant="warning" title={focusedRole.label}>
-                  {focusedRole.summary}
-                </Alert>
-              ) : null}
-
-              {/* Party assignment */}
-              <Stack gap={3}>
-                <Typography
-                  variant="caption"
-                  bold
-                  style={{ color: colors.textAvatarNameParchment, marginBottom: 2 }}
-                >
-                  Party Assignment
-                </Typography>
-                {players.map((p) => (
-                  <Typography
-                    key={p.player_id}
-                    variant="caption"
-                    style={{ color: colors.textAvatarNameParchment }}
-                  >
-                    {p.display_name ?? playerNameById[p.player_id]}:{' '}
-                    {p.role_id ? p.role_id.toUpperCase() : 'waiting...'}
-                  </Typography>
-                ))}
-              </Stack>
-
-              {/* Ready status */}
               <Typography
                 variant="caption"
                 style={{ textAlign: 'center', color: colors.textOverlayAccent }}
               >
-                {getReadyText(
-                  true,
-                  players.length < targetPlayerCount,
-                  allPicked,
-                  players.length,
-                  targetPlayerCount,
-                  assignedCount,
-                )}
+                {players.length === 1
+                  ? 'Waiting for companions to join...'
+                  : `${players.length} adventurers ready`}
               </Typography>
             </>
           ) : (
@@ -309,7 +153,7 @@ const LobbyContent = () => {
                 label={isBusy ? 'Starting...' : 'Start Adventure'}
                 variant="validation"
                 size="sm"
-                disabled={!allPicked || isBusy}
+                disabled={isBusy}
                 onPress={() => roomConnection.startAdventure()}
               />
             ) : (

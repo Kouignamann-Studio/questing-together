@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { useAnonymousAuth } from '@/api/hooks/use-anonymous-auth';
-import { useRoomConnection } from '@/api/hooks/use-room-connection';
+import { useAnonymousAuth } from '@/api/hooks/useAnonymousAuth';
+import { useRoomConnection } from '@/api/hooks/useRoomConnection';
 import { playerNameById } from '@/constants/constants';
 import { GameContext } from '@/contexts/GameContext/GameContext';
 import { usePartyEmotes } from '@/hooks/usePartyEmotes';

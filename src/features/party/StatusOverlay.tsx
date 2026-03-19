@@ -7,18 +7,18 @@ export function StatusOverlay() {
   const game = useGame();
   const roomStory = game.roomStory;
   const connection = game.roomConnection;
-  const closePanel = game.setShowStatusPanel(false);
+  const closePanel = () => game.setShowStatusPanel(false);
 
   const hasError = Boolean(connection.roomError || roomStory.storyError);
 
   const handleReset = () => {
-    void closePanel;
-    void roomStory.resetStory();
+    closePanel();
+    roomStory.resetStory();
   };
 
   const handleLeave = () => {
-    void closePanel;
-    void connection.leaveRoom();
+    closePanel();
+    connection.leaveRoom();
   };
 
   return (

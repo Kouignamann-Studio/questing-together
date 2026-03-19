@@ -27,8 +27,9 @@ const HomeScreen = () => {
       <RoomConnectionCard
         isBusy={game.roomConnection.isBusy}
         errorText={game.roomConnection.roomError}
-        onCreateRoom={() => void game.roomConnection.createRoom()}
-        onJoinRoom={(code) => void game.roomConnection.joinRoom(code)}
+        onCreateRoom={(name, roleId) => void game.roomConnection.createRoom(name, roleId)}
+        onJoinRoom={(code, name, roleId) => void game.roomConnection.joinRoom(code, name, roleId)}
+        onPeekRoom={(code) => game.roomConnection.peekRoom(code)}
       />
     </ScreenContainer>
   );

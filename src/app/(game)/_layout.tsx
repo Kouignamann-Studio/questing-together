@@ -11,6 +11,7 @@ export default function GameLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="lobby" />
+      <Stack.Screen name="adventure-setup" />
       <Stack.Screen name="story" />
     </Stack>
   );
