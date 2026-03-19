@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet, Stack, Typography } from '@/components';
@@ -12,9 +13,14 @@ import EnemyList from '@/features/combat/EnemyList';
 const CombatScreen = () => {
   const insets = useSafeAreaInsets();
   const { roomConnection, localPlayerId, playerDisplayNameById } = useGame();
+  const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
 
   const localCharacter =
     roomConnection.characters.find((c) => c.playerId === localPlayerId) ?? null;
+
+  // Auto-select first alive enemy if none selected
+  const aliveEnemies = roomConnection.enemies.filter((e) => !e.isDead);
+  const effectiveEnemyId = selectedEnemyId ?? aliveEnemies[0]?.id ?? null;
 
   const combatPlayers: CombatPlayer[] = roomConnection.players
     .filter((p) => p.role_id)
@@ -23,6 +29,19 @@ const CombatScreen = () => {
       roleId: p.role_id as NonNullable<typeof p.role_id>,
       displayName: playerDisplayNameById[p.player_id] ?? p.player_id,
     }));
+
+  const handleAttack = () => {
+    if (!effectiveEnemyId) return;
+    void roomConnection.combatAttack(effectiveEnemyId);
+  };
+
+  const handleAbility = () => {
+    void roomConnection.combatAbility(effectiveEnemyId);
+  };
+
+  const handleHeal = () => {
+    void roomConnection.combatHeal();
+  };
 
   return (
     <Stack flex={1} style={{ backgroundColor: colors.backgroundDark }}>
@@ -58,23 +77,13 @@ const CombatScreen = () => {
           </Typography>
         </Stack>
 
-        <EnemyList />
+        <EnemyList selectedEnemyId={effectiveEnemyId} onSelectEnemy={setSelectedEnemyId} />
 
         <CombatPortraitStrip players={combatPlayers} localPlayerId={localPlayerId} />
       </ScrollView>
 
       <BottomSheet size="sm">
-        <CombatActionGrid
-          onAttack={() => {
-            // TODO: wire to combat RPC
-          }}
-          onAbility={() => {
-            // TODO: wire to combat RPC
-          }}
-          onHeal={() => {
-            // TODO: wire to combat RPC
-          }}
-        />
+        <CombatActionGrid onAttack={handleAttack} onAbility={handleAbility} onHeal={handleHeal} />
       </BottomSheet>
     </Stack>
   );

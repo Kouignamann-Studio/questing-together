@@ -1,13 +1,16 @@
-import { useState } from 'react';
 import { EnemyCard, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
 
 const VISIBLE_COUNT = 3;
 
-const EnemyList = () => {
+type EnemyListProps = {
+  selectedEnemyId: string | null;
+  onSelectEnemy: (id: string) => void;
+};
+
+const EnemyList = ({ selectedEnemyId, onSelectEnemy }: EnemyListProps) => {
   const { roomConnection } = useGame();
-  const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
 
   const allEnemies = roomConnection.enemies;
   const aliveEnemies = allEnemies.filter((e) => !e.isDead);
@@ -46,7 +49,7 @@ const EnemyList = () => {
           hp={enemy.hp}
           hpMax={enemy.hpMax}
           selected={enemy.id === effectiveSelected}
-          onPress={() => setSelectedEnemyId(enemy.id)}
+          onPress={() => onSelectEnemy(enemy.id)}
         />
       ))}
     </Stack>

@@ -162,8 +162,8 @@ begin
   insert into public.room_players (room_id, player_id, user_id, role_id, display_name)
   values (v_room_id, v_assigned_player_id, v_user_id, p_role_id, v_trimmed_name);
 
-  insert into public.characters (room_id, player_id, name, level, gold, exp)
-  values (v_room_id, v_assigned_player_id, v_trimmed_name, 1, 0, 0);
+  insert into public.characters (room_id, player_id, name, level, gold, exp, hp, hp_max)
+  values (v_room_id, v_assigned_player_id, v_trimmed_name, 1, 0, 0, 100, 100);
 
   return query select v_room_id, v_code;
 end;
@@ -281,8 +281,8 @@ begin
   insert into public.room_players (room_id, player_id, user_id, role_id, display_name)
   values (v_room_id, v_assigned_player_id, v_user_id, p_role_id, v_trimmed_name);
 
-  insert into public.characters (room_id, player_id, name, level, gold, exp)
-  values (v_room_id, v_assigned_player_id, v_trimmed_name, 1, 0, 0);
+  insert into public.characters (room_id, player_id, name, level, gold, exp, hp, hp_max)
+  values (v_room_id, v_assigned_player_id, v_trimmed_name, 1, 0, 0, 100, 100);
 
   return v_room_id;
 end;

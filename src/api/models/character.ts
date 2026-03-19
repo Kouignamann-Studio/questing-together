@@ -8,13 +8,9 @@ type Character = {
   level: number;
   gold: number;
   exp: number;
+  hp: number;
+  hpMax: number;
+  tauntTurnsLeft: number;
 };
 
-const DEFAULT_CHARACTER_STATS = {
-  level: 1,
-  gold: 0,
-  exp: 0,
-} as const;
-
 export type { Character };
-export { DEFAULT_CHARACTER_STATS };

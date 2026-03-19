@@ -56,6 +56,9 @@ type UseRoomConnectionResult = {
   peekRoom: (code: string) => Promise<RoomPeek | null>;
   startAdventure: () => Promise<void>;
   cancelAdventure: () => Promise<void>;
+  combatAttack: (enemyId: string) => Promise<unknown>;
+  combatAbility: (enemyId: string | null) => Promise<unknown>;
+  combatHeal: (targetPlayerId?: PlayerId) => Promise<unknown>;
   leaveRoom: () => Promise<void>;
 };
 
@@ -103,7 +106,7 @@ async function fetchRoomPlayers(roomId: string): Promise<RoomPlayerRecord[]> {
 async function fetchCharacters(roomId: string): Promise<Character[]> {
   const { data, error } = await supabase
     .from('characters')
-    .select('id, room_id, player_id, name, level, gold, exp')
+    .select('id, room_id, player_id, name, level, gold, exp, hp, hp_max, taunt_turns_left')
     .eq('room_id', roomId)
     .order('player_id', { ascending: true });
 
@@ -117,6 +120,9 @@ async function fetchCharacters(roomId: string): Promise<Character[]> {
       level: number;
       gold: number;
       exp: number;
+      hp: number;
+      hp_max: number;
+      taunt_turns_left: number;
     }[]
   ).map((row) => ({
     id: row.id,
@@ -126,6 +132,9 @@ async function fetchCharacters(roomId: string): Promise<Character[]> {
     level: row.level,
     gold: row.gold,
     exp: row.exp,
+    hp: row.hp,
+    hpMax: row.hp_max,
+    tauntTurnsLeft: row.taunt_turns_left,
   }));
 }
 
@@ -396,6 +405,64 @@ export function useRoomConnection(): UseRoomConnectionResult {
   });
 
   // ---------------------------------------------------------------------------
+  // Combat mutations
+  // ---------------------------------------------------------------------------
+
+  const combatAttackMutation = useMutation({
+    mutationFn: async (enemyId: string) => {
+      if (!room?.id) throw new Error('No room');
+      const { data, error } = await supabase.rpc('combat_attack', {
+        p_room_id: room.id,
+        p_enemy_id: enemyId,
+      });
+      if (error) throw error;
+      return data as {
+        enemyDamage: number;
+        counterDamage: number;
+        enemyKilled: boolean;
+        xpGained: number;
+        goldGained: number;
+      };
+    },
+    onSuccess: () => {
+      if (room?.id) void qc.invalidateQueries({ queryKey: roomKeys.roomState(room.id) });
+    },
+    onError: (error) => setRoomError(getErrorMessage(error, 'Attack failed')),
+  });
+
+  const combatAbilityMutation = useMutation({
+    mutationFn: async (enemyId: string | null) => {
+      if (!room?.id) throw new Error('No room');
+      const { data, error } = await supabase.rpc('combat_ability', {
+        p_room_id: room.id,
+        p_enemy_id: enemyId,
+      });
+      if (error) throw error;
+      return data as Record<string, unknown>;
+    },
+    onSuccess: () => {
+      if (room?.id) void qc.invalidateQueries({ queryKey: roomKeys.roomState(room.id) });
+    },
+    onError: (error) => setRoomError(getErrorMessage(error, 'Ability failed')),
+  });
+
+  const combatHealMutation = useMutation({
+    mutationFn: async (targetPlayerId?: PlayerId) => {
+      if (!room?.id) throw new Error('No room');
+      const { data, error } = await supabase.rpc('combat_heal', {
+        p_room_id: room.id,
+        p_target_player_id: targetPlayerId ?? null,
+      });
+      if (error) throw error;
+      return data as { targetPlayerId: string; hpRestored: number; newHp: number };
+    },
+    onSuccess: () => {
+      if (room?.id) void qc.invalidateQueries({ queryKey: roomKeys.roomState(room.id) });
+    },
+    onError: (error) => setRoomError(getErrorMessage(error, 'Heal failed')),
+  });
+
+  // ---------------------------------------------------------------------------
   // peekRoom (standalone, no cache)
   // ---------------------------------------------------------------------------
 
@@ -459,6 +526,30 @@ export function useRoomConnection(): UseRoomConnectionResult {
     await cancelAdventureMutation.mutateAsync();
   }, [cancelAdventureMutation]);
 
+  const combatAttack = useCallback(
+    async (enemyId: string) => {
+      setRoomError(null);
+      return combatAttackMutation.mutateAsync(enemyId);
+    },
+    [combatAttackMutation],
+  );
+
+  const combatAbility = useCallback(
+    async (enemyId: string | null) => {
+      setRoomError(null);
+      return combatAbilityMutation.mutateAsync(enemyId);
+    },
+    [combatAbilityMutation],
+  );
+
+  const combatHeal = useCallback(
+    async (targetPlayerId?: PlayerId) => {
+      setRoomError(null);
+      return combatHealMutation.mutateAsync(targetPlayerId);
+    },
+    [combatHealMutation],
+  );
+
   // ---------------------------------------------------------------------------
   // Derived
   // ---------------------------------------------------------------------------
@@ -484,6 +575,9 @@ export function useRoomConnection(): UseRoomConnectionResult {
       peekRoom,
       startAdventure,
       cancelAdventure,
+      combatAttack,
+      combatAbility,
+      combatHeal,
       leaveRoom,
     }),
     [
@@ -498,6 +592,9 @@ export function useRoomConnection(): UseRoomConnectionResult {
       peekRoom,
       startAdventure,
       cancelAdventure,
+      combatAttack,
+      combatAbility,
+      combatHeal,
       leaveRoom,
     ],
   );
