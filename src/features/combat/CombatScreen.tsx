@@ -93,7 +93,7 @@ const CombatScreen = () => {
           </Typography>
           <Typography
             variant="caption"
-            style={{ color: colors.combatWaiting, fontSize: 12, textAlign: 'center' }}
+            style={{ color: colors.combatWaiting, textAlign: 'center' }}
           >
             Vous êtes dans une zone de combat libre
           </Typography>

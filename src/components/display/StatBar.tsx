@@ -27,7 +27,7 @@ const StatBar = ({
 
   return (
     <Stack gap={6}>
-      <Typography variant="caption" style={{ fontSize: 12, fontWeight: '700', color: labelColor }}>
+      <Typography variant="caption" style={{ fontWeight: '700', color: labelColor }}>
         {label}
       </Typography>
       <View
@@ -40,7 +40,7 @@ const StatBar = ({
       >
         <AnimatedBarFill percent={percent} style={{ height: '100%', backgroundColor: fillColor }} />
       </View>
-      <Typography variant="body" style={{ fontSize: 13, fontWeight: '700', color: valueColor }}>
+      <Typography variant="bodySm" style={{ fontWeight: '700', color: valueColor }}>
         {current}/{max}
       </Typography>
     </Stack>

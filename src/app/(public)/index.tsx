@@ -1,12 +1,12 @@
 import { Typography } from '@/components/display';
 import { ScreenContainer } from '@/components/layout';
 import { useGame } from '@/contexts/GameContext';
-import RoomConnectionCard from '@/features/lobby/RoomConnectionCard';
+import GameLauncher from '@/features/home/GameLauncher';
 
 const HomeScreen = () => {
-  const game = useGame();
+  const { auth } = useGame();
 
-  if (!game.auth.isAuthReady) {
+  if (!auth.isAuthReady) {
     return (
       <ScreenContainer centered>
         <Typography>Signing in...</Typography>
@@ -14,23 +14,17 @@ const HomeScreen = () => {
     );
   }
 
-  if (game.auth.authError) {
+  if (auth.authError) {
     return (
       <ScreenContainer centered>
-        <Typography variant="error">Auth error: {game.auth.authError}</Typography>
+        <Typography variant="error">Auth error: {auth.authError}</Typography>
       </ScreenContainer>
     );
   }
 
   return (
     <ScreenContainer>
-      <RoomConnectionCard
-        isBusy={game.roomConnection.isBusy}
-        errorText={game.roomConnection.roomError}
-        onCreateRoom={(name, roleId) => void game.roomConnection.createRoom(name, roleId)}
-        onJoinRoom={(code, name, roleId) => void game.roomConnection.joinRoom(code, name, roleId)}
-        onPeekRoom={(code) => game.roomConnection.peekRoom(code)}
-      />
+      <GameLauncher />
     </ScreenContainer>
   );
 };

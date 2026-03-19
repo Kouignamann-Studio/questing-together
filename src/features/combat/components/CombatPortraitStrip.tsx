@@ -103,17 +103,15 @@ const CombatPortraitStrip = ({
               style={{
                 color: isLocal ? colors.intentConfirmedBorder : colors.combatWaiting,
                 fontWeight: isLocal ? '700' : '400',
-                fontSize: 10,
               }}
             >
               {player.displayName}
             </Typography>
             <Typography
-              variant="fine"
+              variant="micro"
               style={{
                 color: isDead ? colors.combatDamage : colors.combatHeal,
                 fontWeight: '700',
-                fontSize: 9,
               }}
             >
               {isDead ? 'DEAD' : `${hp}/${hpMax}`}

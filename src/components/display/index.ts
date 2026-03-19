@@ -10,6 +10,7 @@ export { default as FloatingToast } from '@/components/display/FloatingToast';
 export { default as FramedTitle } from '@/components/display/FramedTitle';
 export { default as HealthBar } from '@/components/display/HealthBar';
 export { default as Portrait } from '@/components/display/Portrait';
+export { default as RoomCard } from '@/components/display/RoomCard';
 export { default as StatBar } from '@/components/display/StatBar';
 export { default as StatusBadge } from '@/components/display/StatusBadge';
 export { default as StoryText } from '@/components/display/StoryText';

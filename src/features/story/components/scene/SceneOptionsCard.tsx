@@ -3,7 +3,7 @@ import { Pressable } from 'react-native';
 
 import { Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
-import { ChoiceIntentPortraits } from '@/features/party/ChoiceIntentPortraits';
+import ChoiceIntentPortraits from '@/features/story/components/ChoiceIntentPortraits';
 import type { VoteState } from '@/features/story/types/types';
 import type { OptionId } from '@/types/story';
 

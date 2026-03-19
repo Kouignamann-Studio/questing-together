@@ -349,6 +349,7 @@ export type Database = {
               room_id: string;
             }[];
           };
+      delete_room: { Args: { p_room_id: string }; Returns: boolean };
       generate_room_code: { Args: { p_length?: number }; Returns: string };
       is_room_member: { Args: { p_room_id: string }; Returns: boolean };
       join_room:
@@ -369,6 +370,17 @@ export type Database = {
             Returns: string;
           };
       leave_room: { Args: { p_room_id: string }; Returns: boolean };
+      list_my_rooms: {
+        Args: never;
+        Returns: {
+          created_at: string;
+          is_host: boolean;
+          player_count: number;
+          room_code: string;
+          room_id: string;
+          room_status: Database['public']['Enums']['room_status'];
+        }[];
+      };
       peek_room: {
         Args: { p_code: string };
         Returns: {

@@ -19,7 +19,6 @@ const badgeStyle = {
 const badgeText = {
   color: colors.intentConfirmedBorder,
   fontWeight: '700' as const,
-  fontSize: 13,
 };
 
 const CombatHeader = ({ character }: CombatHeaderProps) => {
@@ -42,7 +41,7 @@ const CombatHeader = ({ character }: CombatHeaderProps) => {
       }}
     >
       <Stack style={badgeStyle}>
-        <Typography variant="caption" style={badgeText}>
+        <Typography variant="bodySm" style={badgeText}>
           Lv.{level}
         </Typography>
       </Stack>
@@ -61,16 +60,13 @@ const CombatHeader = ({ character }: CombatHeaderProps) => {
             style={{ height: '100%', backgroundColor: colors.intentConfirmedBorder }}
           />
         </View>
-        <Typography
-          variant="fine"
-          style={{ color: colors.combatHealthValue, fontSize: 10, textAlign: 'center' }}
-        >
+        <Typography variant="fine" style={{ color: colors.combatHealthValue, textAlign: 'center' }}>
           Experience: {exp} / {expMax}
         </Typography>
       </Stack>
 
       <Stack style={badgeStyle}>
-        <Typography variant="caption" style={badgeText}>
+        <Typography variant="bodySm" style={badgeText}>
           {gold} g.
         </Typography>
       </Stack>

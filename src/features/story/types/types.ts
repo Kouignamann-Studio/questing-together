@@ -1,4 +1,4 @@
-import type { ChoiceIntentPortraitPlayer } from '@/features/party/ChoiceIntentPortraits';
+import type { ChoiceIntentPortraitPlayer } from '@/features/story/components/ChoiceIntentPortraits';
 import type { OptionId, SceneOption } from '@/types/story';
 
 export type SceneActionChoice = {

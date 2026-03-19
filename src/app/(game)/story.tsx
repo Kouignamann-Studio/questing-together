@@ -8,11 +8,11 @@ import { colors } from '@/constants/colors';
 import { DecisionProvider } from '@/contexts/DecisionContext';
 import { useGame } from '@/contexts/GameContext';
 import { PartyEmoteOverlay } from '@/features/emote/PartyEmoteOverlay';
-import { StatusOverlay } from '@/features/party/StatusOverlay';
 import StoryHeader from '@/features/story/components/header/StoryHeader';
+import StatusOverlay from '@/features/story/components/StatusOverlay';
 import SceneFeedCard from '@/features/story/components/scene/SceneFeedCard';
 
-export default function StoryScreen() {
+const StoryScreen = () => {
   const game = useGame();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
@@ -62,4 +62,6 @@ export default function StoryScreen() {
       </Stack>
     </DecisionProvider>
   );
-}
+};
+
+export default StoryScreen;

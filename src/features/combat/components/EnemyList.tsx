@@ -114,16 +114,10 @@ const EnemyList = ({
   return (
     <Stack gap={4}>
       <Stack direction="row" justify="space-between" align="center">
-        <Typography
-          variant="body"
-          style={{ color: colors.combatTitle, fontWeight: '700', fontSize: 17 }}
-        >
+        <Typography variant="sectionTitle" style={{ color: colors.combatTitle, fontWeight: '700' }}>
           Combat
         </Typography>
-        <Typography
-          variant="caption"
-          style={{ color: colors.combatRound, fontWeight: '700', fontSize: 12 }}
-        >
+        <Typography variant="caption" style={{ color: colors.combatRound, fontWeight: '700' }}>
           ! {killCount} ennemis tués
         </Typography>
       </Stack>

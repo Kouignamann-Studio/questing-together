@@ -77,16 +77,12 @@ const ActionButton = ({
                 : colors.backgroundCombatCard,
           }}
         >
-          {icon ? (
-            <Typography variant="body" style={{ fontSize: 14 }}>
-              {icon}
-            </Typography>
-          ) : null}
+          {icon ? <Typography variant="body">{icon}</Typography> : null}
 
           <Stack flex={1} gap={0}>
             <Typography
-              variant="caption"
-              style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 11 }}
+              variant="captionSm"
+              style={{ color: colors.textPrimary, fontWeight: '600' }}
             >
               {label}
             </Typography>
@@ -107,11 +103,10 @@ const ActionButton = ({
 
           {showCooldown ? (
             <Typography
-              variant="fine"
+              variant="micro"
               style={{
                 color: disabled ? colors.combatWaiting : colors.intentConfirmedBorder,
                 fontWeight: '700',
-                fontSize: 9,
               }}
             >
               {cooldownText}

@@ -24,11 +24,11 @@ const placementStyle = {
   bottomRight: { bottom: -10 },
 } as const;
 
-export function ChoiceIntentPortraits({
+const ChoiceIntentPortraits = ({
   players,
   size = 'default',
   placement = 'topRight',
-}: ChoiceIntentPortraitsProps) {
+}: ChoiceIntentPortraitsProps) => {
   const visiblePlayers = players.filter(
     (player): player is ChoiceIntentPortraitPlayer & { roleId: RoleId } => Boolean(player.roleId),
   );
@@ -62,4 +62,6 @@ export function ChoiceIntentPortraits({
       ))}
     </Stack>
   );
-}
+};
+
+export default ChoiceIntentPortraits;

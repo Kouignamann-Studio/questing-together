@@ -44,15 +44,36 @@ type RoomState = {
   enemies: Enemy[];
 };
 
+type MyRoom = {
+  roomId: string;
+  code: string;
+  status: string;
+  playerCount: number;
+  isHost: boolean;
+  hostName: string;
+};
+
+type AvailableRoom = {
+  roomId: string;
+  code: string;
+  status: string;
+  playerCount: number;
+  hostName: string;
+};
+
 type UseRoomConnectionResult = {
   room: RoomRecord | null;
   players: RoomPlayerRecord[];
   characters: Character[];
   enemies: Enemy[];
+  myRooms: MyRoom[];
+  availableRooms: AvailableRoom[];
   isBusy: boolean;
   roomError: string | null;
   createRoom: (displayName: string, roleId: RoleId) => Promise<void>;
   joinRoom: (code: string, displayName: string, roleId: RoleId) => Promise<void>;
+  rejoinRoom: (roomId: string) => Promise<void>;
+  deleteRoom: (roomId: string) => Promise<void>;
   peekRoom: (code: string) => Promise<RoomPeek | null>;
   startAdventure: () => Promise<void>;
   cancelAdventure: () => Promise<void>;
@@ -182,30 +203,46 @@ async function fetchRoomState(roomId: string): Promise<RoomState | null> {
   return { room, players, characters, enemies };
 }
 
-async function loadJoinedRoomIdForCurrentUser(): Promise<string | null> {
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id;
-  if (!userId) return null;
+async function fetchMyRooms(): Promise<MyRoom[]> {
+  const { data, error } = await supabase.rpc('list_my_rooms');
+  if (error) return [];
+  return (
+    (data ?? []) as {
+      room_id: string;
+      room_code: string;
+      room_status: string;
+      player_count: number;
+      is_host: boolean;
+      host_name: string;
+    }[]
+  ).map((row) => ({
+    roomId: row.room_id,
+    code: row.room_code,
+    status: row.room_status,
+    playerCount: row.player_count,
+    isHost: row.is_host,
+    hostName: row.host_name,
+  }));
+}
 
-  const { data, error } = await supabase
-    .from('room_players')
-    .select('room_id, updated_at')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(20);
-
-  if (error) throw error;
-  const rows = (data ?? []) as { room_id: string | null }[];
-
-  for (const row of rows) {
-    const roomId = row.room_id;
-    if (!roomId) continue;
-    const room = await fetchRoomSnapshot(roomId);
-    if (!room || room.status === 'finished') continue;
-    return roomId;
-  }
-
-  return null;
+async function fetchAvailableRooms(): Promise<AvailableRoom[]> {
+  const { data, error } = await supabase.rpc('list_available_rooms');
+  if (error) return [];
+  return (
+    (data ?? []) as {
+      room_id: string;
+      room_code: string;
+      room_status: string;
+      player_count: number;
+      host_name: string;
+    }[]
+  ).map((row) => ({
+    roomId: row.room_id,
+    code: row.room_code,
+    status: row.room_status,
+    playerCount: row.player_count,
+    hostName: row.host_name,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +252,8 @@ async function loadJoinedRoomIdForCurrentUser(): Promise<string | null> {
 const roomKeys = {
   currentRoomId: ['currentRoomId'] as const,
   roomState: (roomId: string | null) => ['roomState', roomId] as const,
+  myRooms: ['myRooms'] as const,
+  availableRooms: ['availableRooms'] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -226,11 +265,20 @@ export function useRoomConnection(): UseRoomConnectionResult {
   const [roomError, setRoomError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // Step 1: Resolve current room ID for this user
-  const { data: currentRoomId = null } = useQuery({
-    queryKey: roomKeys.currentRoomId,
-    queryFn: loadJoinedRoomIdForCurrentUser,
-    staleTime: Number.POSITIVE_INFINITY,
+  // No auto-reconnect: user starts on home screen and picks a room
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
+
+  // Fetch user's existing rooms for the join screen
+  const { data: myRooms = [] } = useQuery({
+    queryKey: roomKeys.myRooms,
+    queryFn: fetchMyRooms,
+    staleTime: 1000 * 30,
+  });
+
+  const { data: availableRooms = [] } = useQuery({
+    queryKey: roomKeys.availableRooms,
+    queryFn: fetchAvailableRooms,
+    staleTime: 1000 * 30,
   });
 
   // Step 2: Fetch full room state when we have a roomId
@@ -245,16 +293,6 @@ export function useRoomConnection(): UseRoomConnectionResult {
   const players = roomState?.players ?? [];
   const characters = roomState?.characters ?? [];
   const enemies = roomState?.enemies ?? [];
-
-  // Re-bootstrap on auth state change
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      void qc.invalidateQueries({ queryKey: roomKeys.currentRoomId });
-    });
-    return () => subscription.unsubscribe();
-  }, [qc]);
 
   // Realtime: invalidate room state on DB changes
   useEffect(() => {
@@ -305,17 +343,19 @@ export function useRoomConnection(): UseRoomConnectionResult {
   // Mutations
   // ---------------------------------------------------------------------------
 
-  const setRoomId = useCallback(
+  const enterRoom = useCallback(
     (newRoomId: string) => {
-      qc.setQueryData(roomKeys.currentRoomId, newRoomId);
+      setCurrentRoomId(newRoomId);
       void qc.invalidateQueries({ queryKey: roomKeys.roomState(newRoomId) });
+      void qc.invalidateQueries({ queryKey: roomKeys.myRooms });
     },
     [qc],
   );
 
   const clearRoom = useCallback(() => {
-    qc.setQueryData(roomKeys.currentRoomId, null);
+    setCurrentRoomId(null);
     qc.removeQueries({ queryKey: roomKeys.roomState(currentRoomId) });
+    void qc.invalidateQueries({ queryKey: roomKeys.myRooms });
   }, [qc, currentRoomId]);
 
   const createRoomMutation = useMutation({
@@ -329,7 +369,7 @@ export function useRoomConnection(): UseRoomConnectionResult {
       if (!created?.room_id) throw new Error('Room was not created');
       return created.room_id as string;
     },
-    onSuccess: (roomId) => setRoomId(roomId),
+    onSuccess: (roomId) => enterRoom(roomId),
     onError: (error) =>
       setRoomError(withSchemaHint(getErrorMessage(error, 'Failed to create room'))),
   });
@@ -355,7 +395,7 @@ export function useRoomConnection(): UseRoomConnectionResult {
       if (!data) throw new Error('Could not join room');
       return data as string;
     },
-    onSuccess: (roomId) => setRoomId(roomId),
+    onSuccess: (roomId) => enterRoom(roomId),
     onError: (error) => setRoomError(getErrorMessage(error, 'Failed to join room')),
   });
 
@@ -367,6 +407,17 @@ export function useRoomConnection(): UseRoomConnectionResult {
     },
     onSuccess: () => clearRoom(),
     onError: (error) => setRoomError(getErrorMessage(error, 'Failed to leave room')),
+  });
+
+  const deleteRoomMutation = useMutation({
+    mutationFn: async (roomId: string) => {
+      const { error } = await supabase.rpc('delete_room', { p_room_id: roomId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: roomKeys.myRooms });
+    },
+    onError: (error) => setRoomError(getErrorMessage(error, 'Failed to delete room')),
   });
 
   const startAdventureMutation = useMutation({
@@ -517,6 +568,22 @@ export function useRoomConnection(): UseRoomConnectionResult {
     await leaveRoomMutation.mutateAsync();
   }, [leaveRoomMutation]);
 
+  const rejoinRoom = useCallback(
+    async (roomId: string) => {
+      setRoomError(null);
+      enterRoom(roomId);
+    },
+    [enterRoom],
+  );
+
+  const deleteRoom = useCallback(
+    async (roomId: string) => {
+      setRoomError(null);
+      await deleteRoomMutation.mutateAsync(roomId);
+    },
+    [deleteRoomMutation],
+  );
+
   const startAdventure = useCallback(async () => {
     setRoomError(null);
     await startAdventureMutation.mutateAsync();
@@ -561,7 +628,8 @@ export function useRoomConnection(): UseRoomConnectionResult {
     joinRoomMutation.isPending ||
     leaveRoomMutation.isPending ||
     startAdventureMutation.isPending ||
-    cancelAdventureMutation.isPending;
+    cancelAdventureMutation.isPending ||
+    deleteRoomMutation.isPending;
 
   return useMemo(
     () => ({
@@ -569,10 +637,14 @@ export function useRoomConnection(): UseRoomConnectionResult {
       players,
       characters,
       enemies,
+      myRooms,
+      availableRooms,
       isBusy,
       roomError,
       createRoom,
       joinRoom,
+      rejoinRoom,
+      deleteRoom,
       peekRoom,
       startAdventure,
       cancelAdventure,
@@ -586,10 +658,14 @@ export function useRoomConnection(): UseRoomConnectionResult {
       players,
       characters,
       enemies,
+      myRooms,
+      availableRooms,
       isBusy,
       roomError,
       createRoom,
       joinRoom,
+      rejoinRoom,
+      deleteRoom,
       peekRoom,
       startAdventure,
       cancelAdventure,

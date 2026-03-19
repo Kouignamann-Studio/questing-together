@@ -54,11 +54,10 @@ const EnemyCard = ({
         }}
       >
         <Typography
-          variant="caption"
+          variant="bodySm"
           style={{
             color: colors.combatTitle,
             fontWeight: '600',
-            fontSize: 13,
             textAlign: 'center',
           }}
         >
@@ -82,17 +81,14 @@ const EnemyCard = ({
         }}
       >
         <Stack direction="row" justify="space-between" align="center">
-          <Typography
-            variant="caption"
-            style={{ color: colors.combatTitle, fontWeight: '600', fontSize: 13 }}
-          >
+          <Typography variant="bodySm" style={{ color: colors.combatTitle, fontWeight: '600' }}>
             {name}
           </Typography>
           <Stack direction="row" gap={6} align="center">
-            <Typography variant="fine" style={{ color: colors.combatHealthValue, fontSize: 10 }}>
+            <Typography variant="fine" style={{ color: colors.combatHealthValue }}>
               {hp}/{hpMax}
             </Typography>
-            <Typography variant="fine" style={{ color: colors.combatWaiting, fontSize: 10 }}>
+            <Typography variant="fine" style={{ color: colors.combatWaiting }}>
               Lv.{level}
             </Typography>
           </Stack>

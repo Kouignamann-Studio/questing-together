@@ -69,20 +69,17 @@ const CombatStatusCard = ({
   return (
     <Card embedded={embedded} backgroundColor={colors.backgroundCombatCard}>
       {!embedded ? (
-        <Typography variant="body" style={{ fontSize: 17, fontWeight: '700', color: c.title }}>
+        <Typography variant="sectionTitle" style={{ fontWeight: '700', color: c.title }}>
           Combat Status
         </Typography>
       ) : null}
 
       <Stack direction="row" justify="space-between" align="center">
-        <Typography variant="caption" style={{ fontSize: 13, fontWeight: '700', color: c.round }}>
+        <Typography variant="bodySm" style={{ fontWeight: '700', color: c.round }}>
           Round {combatState.round}
         </Typography>
         {outcomeLabel ? (
-          <Typography
-            variant="caption"
-            style={{ fontSize: 12, fontWeight: '700', color: c.outcome }}
-          >
+          <Typography variant="caption" style={{ fontWeight: '700', color: c.outcome }}>
             {outcomeLabel}
           </Typography>
         ) : null}
@@ -111,22 +108,19 @@ const CombatStatusCard = ({
       {combatLog.length > 0 ? (
         <Stack gap={4}>
           {combatLog.slice(-4).map((entry) => (
-            <Typography key={entry.id} variant="body" style={{ fontSize: 12, color: c.log }}>
+            <Typography key={entry.id} variant="caption" style={{ color: c.log }}>
               {entry.text}
             </Typography>
           ))}
         </Stack>
       ) : (
-        <Typography variant="body" style={{ fontSize: 12, color: c.log }}>
+        <Typography variant="caption" style={{ color: c.log }}>
           No rounds resolved yet.
         </Typography>
       )}
 
       {resolutionText ? (
-        <Typography
-          variant="body"
-          style={{ fontSize: 12, color: c.waiting, fontFamily: 'BesleyItalic' }}
-        >
+        <Typography variant="caption" style={{ color: c.waiting, fontFamily: 'BesleyItalic' }}>
           {resolutionText}
         </Typography>
       ) : null}

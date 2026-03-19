@@ -10,9 +10,7 @@ type StatusBadgeProps = {
 const StatusBadge = ({ icon, title, titleColor }: StatusBadgeProps) => {
   return (
     <Stack gap={8} align="center">
-      <Typography variant="body" style={{ fontSize: 20 }}>
-        {icon}
-      </Typography>
+      <Typography variant="subheading">{icon}</Typography>
       <Typography
         variant="heading"
         style={{ color: titleColor, fontSize: 22, fontWeight: '800', textAlign: 'center' }}

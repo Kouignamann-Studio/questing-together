@@ -5,7 +5,7 @@ import headerBorderTexture from '@/assets/images/T_HeaderBorder.png';
 import { Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
-import PartyTopBar from '@/features/party/PartyTopBar';
+import PartyTopBar from '@/features/story/components/PartyTopBar';
 
 type StoryHeaderProps = {
   headerMinHeight: number;

@@ -1,9 +1,9 @@
 import { Alert, BottomSheet, Button, Stack, Typography } from '@/components';
 import { roles } from '@/constants/constants';
 import { useGame } from '@/contexts/GameContext';
-import PartyStatusCard from '@/features/party/PartyStatusCard';
+import PartyStatusCard from '@/features/story/components/PartyStatusCard';
 
-export function StatusOverlay() {
+const StatusOverlay = () => {
   const game = useGame();
   const roomStory = game.roomStory;
   const connection = game.roomConnection;
@@ -64,4 +64,6 @@ export function StatusOverlay() {
       </Stack>
     </BottomSheet>
   );
-}
+};
+
+export default StatusOverlay;
