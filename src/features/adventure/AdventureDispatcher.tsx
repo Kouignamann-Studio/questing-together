@@ -1,7 +1,6 @@
 import { EmptyState, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
-import AdventureProgressBar from '@/features/adventure/components/AdventureProgressBar';
 import ChoiceScreen from '@/features/choice/ChoiceScreen';
 import CombatScreen from '@/features/combat/CombatScreen';
 import PuzzleScreen from '@/features/puzzle/PuzzleScreen';
@@ -42,12 +41,6 @@ const AdventureDispatcher = () => {
 
   return (
     <Stack flex={1} style={{ backgroundColor: colors.backgroundDark }}>
-      <AdventureProgressBar
-        position={currentScreen.position}
-        bloc={currentScreen.bloc}
-        phase={currentScreen.phase}
-        screenType={currentScreen.screenType}
-      />
       {renderScreen()}
     </Stack>
   );

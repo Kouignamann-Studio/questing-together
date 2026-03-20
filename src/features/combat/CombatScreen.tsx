@@ -2,10 +2,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheet, ModalBackdrop, Stack, StatusBadge, Typography } from '@/components';
+import { BottomSheet, Button, ModalBackdrop, Stack, StatusBadge, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { COMBAT } from '@/constants/combatSettings';
 import { useGame } from '@/contexts/GameContext';
+import { useTranslation } from '@/contexts/I18nContext';
 import CombatActionGrid from '@/features/combat/components/CombatActionGrid';
 import CombatHeader from '@/features/combat/components/CombatHeader';
 import CombatPortraitStrip from '@/features/combat/components/CombatPortraitStrip';
@@ -17,7 +18,8 @@ import { getEffectiveEnemyId } from '@/features/combat/utils/getEffectiveEnemyId
 const CombatScreen = () => {
   const insets = useSafeAreaInsets();
   const anim = useCombatAnimations();
-  const { roomConnection, localPlayerId, localRole, playerDisplayNameById } = useGame();
+  const { roomConnection, localPlayerId, localRole, playerDisplayNameById, isHost } = useGame();
+  const { t } = useTranslation();
 
   const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
 
@@ -27,6 +29,8 @@ const CombatScreen = () => {
   const effectiveEnemyId = getEffectiveEnemyId(roomConnection.enemies, selectedEnemyId);
   const combatPlayers = buildCombatPlayers(roomConnection.players, playerDisplayNameById);
   const isDead = (localCharacter?.hp ?? 0) <= 0;
+  const allEnemiesDead =
+    roomConnection.enemies.length > 0 && roomConnection.enemies.every((e) => e.isDead);
 
   const handleAttack = async () => {
     if (!effectiveEnemyId || isDead || anim.isAnimating) return;
@@ -116,7 +120,7 @@ const CombatScreen = () => {
         />
       </ScrollView>
 
-      {!isDead ? (
+      {!isDead && !allEnemiesDead ? (
         <BottomSheet size="sm">
           <CombatActionGrid
             onAttack={() => void handleAttack()}
@@ -127,7 +131,30 @@ const CombatScreen = () => {
         </BottomSheet>
       ) : null}
 
-      {isDead ? (
+      {allEnemiesDead ? (
+        <BottomSheet size="sm">
+          <Stack gap={12} align="center" style={{ paddingVertical: 8 }}>
+            <StatusBadge icon="⚔️" title="Victory!" titleColor={colors.combatOutcome} />
+            <Typography variant="caption" style={{ color: colors.combatWaiting }}>
+              {t('combat.enemiesKilled', { count: roomConnection.enemies.length })}
+            </Typography>
+            {isHost ? (
+              <Button
+                size="md"
+                onPress={() => void roomConnection.advanceScreen()}
+                label={t('combat.continue')}
+                disabled={roomConnection.isBusy}
+              />
+            ) : (
+              <Typography variant="caption" style={{ color: colors.combatWaiting }}>
+                {t('combat.waitingHost')}
+              </Typography>
+            )}
+          </Stack>
+        </BottomSheet>
+      ) : null}
+
+      {isDead && !allEnemiesDead ? (
         <ModalBackdrop onPress={() => roomConnection.cancelAdventure()}>
           <StatusBadge icon="🏃" title="YOU DIED" titleColor={colors.combatDamage} />
         </ModalBackdrop>

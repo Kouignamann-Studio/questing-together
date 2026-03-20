@@ -425,6 +425,9 @@ begin
   from public.adventure_screens s
   where s.room_id = p_room_id and s.position = v_current_pos + 1;
 
+  -- Clean up old enemies before seeding new ones
+  delete from public.enemies where room_id = p_room_id and screen_id = v_current_screen_id;
+
   -- Auto-seed enemies if next screen is combat or boss
   if v_next_screen.screen_type in ('combat', 'boss_fight') then
     perform public.seed_enemies_for_screen(p_room_id, v_next_screen.id);
@@ -442,5 +445,9 @@ end;
 $$;
 
 grant execute on function public.advance_screen(uuid) to authenticated;
+
+-- Fix unique constraint: per screen, not per room
+alter table public.enemies drop constraint if exists enemies_room_id_position_key;
+alter table public.enemies add constraint enemies_room_screen_position_key unique (room_id, screen_id, position);
 
 commit;
