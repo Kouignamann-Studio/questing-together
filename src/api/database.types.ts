@@ -333,7 +333,6 @@ export type Database = {
       create_room: {
         Args: {
           p_display_name?: string;
-          p_player_id?: Database['public']['Enums']['player_id'];
           p_role_id?: Database['public']['Enums']['role_id'];
         };
         Returns: {
@@ -348,7 +347,6 @@ export type Database = {
         Args: {
           p_code: string;
           p_display_name?: string;
-          p_player_id?: Database['public']['Enums']['player_id'];
           p_role_id?: Database['public']['Enums']['role_id'];
         };
         Returns: string;
