@@ -39,8 +39,8 @@ export type RingLayer = EffectLayerBase & {
 export type EffectLayer = OrbLayer | TrailLayer | RingLayer;
 
 export type EffectMotion = {
-  mode: 'fixed' | 'line';
-  tracks?: Pick<EffectTrackMap, 'travel'>;
+  mode: 'fixed' | 'line' | 'path';
+  tracks?: Pick<EffectTrackMap, 'travel' | 'x' | 'y'>;
 };
 
 export type EffectAsset = {

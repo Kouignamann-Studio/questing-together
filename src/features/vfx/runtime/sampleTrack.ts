@@ -69,11 +69,31 @@ export function sampleMotionPosition(
 ) {
   'worklet';
 
-  if (asset.motion?.mode === 'line' && instance.targetX != null && instance.targetY != null) {
+  if (
+    (asset.motion?.mode === 'line' || asset.motion?.mode === 'path') &&
+    instance.targetX != null &&
+    instance.targetY != null
+  ) {
     const travel = sampleTrack(asset.motion.tracks?.travel, progress, progress);
-    return {
+    const base = {
       x: lerp(instance.x, instance.targetX, travel),
       y: lerp(instance.y, instance.targetY, travel),
+    };
+
+    if (asset.motion.mode === 'path') {
+      return {
+        x: base.x + sampleTrack(asset.motion.tracks?.x, progress, 0),
+        y: base.y + sampleTrack(asset.motion.tracks?.y, progress, 0),
+      };
+    }
+
+    return base;
+  }
+
+  if (asset.motion?.mode === 'path') {
+    return {
+      x: instance.x + sampleTrack(asset.motion.tracks?.x, progress, 0),
+      y: instance.y + sampleTrack(asset.motion.tracks?.y, progress, 0),
     };
   }
 
