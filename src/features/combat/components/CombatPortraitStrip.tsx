@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -5,6 +6,7 @@ import { CircularHealthBar, Portrait, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
 import FloatingDamage from '@/features/combat/components/FloatingDamage';
+import { measureViewCenter } from '@/features/combat/utils/measureViewCenter';
 import type { PlayerId, RoleId } from '@/types/player';
 import { portraitByRole } from '@/utils/portraitByRole';
 
@@ -27,6 +29,7 @@ type CombatPortraitStripProps = {
   playerLunge: SharedValue<number>;
   playerFlash: SharedValue<number>;
   floatingTexts: FloatingText[];
+  onLocalAnchorChange?: (point: { x: number; y: number } | null) => void;
 };
 
 const RING_SIZE = 80;
@@ -38,8 +41,10 @@ const CombatPortraitStrip = ({
   playerLunge,
   playerFlash,
   floatingTexts,
+  onLocalAnchorChange,
 }: CombatPortraitStripProps) => {
   const { roomConnection } = useGame();
+  const localPortraitRef = useRef<View>(null);
 
   const lungeStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: playerLunge.value }],
@@ -50,6 +55,23 @@ const CombatPortraitStrip = ({
   }));
 
   const playerFloats = floatingTexts.filter((t) => t.target === 'player');
+
+  const reportLocalAnchor = useCallback(() => {
+    if (!localPlayerId) {
+      onLocalAnchorChange?.(null);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      measureViewCenter(localPortraitRef, (point) => {
+        onLocalAnchorChange?.(point);
+      });
+    });
+  }, [localPlayerId, onLocalAnchorChange]);
+
+  useEffect(() => {
+    reportLocalAnchor();
+  }, [reportLocalAnchor]);
 
   return (
     <Stack direction="row" justify="space-evenly" style={{ paddingTop: 48, paddingBottom: 8 }}>
@@ -64,6 +86,8 @@ const CombatPortraitStrip = ({
           <Stack key={player.playerId} align="center" gap={2} style={{ position: 'relative' }}>
             <Animated.View style={isLocal ? lungeStyle : undefined}>
               <View
+                ref={isLocal ? localPortraitRef : undefined}
+                onLayout={isLocal ? reportLocalAnchor : undefined}
                 style={{
                   width: RING_SIZE,
                   height: RING_SIZE,

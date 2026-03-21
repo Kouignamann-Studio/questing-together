@@ -13,8 +13,13 @@ import EnemyList from '@/features/combat/components/EnemyList';
 import useCombatAnimations from '@/features/combat/hooks/useCombatAnimations';
 import { buildCombatPlayers } from '@/features/combat/utils/buildCombatPlayers';
 import { getEffectiveEnemyId } from '@/features/combat/utils/getEffectiveEnemyId';
+import { playCombatAbilityVfx } from '@/features/combat/utils/playCombatAbilityVfx';
 import { useVfx } from '@/features/vfx';
-import { getEffectAsset } from '@/features/vfx/runtime/effectRegistry';
+
+type Point = {
+  x: number;
+  y: number;
+};
 
 const CombatScreen = () => {
   const insets = useSafeAreaInsets();
@@ -22,6 +27,8 @@ const CombatScreen = () => {
   const anim = useCombatAnimations();
   const { playEffect } = useVfx();
   const { roomConnection, localPlayerId, localRole, playerDisplayNameById } = useGame();
+  const localAnchorRef = useRef<Point | null>(null);
+  const selectedEnemyAnchorRef = useRef<Point | null>(null);
   const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
@@ -32,7 +39,6 @@ const CombatScreen = () => {
   const effectiveEnemyId = getEffectiveEnemyId(roomConnection.enemies, selectedEnemyId);
   const combatPlayers = buildCombatPlayers(roomConnection.players, playerDisplayNameById);
   const isDead = (localCharacter?.hp ?? 0) <= 0;
-  const fireballTravelMs = getEffectAsset('fireball-travel')?.durationMs ?? 420;
 
   useEffect(() => {
     return () => {
@@ -41,13 +47,6 @@ const CombatScreen = () => {
       }
     };
   }, []);
-
-  const getApproximateFireballPath = () => ({
-    startX: width * 0.5,
-    startY: height - insets.bottom - 300,
-    targetX: width * 0.5,
-    targetY: insets.top + 245,
-  });
 
   const handleAttack = async () => {
     if (!effectiveEnemyId || isDead || anim.isAnimating) return;
@@ -74,25 +73,21 @@ const CombatScreen = () => {
         localRole && COMBAT.abilities[localRole] ? COMBAT.abilities[localRole].label : 'Ability';
       anim.playAbility(damage, abilityLabel, counterDamage);
 
-      if (localRole === 'sage') {
-        const { startX, startY, targetX, targetY } = getApproximateFireballPath();
-
-        playEffect('fireball-travel', {
-          x: startX,
-          y: startY,
-          targetX,
-          targetY,
-        });
-
-        timeoutIdsRef.current.push(
-          setTimeout(() => {
-            playEffect('fireball-impact', {
-              x: targetX,
-              y: targetY,
-            });
-          }, fireballTravelMs),
-        );
-      }
+      playCombatAbilityVfx({
+        role: localRole,
+        playEffect,
+        viewport: {
+          width,
+          height,
+          insetTop: insets.top,
+          insetBottom: insets.bottom,
+        },
+        origin: localAnchorRef.current ?? undefined,
+        target: selectedEnemyAnchorRef.current ?? undefined,
+        onTimeout: (callback, delayMs) => {
+          timeoutIdsRef.current.push(setTimeout(callback, delayMs));
+        },
+      });
     }
   };
 
@@ -146,6 +141,9 @@ const CombatScreen = () => {
           enemyShake={anim.enemyShake}
           enemyFlash={anim.enemyFlash}
           floatingTexts={anim.floatingTexts}
+          onSelectedAnchorChange={(point) => {
+            selectedEnemyAnchorRef.current = point;
+          }}
         />
 
         <CombatPortraitStrip
@@ -154,6 +152,9 @@ const CombatScreen = () => {
           playerLunge={anim.playerLunge}
           playerFlash={anim.playerFlash}
           floatingTexts={anim.floatingTexts}
+          onLocalAnchorChange={(point) => {
+            localAnchorRef.current = point;
+          }}
         />
       </ScrollView>
 

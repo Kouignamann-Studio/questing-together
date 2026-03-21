@@ -11,6 +11,7 @@ import { EnemyCard, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
 import FloatingDamage from '@/features/combat/components/FloatingDamage';
+import { measureViewCenter } from '@/features/combat/utils/measureViewCenter';
 
 const VISIBLE_COUNT = 3;
 const DEATH_ANIM_MS = 600;
@@ -28,6 +29,7 @@ type EnemyListProps = {
   enemyShake: SharedValue<number>;
   enemyFlash: SharedValue<number>;
   floatingTexts: FloatingText[];
+  onSelectedAnchorChange?: (point: { x: number; y: number } | null) => void;
 };
 
 const DyingEnemy = ({ name, level, hpMax }: { name: string; level: number; hpMax: number }) => {
@@ -65,9 +67,11 @@ const EnemyList = ({
   enemyShake,
   enemyFlash,
   floatingTexts,
+  onSelectedAnchorChange,
 }: EnemyListProps) => {
   const { roomConnection } = useGame();
   const prevAliveIdsRef = useRef<Set<string>>(new Set());
+  const selectedEnemyRef = useRef<View>(null);
   const [dyingEnemies, setDyingEnemies] = useState<
     { id: string; name: string; level: number; hpMax: number }[]
   >([]);
@@ -111,6 +115,19 @@ const EnemyList = ({
 
   const enemyFloats = floatingTexts.filter((t) => t.target === 'enemy');
 
+  useEffect(() => {
+    if (!effectiveSelected) {
+      onSelectedAnchorChange?.(null);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      measureViewCenter(selectedEnemyRef, (point) => {
+        onSelectedAnchorChange?.(point);
+      });
+    });
+  }, [effectiveSelected, onSelectedAnchorChange]);
+
   return (
     <Stack gap={4}>
       <Stack direction="row" justify="space-between" align="center">
@@ -128,7 +145,20 @@ const EnemyList = ({
         const isSelected = enemy.id === effectiveSelected;
 
         return (
-          <View key={enemy.id} style={{ position: 'relative' }}>
+          <View
+            key={enemy.id}
+            ref={isSelected ? selectedEnemyRef : undefined}
+            onLayout={
+              isSelected
+                ? () => {
+                    measureViewCenter(selectedEnemyRef, (point) => {
+                      onSelectedAnchorChange?.(point);
+                    });
+                  }
+                : undefined
+            }
+            style={{ position: 'relative' }}
+          >
             <EnemyCard
               name={enemy.name}
               level={enemy.level}
