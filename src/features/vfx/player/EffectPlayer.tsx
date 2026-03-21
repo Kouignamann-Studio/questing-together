@@ -1,0 +1,109 @@
+import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+import {
+  cancelAnimation,
+  Easing,
+  type SharedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg from 'react-native-svg';
+import OrbPrimitive from '@/features/vfx/primitives/OrbPrimitive';
+import RingPrimitive from '@/features/vfx/primitives/RingPrimitive';
+import TrailPrimitive from '@/features/vfx/primitives/TrailPrimitive';
+import { getEffectAsset } from '@/features/vfx/runtime/effectRegistry';
+import type { EffectLayer } from '@/features/vfx/types/assets';
+import type { EffectInstance } from '@/features/vfx/types/runtime';
+
+type EffectPlayerProps = {
+  instance: EffectInstance;
+  onComplete: (instanceId: string) => void;
+};
+
+function renderLayer(layer: EffectLayer, instance: EffectInstance, progress: SharedValue<number>) {
+  const asset = getEffectAsset(instance.assetId);
+
+  if (!asset) return null;
+
+  switch (layer.type) {
+    case 'orb':
+      return (
+        <OrbPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+    case 'ring':
+      return (
+        <RingPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+    case 'trail':
+      return (
+        <TrailPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+  }
+}
+
+const EffectPlayer = ({ instance, onComplete }: EffectPlayerProps) => {
+  const progress = useSharedValue(0);
+  const asset = getEffectAsset(instance.assetId);
+
+  useEffect(() => {
+    if (!asset) return;
+
+    cancelAnimation(progress);
+    progress.value = 0;
+    progress.value = withRepeat(
+      withTiming(1, { duration: asset.durationMs, easing: Easing.linear }),
+      asset.loop ? -1 : 1,
+      false,
+    );
+
+    if (asset.loop) {
+      return () => {
+        cancelAnimation(progress);
+      };
+    }
+
+    const timeoutId = setTimeout(() => {
+      onComplete(instance.instanceId);
+    }, asset.durationMs + 32);
+
+    return () => {
+      clearTimeout(timeoutId);
+      cancelAnimation(progress);
+    };
+  }, [asset, instance.instanceId, onComplete, progress]);
+
+  if (!asset) return null;
+
+  return (
+    <Svg pointerEvents="none" style={styles.canvas}>
+      {asset.layers.map((layer) => renderLayer(layer, instance, progress))}
+    </Svg>
+  );
+};
+
+const styles = StyleSheet.create({
+  canvas: {
+    ...StyleSheet.absoluteFillObject,
+  },
+});
+
+export default EffectPlayer;

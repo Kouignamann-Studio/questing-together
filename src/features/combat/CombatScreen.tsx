@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import { ScrollView } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheet, ModalBackdrop, Stack, StatusBadge, Typography } from '@/components';
 import { colors } from '@/constants/colors';
@@ -13,11 +13,16 @@ import EnemyList from '@/features/combat/components/EnemyList';
 import useCombatAnimations from '@/features/combat/hooks/useCombatAnimations';
 import { buildCombatPlayers } from '@/features/combat/utils/buildCombatPlayers';
 import { getEffectiveEnemyId } from '@/features/combat/utils/getEffectiveEnemyId';
+import { useVfx } from '@/features/vfx';
+import { getEffectAsset } from '@/features/vfx/runtime/effectRegistry';
 
 const CombatScreen = () => {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const anim = useCombatAnimations();
+  const { playEffect } = useVfx();
   const { roomConnection, localPlayerId, localRole, playerDisplayNameById } = useGame();
+  const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
 
@@ -27,6 +32,22 @@ const CombatScreen = () => {
   const effectiveEnemyId = getEffectiveEnemyId(roomConnection.enemies, selectedEnemyId);
   const combatPlayers = buildCombatPlayers(roomConnection.players, playerDisplayNameById);
   const isDead = (localCharacter?.hp ?? 0) <= 0;
+  const fireballTravelMs = getEffectAsset('fireball-travel')?.durationMs ?? 420;
+
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of timeoutIdsRef.current) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  const getApproximateFireballPath = () => ({
+    startX: width * 0.5,
+    startY: height - insets.bottom - 300,
+    targetX: width * 0.5,
+    targetY: insets.top + 245,
+  });
 
   const handleAttack = async () => {
     if (!effectiveEnemyId || isDead || anim.isAnimating) return;
@@ -52,6 +73,26 @@ const CombatScreen = () => {
       const abilityLabel =
         localRole && COMBAT.abilities[localRole] ? COMBAT.abilities[localRole].label : 'Ability';
       anim.playAbility(damage, abilityLabel, counterDamage);
+
+      if (localRole === 'sage') {
+        const { startX, startY, targetX, targetY } = getApproximateFireballPath();
+
+        playEffect('fireball-travel', {
+          x: startX,
+          y: startY,
+          targetX,
+          targetY,
+        });
+
+        timeoutIdsRef.current.push(
+          setTimeout(() => {
+            playEffect('fireball-impact', {
+              x: targetX,
+              y: targetY,
+            });
+          }, fireballTravelMs),
+        );
+      }
     }
   };
 
