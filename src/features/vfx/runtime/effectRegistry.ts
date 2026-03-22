@@ -20,7 +20,3 @@ const effectAssetById = new Map(effectAssets.map((asset) => [asset.id, asset]));
 export function getEffectAsset(assetId: string) {
   return effectAssetById.get(assetId) ?? null;
 }
-
-export function listEffectAssets() {
-  return effectAssets;
-}

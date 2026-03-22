@@ -1,7 +1,7 @@
 import { getEffectAsset } from '@/features/vfx/runtime/effectRegistry';
 import type { EffectInstance, PlayEffectOptions } from '@/features/vfx/types/runtime';
 
-let nextInstanceId = 0;
+const counter = { value: 0 };
 
 export function createEffectInstance(
   assetId: string,
@@ -11,11 +11,11 @@ export function createEffectInstance(
     return null;
   }
 
-  nextInstanceId += 1;
+  counter.value += 1;
 
   return {
     assetId,
-    instanceId: `${assetId}-${nextInstanceId}`,
+    instanceId: `${assetId}-${counter.value}`,
     ...options,
   };
 }

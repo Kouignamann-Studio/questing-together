@@ -8,7 +8,7 @@ import { queryClient } from '@/api/queryClient';
 import AppLoader from '@/components/utils/AppLoader';
 import { GameProvider } from '@/contexts/GameContext';
 import { I18nProvider } from '@/contexts/I18nContext';
-import VfxProvider from '@/features/vfx/VfxProvider';
+import { VfxProvider } from '@/contexts/VfxContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 const RootLayout = () => {

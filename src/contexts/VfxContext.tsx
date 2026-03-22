@@ -13,7 +13,7 @@ type VfxProviderProps = {
   children: ReactNode;
 };
 
-const VfxProvider = ({ children }: VfxProviderProps) => {
+export const VfxProvider = ({ children }: VfxProviderProps) => {
   const [instances, setInstances] = useState<EffectInstance[]>([]);
 
   const playEffect = useCallback<PlayEffect>((assetId, options) => {

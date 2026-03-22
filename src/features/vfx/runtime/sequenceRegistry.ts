@@ -8,7 +8,3 @@ const effectSequenceById = new Map(effectSequences.map((sequence) => [sequence.i
 export function getEffectSequence(sequenceId: string) {
   return effectSequenceById.get(sequenceId) ?? null;
 }
-
-export function listEffectSequences() {
-  return effectSequences;
-}

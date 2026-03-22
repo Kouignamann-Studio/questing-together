@@ -9,6 +9,7 @@ import { colors } from '@/constants/colors';
 import { COMBAT } from '@/constants/combatSettings';
 import { useGame } from '@/contexts/GameContext';
 import { useTranslation } from '@/contexts/I18nContext';
+import { useVfx } from '@/contexts/VfxContext';
 import CombatActionGrid from '@/features/combat/components/CombatActionGrid';
 import CombatHeader from '@/features/combat/components/CombatHeader';
 import CombatPortraitStrip from '@/features/combat/components/CombatPortraitStrip';
@@ -18,7 +19,6 @@ import useCombatTurnPhase from '@/features/combat/hooks/useCombatTurnPhase';
 import { buildCombatPlayers } from '@/features/combat/utils/buildCombatPlayers';
 import { getEffectiveEnemyId } from '@/features/combat/utils/getEffectiveEnemyId';
 import { playCombatAbilityVfx } from '@/features/combat/utils/playCombatAbilityVfx';
-import { useVfx } from '@/features/vfx';
 
 type Position = { x: number; y: number };
 
