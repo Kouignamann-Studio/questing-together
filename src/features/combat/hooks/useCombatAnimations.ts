@@ -21,6 +21,7 @@ type CombatAnimations = {
   playerFlash: SharedValue<number>;
   enemyShake: SharedValue<number>;
   enemyFlash: SharedValue<number>;
+  enemyLunge: SharedValue<number>;
   floatingTexts: FloatingText[];
   isAnimating: boolean;
   playAttack: (enemyDamage: number) => void;
@@ -44,6 +45,7 @@ const useCombatAnimations = (): CombatAnimations => {
   const playerFlash = useSharedValue(0);
   const enemyShake = useSharedValue(0);
   const enemyFlash = useSharedValue(0);
+  const enemyLunge = useSharedValue(0);
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const floatingIdRef = useRef(0);
@@ -130,24 +132,34 @@ const useCombatAnimations = (): CombatAnimations => {
     (totalDamage: number) => {
       setIsAnimating(true);
 
-      playerFlash.value = withSequence(
-        withTiming(1, { duration: FLASH_IN }),
-        withTiming(0, { duration: 150 }),
-        withTiming(0.8, { duration: FLASH_IN }),
-        withTiming(0, { duration: COUNTER_FLASH_OUT }),
+      // Enemies lunge forward toward players
+      enemyLunge.value = withSequence(
+        withTiming(20, { duration: LUNGE_IN }),
+        withTiming(0, { duration: LUNGE_OUT }),
       );
 
-      scheduleCallback(100, () => {
+      // Player flash after lunge lands
+      playerFlash.value = withDelay(
+        LUNGE_IN,
+        withSequence(
+          withTiming(1, { duration: FLASH_IN }),
+          withTiming(0, { duration: 150 }),
+          withTiming(0.8, { duration: FLASH_IN }),
+          withTiming(0, { duration: COUNTER_FLASH_OUT }),
+        ),
+      );
+
+      scheduleCallback(LUNGE_IN + 50, () => {
         if (totalDamage > 0) {
           addFloating(`-${totalDamage}`, colors.combatDamage, 'player');
         }
       });
 
-      scheduleCallback(FLASH_IN + 150 + FLASH_IN + COUNTER_FLASH_OUT, () => {
+      scheduleCallback(LUNGE_IN + FLASH_IN + 150 + FLASH_IN + COUNTER_FLASH_OUT, () => {
         setIsAnimating(false);
       });
     },
-    [playerFlash, addFloating],
+    [enemyLunge, playerFlash, addFloating],
   );
 
   const playHeal = useCallback(
@@ -175,6 +187,7 @@ const useCombatAnimations = (): CombatAnimations => {
     playerFlash,
     enemyShake,
     enemyFlash,
+    enemyLunge,
     floatingTexts,
     isAnimating,
     playAttack,

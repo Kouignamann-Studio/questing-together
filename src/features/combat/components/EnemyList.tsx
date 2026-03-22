@@ -1,13 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { EnemyCard, Stack, Typography } from '@/components';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import skeletor from '@/assets/images/skeletor.png';
+import { CircularHealthBar, Portrait, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
 import { useTranslation } from '@/contexts/I18nContext';
@@ -15,6 +11,8 @@ import FloatingDamage from '@/features/combat/components/FloatingDamage';
 
 const VISIBLE_COUNT = 3;
 const DEATH_ANIM_MS = 600;
+const RING_SIZE = 80;
+const PORTRAIT_SIZE = 72;
 
 type FloatingText = {
   id: number;
@@ -28,45 +26,42 @@ type EnemyListProps = {
   onSelectEnemy: (id: string) => void;
   enemyShake: SharedValue<number>;
   enemyFlash: SharedValue<number>;
+  enemyLunge: SharedValue<number>;
   floatingTexts: FloatingText[];
 };
 
-const DyingEnemy = ({
-  nameKey,
-  level,
-  hpMax,
-}: {
-  nameKey: string;
-  level: number;
-  hpMax: number;
-}) => {
+const DyingPortrait = ({ nameKey }: { nameKey: string }) => {
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
-  const shake = useSharedValue(0);
   const { t } = useTranslation();
 
   useEffect(() => {
-    shake.value = withSequence(
-      withTiming(6, { duration: 40 }),
-      withTiming(-6, { duration: 40 }),
-      withTiming(4, { duration: 40 }),
-      withTiming(-4, { duration: 40 }),
-      withTiming(0, { duration: 40 }),
-    );
-    translateY.value = withTiming(80, { duration: DEATH_ANIM_MS });
+    translateY.value = withTiming(40, { duration: DEATH_ANIM_MS });
     opacity.value = withTiming(0, { duration: DEATH_ANIM_MS });
-  }, [translateY, opacity, shake]);
+  }, [translateY, opacity]);
 
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: shake.value }, { translateY: translateY.value }],
+    transform: [{ translateY: translateY.value }],
     opacity: opacity.value,
   }));
 
   const displayName = t(`enemies.${nameKey}` as 'enemies.goule') || nameKey;
 
   return (
-    <Animated.View style={style}>
-      <EnemyCard name={displayName} level={level} hp={0} hpMax={hpMax} />
+    <Animated.View style={[style, { alignItems: 'center' }]}>
+      <View
+        style={{
+          width: RING_SIZE,
+          height: RING_SIZE,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Portrait source={skeletor} size={PORTRAIT_SIZE} hideName />
+      </View>
+      <Typography variant="fine" style={{ color: colors.combatDamage }}>
+        {displayName}
+      </Typography>
     </Animated.View>
   );
 };
@@ -76,14 +71,13 @@ const EnemyList = ({
   onSelectEnemy,
   enemyShake,
   enemyFlash,
+  enemyLunge,
   floatingTexts,
 }: EnemyListProps) => {
   const { roomConnection } = useGame();
   const { t } = useTranslation();
   const prevAliveIdsRef = useRef<Set<string>>(new Set());
-  const [dyingEnemies, setDyingEnemies] = useState<
-    { id: string; nameKey: string; level: number; hpMax: number }[]
-  >([]);
+  const [dyingEnemies, setDyingEnemies] = useState<{ id: string; nameKey: string }[]>([]);
 
   const allEnemies = roomConnection.enemies;
   const aliveEnemies = allEnemies.filter((e) => !e.isDead);
@@ -98,10 +92,9 @@ const EnemyList = ({
     if (newlyDead.length > 0) {
       setDyingEnemies((prev) => [
         ...prev,
-        ...newlyDead.map((e) => ({ id: e.id, nameKey: e.name, level: e.level, hpMax: e.hpMax })),
+        ...newlyDead.map((e) => ({ id: e.id, nameKey: e.name })),
       ]);
 
-      // Remove dying enemies after animation
       const start = performance.now();
       const poll = () => {
         if (performance.now() - start >= DEATH_ANIM_MS) {
@@ -116,8 +109,8 @@ const EnemyList = ({
     prevAliveIdsRef.current = currentAliveIds;
   }, [aliveEnemies, allEnemies]);
 
-  const visibleEnemies = aliveEnemies.slice(0, VISIBLE_COUNT).reverse();
-  const previewEnemy = aliveEnemies[VISIBLE_COUNT] ?? null;
+  const frontEnemies = aliveEnemies.slice(0, VISIBLE_COUNT);
+  const backEnemies = aliveEnemies.slice(VISIBLE_COUNT);
 
   const firstAliveId = aliveEnemies[0]?.id ?? null;
   const effectiveSelected = selectedEnemyId ?? firstAliveId;
@@ -126,50 +119,110 @@ const EnemyList = ({
 
   const translateName = (nameKey: string) => t(`enemies.${nameKey}` as 'enemies.goule') || nameKey;
 
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: enemyShake.value }],
+  }));
+
+  const lungeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: enemyLunge.value }],
+  }));
+
+  const flashStyle = useAnimatedStyle(() => ({
+    opacity: enemyFlash.value,
+  }));
+
   return (
-    <Stack gap={4}>
+    <Stack gap={8}>
       <Stack direction="row" justify="space-between" align="center">
         <Typography variant="sectionTitle" style={{ color: colors.combatTitle, fontWeight: '700' }}>
           {t('combat.title')}
         </Typography>
         <Typography variant="caption" style={{ color: colors.combatRound, fontWeight: '700' }}>
-          ! {t('combat.enemiesKilled', { count: killCount })}
+          {t('combat.enemiesKilled', { count: killCount })}
         </Typography>
       </Stack>
 
-      {previewEnemy ? <EnemyCard name="????" level={0} hp={0} hpMax={1} preview /> : null}
+      {/* Back row — queued enemies */}
+      {backEnemies.length > 0 ? (
+        <Stack direction="row" justify="center" gap={-8} style={{ opacity: 0.35 }}>
+          {backEnemies.map((enemy) => (
+            <View key={enemy.id} style={{ alignItems: 'center' }}>
+              <Portrait source={skeletor} size={48} hideName />
+            </View>
+          ))}
+        </Stack>
+      ) : null}
 
-      {visibleEnemies.map((enemy) => {
-        const isSelected = enemy.id === effectiveSelected;
+      {/* Front row — active enemies */}
+      <Animated.View style={lungeStyle}>
+        <Stack direction="row" justify="space-evenly" style={{ paddingVertical: 4 }}>
+          {frontEnemies.map((enemy) => {
+            const isSelected = enemy.id === effectiveSelected;
 
-        return (
-          <View key={enemy.id} style={{ position: 'relative' }}>
-            <EnemyCard
-              name={translateName(enemy.name)}
-              level={enemy.level}
-              hp={enemy.hp}
-              hpMax={enemy.hpMax}
-              selected={isSelected}
-              shake={isSelected ? enemyShake : undefined}
-              flash={isSelected ? enemyFlash : undefined}
-              onPress={() => onSelectEnemy(enemy.id)}
-            />
-            {isSelected
-              ? enemyFloats.map((f) => <FloatingDamage key={f.id} text={f.text} color={f.color} />)
-              : null}
-          </View>
-        );
-      })}
+            return (
+              <Pressable key={enemy.id} onPress={() => onSelectEnemy(enemy.id)}>
+                <Stack align="center" gap={2} style={{ position: 'relative' }}>
+                  <Animated.View style={isSelected ? shakeStyle : undefined}>
+                    <View
+                      style={{
+                        width: RING_SIZE,
+                        height: RING_SIZE,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <CircularHealthBar hp={enemy.hp} hpMax={enemy.hpMax} size={RING_SIZE} />
+                      <Portrait
+                        source={skeletor}
+                        size={PORTRAIT_SIZE}
+                        highlighted={isSelected}
+                        highlightColor={isSelected ? colors.combatDamage : colors.tabBorder}
+                        hideName
+                      />
+                      {isSelected ? (
+                        <Animated.View
+                          style={[
+                            {
+                              position: 'absolute',
+                              width: PORTRAIT_SIZE,
+                              height: PORTRAIT_SIZE,
+                              borderRadius: PORTRAIT_SIZE / 2,
+                              backgroundColor: colors.combatDamage,
+                            },
+                            flashStyle,
+                          ]}
+                          pointerEvents="none"
+                        />
+                      ) : null}
+                    </View>
+                  </Animated.View>
+                  <Typography
+                    variant="fine"
+                    style={{
+                      color: isSelected ? colors.combatDamage : colors.combatWaiting,
+                      fontWeight: isSelected ? '700' : '400',
+                    }}
+                  >
+                    {translateName(enemy.name)}
+                  </Typography>
+                  <Typography variant="micro" style={{ color: colors.combatHealthValue }}>
+                    {enemy.hp}/{enemy.hpMax}
+                  </Typography>
+                  {isSelected
+                    ? enemyFloats.map((f) => (
+                        <FloatingDamage key={f.id} text={f.text} color={f.color} />
+                      ))
+                    : null}
+                </Stack>
+              </Pressable>
+            );
+          })}
 
-      {dyingEnemies.map((enemy) => (
-        <View
-          key={`dying-${enemy.id}`}
-          style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}
-          pointerEvents="none"
-        >
-          <DyingEnemy nameKey={enemy.nameKey} level={enemy.level} hpMax={enemy.hpMax} />
-        </View>
-      ))}
+          {dyingEnemies.map((enemy) => (
+            <DyingPortrait key={`dying-${enemy.id}`} nameKey={enemy.nameKey} />
+          ))}
+        </Stack>
+      </Animated.View>
     </Stack>
   );
 };

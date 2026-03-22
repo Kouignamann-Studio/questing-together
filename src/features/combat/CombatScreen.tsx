@@ -207,7 +207,7 @@ const CombatScreen = () => {
     <Stack flex={1} style={{ backgroundColor: colors.backgroundDark }}>
       <StatusBar hidden />
       <Stack style={{ paddingTop: insets.top }}>
-        <CombatHeader character={localCharacter} />
+        <CombatHeader character={localCharacter} onFlee={() => roomConnection.leaveRoom()} />
         {renderTurnBanner()}
       </Stack>
 
@@ -224,6 +224,7 @@ const CombatScreen = () => {
           onSelectEnemy={setSelectedEnemyId}
           enemyShake={anim.enemyShake}
           enemyFlash={anim.enemyFlash}
+          enemyLunge={anim.enemyLunge}
           floatingTexts={anim.floatingTexts}
         />
 
