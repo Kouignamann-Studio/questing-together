@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Questing Together VFX Editor</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260322d" />
   </head>
   <body>
     <div class="app-shell">
@@ -17,20 +17,18 @@
           </p>
         </div>
 
-        <div class="topbar-actions">
-          <div class="button-row">
-            <button id="openFileButton" class="action-button">Open Effect JSON</button>
-            <button id="saveFileButton" class="action-button action-button-secondary">Save Back to File</button>
-            <button id="downloadFileButton" class="action-button action-button-secondary">Download JSON</button>
-            <button id="copyJsonButton" class="action-button action-button-secondary">Copy JSON</button>
-          </div>
+        <div class="toolbar-shell">
+          <nav class="menu-bar" aria-label="Editor toolbar">
+            <details id="fileMenu" class="menu-dropdown">
+              <summary class="menu-trigger">File</summary>
+              <div id="fileMenuContent" class="menu-dropdown-panel"></div>
+            </details>
 
-          <div class="button-row">
-            <button class="chip-button" data-demo-effect="fireball-travel">Quick Load: Fireball Travel</button>
-            <button class="chip-button" data-demo-effect="fireball-impact">Fireball Impact</button>
-            <button class="chip-button" data-demo-effect="frostbolt-travel">Frostbolt Travel</button>
-            <button class="chip-button" data-demo-effect="frostbolt-impact">Frostbolt Impact</button>
-          </div>
+            <details id="editorMenu" class="menu-dropdown">
+              <summary class="menu-trigger">Editor</summary>
+              <div id="editorMenuContent" class="menu-dropdown-panel"></div>
+            </details>
+          </nav>
 
           <div class="status-row">
             <span id="fileStatusLabel">No local file attached</span>
@@ -153,6 +151,6 @@
 
     <input id="fallbackFileInput" type="file" accept=".json,application/json" hidden />
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=20260322d"></script>
   </body>
 </html>

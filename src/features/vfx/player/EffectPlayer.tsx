@@ -9,8 +9,13 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import ArcPrimitive from '@/features/vfx/primitives/ArcPrimitive';
+import DiamondPrimitive from '@/features/vfx/primitives/DiamondPrimitive';
 import OrbPrimitive from '@/features/vfx/primitives/OrbPrimitive';
 import RingPrimitive from '@/features/vfx/primitives/RingPrimitive';
+import SpritePrimitive from '@/features/vfx/primitives/SpritePrimitive';
+import StarburstPrimitive from '@/features/vfx/primitives/StarburstPrimitive';
+import StreakPrimitive from '@/features/vfx/primitives/StreakPrimitive';
 import TrailPrimitive from '@/features/vfx/primitives/TrailPrimitive';
 import { getEffectAsset } from '@/features/vfx/runtime/effectRegistry';
 import type { EffectLayer } from '@/features/vfx/types/assets';
@@ -47,9 +52,59 @@ function renderLayer(layer: EffectLayer, instance: EffectInstance, progress: Sha
           progress={progress}
         />
       );
+    case 'streak':
+      return (
+        <StreakPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+    case 'diamond':
+      return (
+        <DiamondPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+    case 'arc':
+      return (
+        <ArcPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+    case 'starburst':
+      return (
+        <StarburstPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
     case 'trail':
       return (
         <TrailPrimitive
+          key={layer.id}
+          asset={asset}
+          instance={instance}
+          layer={layer}
+          progress={progress}
+        />
+      );
+    case 'sprite':
+      return (
+        <SpritePrimitive
           key={layer.id}
           asset={asset}
           instance={instance}

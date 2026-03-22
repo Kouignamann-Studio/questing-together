@@ -1,0 +1,19 @@
+{
+  "sprites": [
+    {
+      "id": "demo-core",
+      "label": "Demo Core",
+      "filename": "demo-core.png"
+    },
+    {
+      "id": "demo-sigil",
+      "label": "Demo Sigil",
+      "filename": "demo-sigil.png"
+    },
+    {
+      "id": "t-vfx-particle-star",
+      "label": "T Vfx Particle Star",
+      "filename": "t-vfx-particle-star.png"
+    }
+  ]
+}

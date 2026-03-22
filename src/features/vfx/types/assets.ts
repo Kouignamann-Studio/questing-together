@@ -20,6 +20,8 @@ export type OrbLayer = EffectLayerBase & {
   glowScale?: number;
 };
 
+export type TrailStyle = 'fill' | 'ring' | 'sprite';
+
 export type TrailLayer = EffectLayerBase & {
   type: 'trail';
   radius: number;
@@ -27,6 +29,12 @@ export type TrailLayer = EffectLayerBase & {
   segments: number;
   spacing: number;
   falloff?: number;
+  style?: TrailStyle;
+  thickness?: number;
+  spriteId?: string;
+  width?: number;
+  height?: number;
+  tintColor?: string;
 };
 
 export type RingLayer = EffectLayerBase & {
@@ -36,7 +44,57 @@ export type RingLayer = EffectLayerBase & {
   thickness: number;
 };
 
-export type EffectLayer = OrbLayer | TrailLayer | RingLayer;
+export type StreakLayer = EffectLayerBase & {
+  type: 'streak';
+  width: number;
+  height: number;
+  color: string;
+  rotationDeg?: number;
+};
+
+export type DiamondLayer = EffectLayerBase & {
+  type: 'diamond';
+  width: number;
+  height: number;
+  color: string;
+  rotationDeg?: number;
+};
+
+export type ArcLayer = EffectLayerBase & {
+  type: 'arc';
+  radius: number;
+  thickness: number;
+  sweepDeg: number;
+  color: string;
+  rotationDeg?: number;
+};
+
+export type StarburstLayer = EffectLayerBase & {
+  type: 'starburst';
+  innerRadius: number;
+  outerRadius: number;
+  points: number;
+  color: string;
+  rotationDeg?: number;
+};
+
+export type SpriteLayer = EffectLayerBase & {
+  type: 'sprite';
+  spriteId: string;
+  width: number;
+  height: number;
+  tintColor?: string;
+};
+
+export type EffectLayer =
+  | OrbLayer
+  | TrailLayer
+  | RingLayer
+  | StreakLayer
+  | DiamondLayer
+  | ArcLayer
+  | StarburstLayer
+  | SpriteLayer;
 
 export type EffectMotion = {
   mode: 'fixed' | 'line' | 'path';

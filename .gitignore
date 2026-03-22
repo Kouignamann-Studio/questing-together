@@ -49,3 +49,4 @@ supabase/.temp/
 
 .vscode
 .claude
+tools/vfx-editor/editor-session.json

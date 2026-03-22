@@ -20,7 +20,46 @@ const TRACKS_BY_LAYER_TYPE = {
   orb: ['scale', 'alpha', 'glow', 'x', 'y'],
   ring: ['scale', 'alpha', 'x', 'y'],
   trail: ['scale', 'alpha', 'x', 'y'],
+  streak: ['scale', 'alpha', 'x', 'y'],
+  diamond: ['scale', 'alpha', 'x', 'y'],
+  arc: ['scale', 'alpha', 'x', 'y'],
+  starburst: ['scale', 'alpha', 'x', 'y'],
+  sprite: ['scale', 'alpha', 'x', 'y'],
 };
+
+const SPRITE_MANIFEST_PATH = '../../src/features/vfx/assets/sprites/manifest.json';
+const SPRITE_EDITOR_BASE_PATH = '../../src/features/vfx/assets/sprites';
+const REPO_SPRITES_SEGMENTS = ['src', 'features', 'vfx', 'assets', 'sprites'];
+const REPO_RUNTIME_SEGMENTS = ['src', 'features', 'vfx', 'runtime'];
+const REPO_EDITOR_SEGMENTS = ['tools', 'vfx-editor'];
+const SPRITE_REGISTRY_FILE = 'spriteRegistry.ts';
+const EDITOR_SESSION_STORAGE_KEY = 'questing-together:vfx-editor-session:v1';
+const EDITOR_SESSION_FILE_NAME = 'editor-session.json';
+const EDITOR_SESSION_FETCH_PATH = `./${EDITOR_SESSION_FILE_NAME}`;
+const HANDLE_DB_NAME = 'questing-together-vfx-editor';
+const HANDLE_DB_VERSION = 1;
+const HANDLE_STORE_NAME = 'file-system-handles';
+const REPO_ROOT_HANDLE_KEY = 'repo-root';
+const RECENT_FILES_LIMIT = 8;
+
+let spriteLibrary = {};
+
+function createDefaultPreviewBackground() {
+  return {
+    preset: 'ember',
+    ...cloneData(PREVIEW_BACKDROPS.ember),
+  };
+}
+
+function createDefaultCollapsedPanels() {
+  return {
+    assetMotion: false,
+    layersStack: false,
+    layerProperties: false,
+    layerCurves: false,
+    jsonPanel: false,
+  };
+}
 
 const PREVIEW_BACKDROPS = {
   ember: {
@@ -102,15 +141,15 @@ const ui = {
   effectTitleLabel: document.getElementById('effectTitleLabel'),
   fileStatusLabel: document.getElementById('fileStatusLabel'),
   saveStatusLabel: document.getElementById('saveStatusLabel'),
+  fileMenu: document.getElementById('fileMenu'),
+  editorMenu: document.getElementById('editorMenu'),
+  fileMenuContent: document.getElementById('fileMenuContent'),
+  editorMenuContent: document.getElementById('editorMenuContent'),
   progressPercentLabel: document.getElementById('progressPercentLabel'),
   progressTimeLabel: document.getElementById('progressTimeLabel'),
   progressSlider: document.getElementById('progressSlider'),
   jsonEditor: document.getElementById('jsonEditor'),
   jsonStatusLabel: document.getElementById('jsonStatusLabel'),
-  openFileButton: document.getElementById('openFileButton'),
-  saveFileButton: document.getElementById('saveFileButton'),
-  downloadFileButton: document.getElementById('downloadFileButton'),
-  copyJsonButton: document.getElementById('copyJsonButton'),
   jsonCollapseButton: document.getElementById('jsonCollapseButton'),
   togglePlaybackButton: document.getElementById('togglePlaybackButton'),
   restartPlaybackButton: document.getElementById('restartPlaybackButton'),
@@ -146,6 +185,28 @@ function lerp(start, end, amount) {
 
 function stringifyAsset(asset) {
   return `${JSON.stringify(asset, null, 2)}\n`;
+}
+
+function slugify(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'sprite';
+}
+
+function titleCaseFromId(value) {
+  return String(value)
+    .split(/[-_]+/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function getSpriteImportName(spriteId) {
+  const camel = slugify(spriteId).replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase());
+  const safe = /^[a-zA-Z_$]/.test(camel) ? camel : `sprite${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
+  return `${safe}Sprite`;
 }
 
 function parseColorToRgba(color) {
@@ -239,6 +300,348 @@ function renderColorField({ label, value, field, datasetName, fallback = '#fffff
       <span class="section-note">Accepts CSS color strings like <code>#ff8844</code>, <code>#ff8844cc</code>, <code>rgb(...)</code>, or <code>rgba(...)</code>.</span>
     </label>
   `;
+}
+
+function getDefaultSpriteId() {
+  return Object.keys(spriteLibrary)[0] ?? '';
+}
+
+function hasSpriteDefinition(spriteId) {
+  return Boolean(spriteId && spriteLibrary[spriteId]);
+}
+
+function getSpriteDefinition(spriteId) {
+  return spriteLibrary[spriteId] ?? spriteLibrary[getDefaultSpriteId()] ?? null;
+}
+
+function getSpritePreviewSrc(spriteId) {
+  return getSpriteDefinition(spriteId)?.src ?? '';
+}
+
+function getLayerCardSwatchStyle(layer) {
+  if (layer.type === 'sprite' || (layer.type === 'trail' && layer.style === 'sprite')) {
+    const href = getSpritePreviewSrc(layer.spriteId);
+    return href
+      ? `background-color: rgba(143, 215, 255, 0.16); background-image: url('${escapeHtml(href)}'); background-size: cover; background-position: center;`
+      : 'background: rgba(143, 215, 255, 0.22);';
+  }
+
+  return `background: ${escapeHtml(layer.color)};`;
+}
+
+function renderSpriteField({ label = 'Sprite Asset', value, field, datasetName }) {
+  const selectedId = hasSpriteDefinition(value) ? value : getDefaultSpriteId();
+
+  return `
+    <label class="field">
+      <span class="field-label">${escapeHtml(label)}</span>
+      <select class="field-select" data-${datasetName}="${field}">
+        ${Object.entries(spriteLibrary)
+          .map(
+            ([spriteId, sprite]) => `
+          <option value="${spriteId}" ${spriteId === selectedId ? 'selected' : ''}>${escapeHtml(sprite.label)}</option>
+        `,
+          )
+          .join('')}
+      </select>
+      <span class="section-note">Sprites resolve by <code>spriteId</code> so the game and editor can load the same asset with alpha.</span>
+    </label>
+  `;
+}
+
+function renderTintField({ value, field = 'tintColor', datasetName = 'layer-field' }) {
+  return `
+    <label class="field">
+      <span class="field-label">Tint Color</span>
+      <div class="color-input-row">
+        <span class="swatch" style="background: ${escapeHtml(value || '#ffffff')};"></span>
+        <input
+          class="field-color"
+          type="color"
+          value="${escapeHtml(getColorInputValue(value, '#ffffff'))}"
+          data-${datasetName}="${field}"
+          data-color-picker="true"
+        />
+        <input
+          class="field-input"
+          type="text"
+          value="${escapeHtml(value ?? '')}"
+          placeholder="leave empty for original sprite colors"
+          data-${datasetName}="${field}"
+        />
+      </div>
+      <span class="section-note">Optional. Uses the sprite alpha as a mask and fills it with this color.</span>
+    </label>
+  `;
+}
+
+function renderToolbarColorField({ label, value, field, fallback = '#ffffff' }) {
+  return `
+    <label class="menu-compact-field">
+      <span class="field-label">${escapeHtml(label)}</span>
+      <div class="menu-color-row">
+        <input
+          class="field-color"
+          type="color"
+          value="${escapeHtml(getColorInputValue(value, fallback))}"
+          data-preview-field="${field}"
+          data-color-picker="true"
+        />
+        <input
+          class="field-input"
+          type="text"
+          value="${escapeHtml(value ?? '')}"
+          data-preview-field="${field}"
+        />
+      </div>
+    </label>
+  `;
+}
+
+function buildSpriteLibraryFromManifest(entries) {
+  return Object.fromEntries(
+    entries.map((entry) => [
+      entry.id,
+      {
+        label: entry.label,
+        src: `${SPRITE_EDITOR_BASE_PATH}/${entry.filename}`,
+        filename: entry.filename,
+      },
+    ]),
+  );
+}
+
+async function loadSpriteManifest() {
+  try {
+    const response = await fetch(SPRITE_MANIFEST_PATH, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const manifest = await response.json();
+    const entries = Array.isArray(manifest?.sprites) ? manifest.sprites : [];
+    spriteLibrary = buildSpriteLibraryFromManifest(entries);
+    return entries;
+  } catch (error) {
+    console.error('Could not load sprite manifest', error);
+    spriteLibrary = {};
+    return [];
+  }
+}
+
+async function getDirectoryHandle(rootHandle, segments) {
+  let current = rootHandle;
+
+  for (const segment of segments) {
+    current = await current.getDirectoryHandle(segment, { create: true });
+  }
+
+  return current;
+}
+
+async function validateRepoRootHandle(rootHandle) {
+  try {
+    await getDirectoryHandle(rootHandle, REPO_EDITOR_SEGMENTS);
+    await getDirectoryHandle(rootHandle, ['src', 'features', 'vfx']);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function writeTextFile(directoryHandle, filename, contents) {
+  const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(contents);
+  await writable.close();
+}
+
+async function writeBinaryFile(directoryHandle, filename, contents) {
+  const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(contents);
+  await writable.close();
+}
+
+let handleDatabasePromise = null;
+
+function openHandleDatabase() {
+  if (!('indexedDB' in window)) {
+    return Promise.resolve(null);
+  }
+
+  if (!handleDatabasePromise) {
+    handleDatabasePromise = new Promise((resolve, reject) => {
+      const request = window.indexedDB.open(HANDLE_DB_NAME, HANDLE_DB_VERSION);
+
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains(HANDLE_STORE_NAME)) {
+          database.createObjectStore(HANDLE_STORE_NAME);
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () =>
+        reject(request.error ?? new Error('Could not open the handle database.'));
+    });
+  }
+
+  return handleDatabasePromise;
+}
+
+async function writeStoredHandle(key, handle) {
+  const database = await openHandleDatabase();
+  if (!database) return false;
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(HANDLE_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(HANDLE_STORE_NAME);
+    const request = store.put(handle, key);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () =>
+      reject(request.error ?? new Error(`Could not persist the handle "${key}".`));
+  });
+}
+
+async function readStoredHandle(key) {
+  const database = await openHandleDatabase();
+  if (!database) return null;
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(HANDLE_STORE_NAME, 'readonly');
+    const store = transaction.objectStore(HANDLE_STORE_NAME);
+    const request = store.get(key);
+    request.onsuccess = () => resolve(request.result ?? null);
+    request.onerror = () =>
+      reject(request.error ?? new Error(`Could not read the handle "${key}".`));
+  });
+}
+
+async function deleteStoredHandle(key) {
+  const database = await openHandleDatabase();
+  if (!database) return false;
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(HANDLE_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(HANDLE_STORE_NAME);
+    const request = store.delete(key);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () =>
+      reject(request.error ?? new Error(`Could not delete the handle "${key}".`));
+  });
+}
+
+async function ensureHandlePermission(handle, writable = false) {
+  if (!handle || typeof handle.queryPermission !== 'function') {
+    return true;
+  }
+
+  const options = writable ? { mode: 'readwrite' } : { mode: 'read' };
+  const current = await handle.queryPermission(options);
+  if (current === 'granted') {
+    return true;
+  }
+
+  const requested = await handle.requestPermission(options);
+  return requested === 'granted';
+}
+
+function buildSpriteRegistrySource(entries) {
+  const imports = entries
+    .map((entry) => {
+      const importName = getSpriteImportName(entry.id);
+      return `import ${importName} from '@/features/vfx/assets/sprites/${entry.filename}';`;
+    })
+    .join('\n');
+
+  const spriteObjects = entries
+    .map((entry) => {
+      const importName = getSpriteImportName(entry.id);
+      return `  {\n    id: '${entry.id}',\n    label: '${entry.label.replaceAll("'", "\\'")}',\n    source: ${importName},\n    editorSrc: '../../src/features/vfx/assets/sprites/${entry.filename}',\n  },`;
+    })
+    .join('\n');
+
+  return `import type { ImageSourcePropType } from 'react-native';\n${imports}\n\nexport type VfxSpriteDefinition = {\n  id: string;\n  label: string;\n  source: ImageSourcePropType;\n  editorSrc: string;\n};\n\nconst vfxSprites: VfxSpriteDefinition[] = [\n${spriteObjects}\n];\n\nconst vfxSpriteById = new Map(vfxSprites.map((sprite) => [sprite.id, sprite]));\n\nexport function getVfxSprite(spriteId: string) {\n  return vfxSpriteById.get(spriteId) ?? null;\n}\n\nexport function getVfxSpriteSource(spriteId: string) {\n  return getVfxSprite(spriteId)?.source ?? null;\n}\n\nexport function listVfxSprites() {\n  return vfxSprites.map(({ id, label, editorSrc }) => ({ id, label, editorSrc }));\n}\n`;
+}
+
+async function importSprite() {
+  try {
+    if (!('showOpenFilePicker' in window) || !('showDirectoryPicker' in window)) {
+      setSaveStatus('Sprite import requires Chrome, Arc, or Edge with File System Access support.', 'error');
+      return;
+    }
+
+    const [imageHandle] = await window.showOpenFilePicker({
+      excludeAcceptAllOption: false,
+      multiple: false,
+      types: [
+        {
+          description: 'Sprite Images',
+          accept: {
+            'image/png': ['.png'],
+            'image/webp': ['.webp'],
+            'image/jpeg': ['.jpg', '.jpeg'],
+          },
+        },
+      ],
+    });
+
+    if (!imageHandle) return;
+
+    const imageFile = await imageHandle.getFile();
+    const repoRootHandle =
+      state.repoRootHandle ?? (await window.showDirectoryPicker({ mode: 'readwrite' }));
+    const isValidRoot = await validateRepoRootHandle(repoRootHandle);
+    if (!isValidRoot) {
+      setSaveStatus('Choose the repo root folder: /Users/xavierlaborie/Documents/questing-together', 'error');
+      return;
+    }
+    state.repoRootHandle = repoRootHandle;
+
+    const extensionMatch = imageFile.name.match(/\.([a-z0-9]+)$/i);
+    const extension = extensionMatch ? `.${extensionMatch[1].toLowerCase()}` : '.png';
+    const suggestedId = slugify(imageFile.name.replace(/\.[^.]+$/, ''));
+    const spriteId = slugify(window.prompt('Sprite ID', suggestedId) ?? suggestedId);
+    if (!spriteId) return;
+    const spriteLabel = (window.prompt('Sprite label', titleCaseFromId(spriteId)) ?? '').trim() || titleCaseFromId(spriteId);
+    const filename = `${spriteId}${extension}`;
+
+    const spritesDirHandle = await getDirectoryHandle(repoRootHandle, REPO_SPRITES_SEGMENTS);
+    const runtimeDirHandle = await getDirectoryHandle(repoRootHandle, REPO_RUNTIME_SEGMENTS);
+    const manifestHandle = await spritesDirHandle.getFileHandle('manifest.json', { create: true });
+    const manifestFile = await manifestHandle.getFile();
+    const manifestText = await manifestFile.text();
+    const manifest = manifestText.trim() ? JSON.parse(manifestText) : { sprites: [] };
+    const spriteEntries = Array.isArray(manifest.sprites) ? manifest.sprites.slice() : [];
+    const fileBuffer = await imageFile.arrayBuffer();
+
+    await writeBinaryFile(spritesDirHandle, filename, fileBuffer);
+
+    const existingIndex = spriteEntries.findIndex((entry) => entry.id === spriteId);
+    const nextEntry = { id: spriteId, label: spriteLabel, filename };
+    if (existingIndex >= 0) {
+      spriteEntries[existingIndex] = nextEntry;
+    } else {
+      spriteEntries.push(nextEntry);
+    }
+
+    spriteEntries.sort((left, right) => left.id.localeCompare(right.id));
+    await writeTextFile(
+      spritesDirHandle,
+      'manifest.json',
+      `${JSON.stringify({ sprites: spriteEntries }, null, 2)}\n`,
+    );
+    await writeTextFile(runtimeDirHandle, SPRITE_REGISTRY_FILE, buildSpriteRegistrySource(spriteEntries));
+
+    spriteLibrary = buildSpriteLibraryFromManifest(spriteEntries);
+    renderPanels();
+    renderPreview();
+    setSaveStatus(`Imported sprite "${spriteId}" and regenerated the runtime sprite registry. Reload the app if Metro does not pick it up immediately.`, 'success');
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    setSaveStatus(`Could not import sprite: ${error.message}`, 'error');
+  }
 }
 
 function createStarterAsset() {
@@ -386,13 +789,66 @@ function normalizeAsset(rawAsset) {
   asset.layers = asset.layers.map((layer, index) => {
     const nextLayer = cloneData(layer);
     nextLayer.id = typeof nextLayer.id === 'string' ? nextLayer.id : `layer-${index + 1}`;
-    nextLayer.type = ['orb', 'ring', 'trail'].includes(nextLayer.type) ? nextLayer.type : 'orb';
-    nextLayer.radius = Number.isFinite(Number(nextLayer.radius)) ? Number(nextLayer.radius) : 10;
-    nextLayer.color = typeof nextLayer.color === 'string' ? nextLayer.color : '#ffffff';
+    nextLayer.type = ['orb', 'ring', 'trail', 'streak', 'diamond', 'arc', 'starburst', 'sprite'].includes(nextLayer.type)
+      ? nextLayer.type
+      : 'orb';
     nextLayer.tracks = typeof nextLayer.tracks === 'object' && nextLayer.tracks ? nextLayer.tracks : {};
 
     for (const trackName of Object.keys(nextLayer.tracks)) {
       nextLayer.tracks[trackName] = normalizeTrack(nextLayer.tracks[trackName]);
+    }
+
+    if (nextLayer.type === 'sprite') {
+      nextLayer.spriteId =
+        typeof nextLayer.spriteId === 'string' && hasSpriteDefinition(nextLayer.spriteId)
+          ? nextLayer.spriteId
+          : getDefaultSpriteId();
+      nextLayer.width = Number.isFinite(Number(nextLayer.width)) ? Number(nextLayer.width) : 36;
+      nextLayer.height = Number.isFinite(Number(nextLayer.height)) ? Number(nextLayer.height) : 36;
+      nextLayer.tintColor =
+        typeof nextLayer.tintColor === 'string' ? nextLayer.tintColor : undefined;
+      return nextLayer;
+    }
+
+    nextLayer.radius = Number.isFinite(Number(nextLayer.radius)) ? Number(nextLayer.radius) : 10;
+    nextLayer.color = typeof nextLayer.color === 'string' ? nextLayer.color : '#ffffff';
+
+    if (nextLayer.type === 'streak' || nextLayer.type === 'diamond') {
+      nextLayer.width = Number.isFinite(Number(nextLayer.width)) ? Number(nextLayer.width) : 42;
+      nextLayer.height = Number.isFinite(Number(nextLayer.height)) ? Number(nextLayer.height) : 16;
+      nextLayer.rotationDeg = Number.isFinite(Number(nextLayer.rotationDeg))
+        ? Number(nextLayer.rotationDeg)
+        : 0;
+      return nextLayer;
+    }
+
+    if (nextLayer.type === 'arc') {
+      nextLayer.thickness = Number.isFinite(Number(nextLayer.thickness))
+        ? Number(nextLayer.thickness)
+        : 4;
+      nextLayer.sweepDeg = Number.isFinite(Number(nextLayer.sweepDeg))
+        ? Number(nextLayer.sweepDeg)
+        : 120;
+      nextLayer.rotationDeg = Number.isFinite(Number(nextLayer.rotationDeg))
+        ? Number(nextLayer.rotationDeg)
+        : -90;
+      return nextLayer;
+    }
+
+    if (nextLayer.type === 'starburst') {
+      nextLayer.innerRadius = Number.isFinite(Number(nextLayer.innerRadius))
+        ? Number(nextLayer.innerRadius)
+        : 8;
+      nextLayer.outerRadius = Number.isFinite(Number(nextLayer.outerRadius))
+        ? Number(nextLayer.outerRadius)
+        : 18;
+      nextLayer.points = Number.isFinite(Number(nextLayer.points))
+        ? Math.max(3, Math.round(Number(nextLayer.points)))
+        : 6;
+      nextLayer.rotationDeg = Number.isFinite(Number(nextLayer.rotationDeg))
+        ? Number(nextLayer.rotationDeg)
+        : -90;
+      return nextLayer;
     }
 
     if (nextLayer.type === 'orb') {
@@ -410,6 +866,9 @@ function normalizeAsset(rawAsset) {
     }
 
     if (nextLayer.type === 'trail') {
+      nextLayer.style = ['fill', 'ring', 'sprite'].includes(nextLayer.style)
+        ? nextLayer.style
+        : 'fill';
       nextLayer.segments = Number.isFinite(Number(nextLayer.segments))
         ? Number(nextLayer.segments)
         : 6;
@@ -419,6 +878,19 @@ function normalizeAsset(rawAsset) {
       nextLayer.falloff = Number.isFinite(Number(nextLayer.falloff))
         ? Number(nextLayer.falloff)
         : undefined;
+      nextLayer.thickness = Number.isFinite(Number(nextLayer.thickness))
+        ? Number(nextLayer.thickness)
+        : undefined;
+      nextLayer.spriteId =
+        typeof nextLayer.spriteId === 'string' && hasSpriteDefinition(nextLayer.spriteId)
+          ? nextLayer.spriteId
+          : getDefaultSpriteId();
+      nextLayer.width = Number.isFinite(Number(nextLayer.width)) ? Number(nextLayer.width) : undefined;
+      nextLayer.height = Number.isFinite(Number(nextLayer.height))
+        ? Number(nextLayer.height)
+        : undefined;
+      nextLayer.tintColor =
+        typeof nextLayer.tintColor === 'string' ? nextLayer.tintColor : undefined;
     }
 
     return nextLayer;
@@ -430,6 +902,8 @@ function normalizeAsset(rawAsset) {
 const state = {
   asset: normalizeAsset(createStarterAsset()),
   instance: createInstance(),
+  repoRootHandle: null,
+  recentFiles: [],
   selectedLayerId: 'trail',
   selectedLayerTrack: 'scale',
   progress: 0,
@@ -443,19 +917,8 @@ const state = {
   curveStates: {},
   curveEditorModes: {},
   activeCurveDrag: null,
-  previewBackground: {
-    preset: 'ember',
-    ...cloneData(PREVIEW_BACKDROPS.ember),
-  },
-  collapsedPanels: {
-    assetBackdrop: false,
-    assetAnchors: false,
-    assetMotion: false,
-    layersStack: false,
-    layerProperties: false,
-    layerCurves: false,
-    jsonPanel: false,
-  },
+  previewBackground: createDefaultPreviewBackground(),
+  collapsedPanels: createDefaultCollapsedPanels(),
   undoStack: [],
   redoStack: [],
   pendingHistorySnapshot: null,
@@ -468,6 +931,271 @@ function clearCurveEditors() {
   state.curveStates = {};
   state.curveEditorModes = {};
   state.activeCurveDrag = null;
+}
+
+function normalizePreviewBackground(rawBackground) {
+  const presetId =
+    typeof rawBackground?.preset === 'string' && PREVIEW_BACKDROPS[rawBackground.preset]
+      ? rawBackground.preset
+      : 'ember';
+  const preset = PREVIEW_BACKDROPS[presetId];
+
+  return {
+    preset: presetId,
+    top: typeof rawBackground?.top === 'string' ? rawBackground.top : preset.top,
+    bottom: typeof rawBackground?.bottom === 'string' ? rawBackground.bottom : preset.bottom,
+    glow: typeof rawBackground?.glow === 'string' ? rawBackground.glow : preset.glow,
+    grid: typeof rawBackground?.grid === 'string' ? rawBackground.grid : preset.grid,
+    ground: typeof rawBackground?.ground === 'string' ? rawBackground.ground : preset.ground,
+  };
+}
+
+function normalizeInstance(rawInstance) {
+  const defaults = createInstance();
+  return {
+    x: Number.isFinite(Number(rawInstance?.x)) ? Number(rawInstance.x) : defaults.x,
+    y: Number.isFinite(Number(rawInstance?.y)) ? Number(rawInstance.y) : defaults.y,
+    targetX: Number.isFinite(Number(rawInstance?.targetX))
+      ? Number(rawInstance.targetX)
+      : defaults.targetX,
+    targetY: Number.isFinite(Number(rawInstance?.targetY))
+      ? Number(rawInstance.targetY)
+      : defaults.targetY,
+  };
+}
+
+function sanitizeRecentFiles(rawRecentFiles) {
+  if (!Array.isArray(rawRecentFiles)) {
+    return [];
+  }
+
+  return rawRecentFiles
+    .map((item) => ({
+      id: typeof item?.id === 'string' ? item.id : '',
+      name: typeof item?.name === 'string' ? item.name : 'Unknown File',
+      lastOpenedAt: Number.isFinite(Number(item?.lastOpenedAt)) ? Number(item.lastOpenedAt) : 0,
+    }))
+    .filter((item) => item.id)
+    .sort((left, right) => right.lastOpenedAt - left.lastOpenedAt)
+    .slice(0, RECENT_FILES_LIMIT);
+}
+
+function normalizeCurveStates(rawCurveStates) {
+  if (!rawCurveStates || typeof rawCurveStates !== 'object') {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(rawCurveStates).map(([key, curveState]) => [
+      key,
+      refreshCurveState({
+        points: Array.isArray(curveState?.points) ? cloneData(curveState.points) : [],
+        baked: Array.isArray(curveState?.baked) ? cloneData(curveState.baked) : [],
+        modified: Boolean(curveState?.modified),
+        rangeMin: curveState?.rangeMin,
+        rangeMax: curveState?.rangeMax,
+      }),
+    ]),
+  );
+}
+
+function buildPersistedEditorSession() {
+  return {
+    asset: cloneData(state.asset),
+    instance: cloneData(state.instance),
+    recentFiles: cloneData(state.recentFiles),
+    selectedLayerId: state.selectedLayerId,
+    selectedLayerTrack: state.selectedLayerTrack,
+    curveStates: cloneData(state.curveStates),
+    curveEditorModes: cloneData(state.curveEditorModes),
+    previewBackground: cloneData(state.previewBackground),
+    collapsedPanels: cloneData(state.collapsedPanels),
+    fileName: state.fileName,
+    jsonDraft: state.jsonDraft,
+    jsonDirty: state.jsonDirty,
+  };
+}
+
+let persistEditorSessionTimer = null;
+let persistEditorSessionFilePromise = Promise.resolve();
+
+function persistEditorSessionNow() {
+  try {
+    window.localStorage.setItem(
+      EDITOR_SESSION_STORAGE_KEY,
+      JSON.stringify(buildPersistedEditorSession()),
+    );
+  } catch (error) {
+    console.warn('Could not persist VFX editor session.', error);
+  }
+
+  void persistEditorSessionToFileIfPossible();
+}
+
+function persistEditorSessionToFileIfPossible() {
+  if (!state.repoRootHandle) {
+    return Promise.resolve(false);
+  }
+
+  const payload = `${JSON.stringify(buildPersistedEditorSession(), null, 2)}\n`;
+
+  persistEditorSessionFilePromise = persistEditorSessionFilePromise
+    .catch(() => {})
+    .then(async () => {
+      const editorDirHandle = await getDirectoryHandle(state.repoRootHandle, REPO_EDITOR_SEGMENTS);
+      await writeTextFile(editorDirHandle, EDITOR_SESSION_FILE_NAME, payload);
+      return true;
+    })
+    .catch((error) => {
+      console.warn('Could not persist VFX editor session file.', error);
+      return false;
+    });
+
+  return persistEditorSessionFilePromise;
+}
+
+function schedulePersistEditorSession() {
+  if (persistEditorSessionTimer != null) {
+    window.clearTimeout(persistEditorSessionTimer);
+  }
+
+  persistEditorSessionTimer = window.setTimeout(() => {
+    persistEditorSessionTimer = null;
+    persistEditorSessionNow();
+  }, 120);
+}
+
+function restorePersistedEditorSession() {
+  try {
+    const rawSession = window.localStorage.getItem(EDITOR_SESSION_STORAGE_KEY);
+    if (!rawSession) return false;
+
+    const persisted = JSON.parse(rawSession);
+    return applyPersistedEditorSession(persisted);
+  } catch (error) {
+    console.warn('Could not restore VFX editor session.', error);
+    return false;
+  }
+}
+
+async function loadPersistedEditorSessionFromFile() {
+  try {
+    const response = await fetch(EDITOR_SESSION_FETCH_PATH, { cache: 'no-store' });
+    if (!response.ok) {
+      return null;
+    }
+
+    const persisted = await response.json();
+    return persisted && typeof persisted === 'object' ? persisted : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function applyPersistedEditorSession(persisted) {
+  if (!persisted || typeof persisted !== 'object') {
+    return false;
+  }
+
+  state.asset = normalizeAsset(persisted.asset ?? createStarterAsset());
+  state.instance = normalizeInstance(persisted.instance);
+  state.recentFiles = sanitizeRecentFiles(persisted.recentFiles);
+  state.selectedLayerId =
+    typeof persisted.selectedLayerId === 'string' ? persisted.selectedLayerId : 'trail';
+  state.selectedLayerTrack =
+    typeof persisted.selectedLayerTrack === 'string' ? persisted.selectedLayerTrack : 'scale';
+  state.curveStates = normalizeCurveStates(persisted.curveStates);
+  state.curveEditorModes =
+    persisted.curveEditorModes && typeof persisted.curveEditorModes === 'object'
+      ? cloneData(persisted.curveEditorModes)
+      : {};
+  state.previewBackground = normalizePreviewBackground(persisted.previewBackground);
+  state.collapsedPanels = {
+    ...createDefaultCollapsedPanels(),
+    ...(persisted.collapsedPanels ?? {}),
+  };
+  state.fileHandle = null;
+  state.fileName = typeof persisted.fileName === 'string' ? persisted.fileName : '';
+  state.jsonDraft =
+    typeof persisted.jsonDraft === 'string'
+      ? persisted.jsonDraft
+      : stringifyAsset(buildExportAsset());
+  state.jsonDirty = Boolean(persisted.jsonDirty && typeof persisted.jsonDraft === 'string');
+  state.progress = 0;
+  state.playing = true;
+  state.lastFrameTime = 0;
+  state.repoRootHandle = null;
+  state.dragTarget = null;
+  state.activeCurveDrag = null;
+  clearHistory();
+  ensureSelection();
+  return true;
+}
+
+async function restorePersistedEditorSessionFromSources() {
+  const fileSession = await loadPersistedEditorSessionFromFile();
+  if (fileSession) {
+    try {
+      window.localStorage.setItem(EDITOR_SESSION_STORAGE_KEY, JSON.stringify(fileSession));
+    } catch (error) {
+      console.warn('Could not mirror file session into local storage.', error);
+    }
+    return applyPersistedEditorSession(fileSession) ? 'file' : null;
+  }
+
+  return restorePersistedEditorSession() ? 'browser' : null;
+}
+
+async function restoreLinkedRepoRootHandle() {
+  try {
+    const handle = await readStoredHandle(REPO_ROOT_HANDLE_KEY);
+    if (!handle) {
+      return false;
+    }
+
+    const hasPermission = await ensureHandlePermission(handle, true);
+    if (!hasPermission) {
+      return false;
+    }
+
+    const isValidRoot = await validateRepoRootHandle(handle);
+    if (!isValidRoot) {
+      await deleteStoredHandle(REPO_ROOT_HANDLE_KEY);
+      return false;
+    }
+
+    state.repoRootHandle = handle;
+    return true;
+  } catch (error) {
+    console.warn('Could not restore the linked repo root.', error);
+    return false;
+  }
+}
+
+async function linkRepoRoot() {
+  try {
+    if (!('showDirectoryPicker' in window)) {
+      setSaveStatus('Link Repo Root requires Chrome, Arc, or Edge with File System Access support.', 'error');
+      return;
+    }
+
+    setSaveStatus('Choose the repo root folder in the browser picker.', 'info');
+    const rootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const isValidRoot = await validateRepoRootHandle(rootHandle);
+    if (!isValidRoot) {
+      setSaveStatus('Choose the repo root folder: /Users/xavierlaborie/Documents/questing-together', 'error');
+      return;
+    }
+
+    state.repoRootHandle = rootHandle;
+    await writeStoredHandle(REPO_ROOT_HANDLE_KEY, rootHandle);
+    await persistEditorSessionToFileIfPossible();
+    renderToolbarMenus();
+    setSaveStatus('Linked repo root. Editor session will now autosave to tools/vfx-editor/editor-session.json.', 'success');
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    setSaveStatus(`Could not link repo root: ${error.message}`, 'error');
+  }
 }
 
 function isPanelCollapsed(panelKey) {
@@ -522,6 +1250,7 @@ function renderStaticPanelState() {
   jsonToggleButton.textContent = collapsed ? '▸' : '▾';
   jsonToggleButton.setAttribute('aria-label', collapsed ? 'Expand JSON panel' : 'Collapse JSON panel');
   jsonToggleButton.setAttribute('title', collapsed ? 'Expand JSON panel' : 'Collapse JSON panel');
+  schedulePersistEditorSession();
 }
 
 function createHistorySnapshot() {
@@ -587,7 +1316,7 @@ function restoreHistorySnapshot(snapshot) {
   state.selectedLayerTrack = snapshot.selectedLayerTrack;
   state.curveStates = cloneData(snapshot.curveStates ?? {});
   state.curveEditorModes = cloneData(snapshot.curveEditorModes ?? {});
-  state.previewBackground = cloneData(snapshot.previewBackground ?? PREVIEW_BACKDROPS.ember);
+  state.previewBackground = normalizePreviewBackground(snapshot.previewBackground);
   ensureSelection();
   syncJsonFromAsset();
   renderPanels();
@@ -1076,6 +1805,7 @@ function syncJsonFromAsset() {
   state.jsonDirty = false;
   ui.jsonEditor.value = state.jsonDraft;
   setJsonStatus('JSON is synced with the visual editor.');
+  schedulePersistEditorSession();
 }
 
 function commitAsset(nextAsset, options = {}) {
@@ -1096,6 +1826,8 @@ function commitAsset(nextAsset, options = {}) {
   if (options.renderPanels) {
     renderPanels();
   }
+
+  schedulePersistEditorSession();
 }
 
 function sampleTrack(track, progress, fallback = 0) {
@@ -1247,8 +1979,185 @@ function renderRing(layer, progress) {
   `;
 }
 
+function renderStreak(layer, progress) {
+  const base = sampleMotionPosition(state.asset, state.instance, progress);
+  const x = base.x + sampleLayerTrack(layer, 'x', progress, 0);
+  const y = base.y + sampleLayerTrack(layer, 'y', progress, 0);
+  const scale = sampleLayerTrack(layer, 'scale', progress, 1);
+  const alpha = sampleLayerTrack(layer, 'alpha', progress, 1);
+  const width = Math.max(1, layer.width * scale);
+  const height = Math.max(1, layer.height * scale);
+
+  return `
+    <rect
+      x="${x - width / 2}"
+      y="${y - height / 2}"
+      width="${width}"
+      height="${height}"
+      rx="${height / 2}"
+      ry="${height / 2}"
+      fill="${escapeHtml(layer.color)}"
+      opacity="${Math.max(0, alpha)}"
+      transform="rotate(${layer.rotationDeg ?? 0} ${x} ${y})"
+    ></rect>
+  `;
+}
+
+function renderDiamond(layer, progress) {
+  const base = sampleMotionPosition(state.asset, state.instance, progress);
+  const cx = base.x + sampleLayerTrack(layer, 'x', progress, 0);
+  const cy = base.y + sampleLayerTrack(layer, 'y', progress, 0);
+  const scale = sampleLayerTrack(layer, 'scale', progress, 1);
+  const alpha = sampleLayerTrack(layer, 'alpha', progress, 1);
+  const halfWidth = Math.max(1, (layer.width * scale) / 2);
+  const halfHeight = Math.max(1, (layer.height * scale) / 2);
+  const angle = ((layer.rotationDeg ?? 0) * Math.PI) / 180;
+  const rotatePoint = (x, y) => ({
+    x: x * Math.cos(angle) - y * Math.sin(angle),
+    y: x * Math.sin(angle) + y * Math.cos(angle),
+  });
+  const points = [
+    rotatePoint(0, -halfHeight),
+    rotatePoint(halfWidth, 0),
+    rotatePoint(0, halfHeight),
+    rotatePoint(-halfWidth, 0),
+  ]
+    .map((point) => `${cx + point.x},${cy + point.y}`)
+    .join(' ');
+
+  return `
+    <polygon
+      points="${points}"
+      fill="${escapeHtml(layer.color)}"
+      opacity="${Math.max(0, alpha)}"
+    ></polygon>
+  `;
+}
+
+function renderArc(layer, progress) {
+  const base = sampleMotionPosition(state.asset, state.instance, progress);
+  const cx = base.x + sampleLayerTrack(layer, 'x', progress, 0);
+  const cy = base.y + sampleLayerTrack(layer, 'y', progress, 0);
+  const scale = sampleLayerTrack(layer, 'scale', progress, 1);
+  const alpha = sampleLayerTrack(layer, 'alpha', progress, 1);
+  const radius = Math.max(1, layer.radius * scale);
+  const startAngle = (layer.rotationDeg ?? -90) - layer.sweepDeg / 2;
+  const endAngle = startAngle + layer.sweepDeg;
+  const toPoint = (angleDeg) => {
+    const angle = (angleDeg * Math.PI) / 180;
+    return {
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle),
+    };
+  };
+  const start = toPoint(startAngle);
+  const end = toPoint(endAngle);
+  const largeArcFlag = layer.sweepDeg > 180 ? 1 : 0;
+  const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+
+  return `
+    <path
+      d="${d}"
+      fill="transparent"
+      stroke="${escapeHtml(layer.color)}"
+      stroke-width="${Math.max(1, layer.thickness * scale)}"
+      stroke-linecap="round"
+      opacity="${Math.max(0, alpha)}"
+    ></path>
+  `;
+}
+
+function renderStarburst(layer, progress) {
+  const base = sampleMotionPosition(state.asset, state.instance, progress);
+  const cx = base.x + sampleLayerTrack(layer, 'x', progress, 0);
+  const cy = base.y + sampleLayerTrack(layer, 'y', progress, 0);
+  const scale = sampleLayerTrack(layer, 'scale', progress, 1);
+  const alpha = sampleLayerTrack(layer, 'alpha', progress, 1);
+  const innerRadius = Math.max(0.5, layer.innerRadius * scale);
+  const outerRadius = Math.max(innerRadius + 0.5, layer.outerRadius * scale);
+  const pointCount = Math.max(3, Math.round(layer.points));
+  const rotation = ((layer.rotationDeg ?? -90) * Math.PI) / 180;
+  const points = Array.from({ length: pointCount * 2 }, (_, index) => {
+    const radius = index % 2 === 0 ? outerRadius : innerRadius;
+    const angle = rotation + (Math.PI * index) / pointCount;
+    return `${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`;
+  }).join(' ');
+
+  return `
+    <polygon
+      points="${points}"
+      fill="${escapeHtml(layer.color)}"
+      opacity="${Math.max(0, alpha)}"
+    ></polygon>
+  `;
+}
+
+function renderSpriteNode(spriteId, x, y, width, height, opacity, tintColor = '', maskId = '') {
+  const href = getSpritePreviewSrc(spriteId);
+  if (!href) return '';
+
+  if (tintColor) {
+    const resolvedMaskId = maskId || `sprite-mask-${Math.round(x)}-${Math.round(y)}-${Math.round(width)}-${Math.round(height)}`;
+    return `
+      <defs>
+        <mask id="${escapeHtml(resolvedMaskId)}" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+          <image
+            href="${escapeHtml(href)}"
+            x="${x - width / 2}"
+            y="${y - height / 2}"
+            width="${width}"
+            height="${height}"
+            preserveAspectRatio="xMidYMid meet"
+          ></image>
+        </mask>
+      </defs>
+      <rect
+        x="${x - width / 2}"
+        y="${y - height / 2}"
+        width="${width}"
+        height="${height}"
+        fill="${escapeHtml(tintColor)}"
+        opacity="${opacity}"
+        mask="url(#${escapeHtml(resolvedMaskId)})"
+      ></rect>
+    `;
+  }
+
+  return `
+    <image
+      href="${escapeHtml(href)}"
+      x="${x - width / 2}"
+      y="${y - height / 2}"
+      width="${width}"
+      height="${height}"
+      opacity="${opacity}"
+      preserveAspectRatio="xMidYMid meet"
+    ></image>
+  `;
+}
+
+function renderSpriteLayer(layer, progress) {
+  const base = sampleMotionPosition(state.asset, state.instance, progress);
+  const x = base.x + sampleLayerTrack(layer, 'x', progress, 0);
+  const y = base.y + sampleLayerTrack(layer, 'y', progress, 0);
+  const scale = sampleLayerTrack(layer, 'scale', progress, 1);
+  const alpha = sampleLayerTrack(layer, 'alpha', progress, 1);
+
+  return renderSpriteNode(
+    layer.spriteId,
+    x,
+    y,
+    Math.max(1, layer.width * scale),
+    Math.max(1, layer.height * scale),
+    Math.max(0, alpha),
+    layer.tintColor,
+    `sprite-layer-mask-${escapeHtml(layer.id)}`,
+  );
+}
+
 function renderTrail(layer, progress) {
   const falloff = layer.falloff ?? 0.1;
+  const trailStyle = layer.style ?? 'fill';
   let svg = '';
 
   for (let index = 0; index < layer.segments; index += 1) {
@@ -1258,8 +2167,38 @@ function renderTrail(layer, progress) {
     const y = base.y + sampleLayerTrack(layer, 'y', segmentProgress, 0);
     const scale = sampleLayerTrack(layer, 'scale', segmentProgress, 1);
     const alpha = sampleLayerTrack(layer, 'alpha', segmentProgress, 1);
-    const radius = Math.max(1, layer.radius * scale * (1 - index * falloff));
+    const sizeFactor = Math.max(0.1, 1 - index * falloff);
+    const radius = Math.max(1, layer.radius * scale * sizeFactor);
     const opacity = Math.max(0, alpha * (0.65 - index * (falloff * 0.9)));
+
+    if (trailStyle === 'ring') {
+      svg += `
+        <circle
+          cx="${x}"
+          cy="${y}"
+          r="${radius}"
+          fill="transparent"
+          stroke="${escapeHtml(layer.color)}"
+          stroke-width="${Math.max(1, (layer.thickness ?? 2.5) * scale * sizeFactor)}"
+          opacity="${opacity}"
+        ></circle>
+      `;
+      continue;
+    }
+
+    if (trailStyle === 'sprite') {
+      svg += renderSpriteNode(
+        layer.spriteId,
+        x,
+        y,
+        Math.max(1, (layer.width ?? layer.radius * 2) * scale * sizeFactor),
+        Math.max(1, (layer.height ?? layer.radius * 2) * scale * sizeFactor),
+        opacity,
+        layer.tintColor,
+        `trail-sprite-mask-${escapeHtml(layer.id)}-${index}`,
+      );
+      continue;
+    }
 
     svg += `
       <circle
@@ -1281,6 +2220,11 @@ function renderPreview() {
     .map((layer) => {
       if (layer.type === 'orb') return renderOrb(layer, state.progress);
       if (layer.type === 'ring') return renderRing(layer, state.progress);
+      if (layer.type === 'streak') return renderStreak(layer, state.progress);
+      if (layer.type === 'diamond') return renderDiamond(layer, state.progress);
+      if (layer.type === 'arc') return renderArc(layer, state.progress);
+      if (layer.type === 'starburst') return renderStarburst(layer, state.progress);
+      if (layer.type === 'sprite') return renderSpriteLayer(layer, state.progress);
       return renderTrail(layer, state.progress);
     })
     .join('');
@@ -1608,8 +2552,6 @@ function renderAssetPanel() {
   const motionMode = state.asset.motion?.mode ?? 'fixed';
   const isLineMotion = motionMode === 'line';
   const isPathMotion = motionMode === 'path';
-  const usesTargetMotion = motionUsesTarget(motionMode);
-  const backdrop = state.previewBackground;
 
   ui.assetPanel.innerHTML = `
     <div class="field-grid">
@@ -1646,92 +2588,11 @@ function renderAssetPanel() {
     </div>
 
     ${renderCollapsibleSection({
-      panelKey: 'assetBackdrop',
-      kicker: 'Backdrop',
-      title: 'Preview Environment',
-      note:
-        '<span class="section-note">Editor-only. Helps judge readability for fire, frost, poison, void, and more.</span>',
-      body: `
-      <div class="field-grid">
-        <label class="field">
-          <span class="field-label">Backdrop Preset</span>
-          <select class="field-select" data-preview-field="preset">
-            ${Object.entries(PREVIEW_BACKDROPS)
-              .map(
-                ([presetId, preset]) => `
-              <option value="${presetId}" ${backdrop.preset === presetId ? 'selected' : ''}>${escapeHtml(preset.label)}</option>
-            `,
-              )
-              .join('')}
-          </select>
-        </label>
-
-        ${renderColorField({
-          label: 'Top Color',
-          value: backdrop.top,
-          field: 'top',
-          datasetName: 'preview-field',
-          fallback: '#181017',
-        })}
-
-        ${renderColorField({
-          label: 'Bottom Color',
-          value: backdrop.bottom,
-          field: 'bottom',
-          datasetName: 'preview-field',
-          fallback: '#0e0b10',
-        })}
-
-        ${renderColorField({
-          label: 'Ambient Glow',
-          value: backdrop.glow,
-          field: 'glow',
-          datasetName: 'preview-field',
-          fallback: '#df945c',
-        })}
-      </div>
-    `,
-    })}
-
-    ${renderCollapsibleSection({
-      panelKey: 'assetAnchors',
-      kicker: 'Anchors',
-      title: 'Stage Positions',
-      note:
-        '<span class="section-note">These are preview anchors, not exported editor metadata.</span>',
-      body: `
-      <div class="field-grid two-up">
-        <label class="field">
-          <span class="field-label">Spawn X</span>
-          <input class="field-input" type="number" value="${Math.round(state.instance.x)}" data-anchor-field="x" />
-        </label>
-
-        <label class="field">
-          <span class="field-label">Spawn Y</span>
-          <input class="field-input" type="number" value="${Math.round(state.instance.y)}" data-anchor-field="y" />
-        </label>
-
-        <label class="field">
-          <span class="field-label">Target X</span>
-          <input class="field-input" type="number" value="${Math.round(state.instance.targetX ?? state.instance.x)}" data-anchor-field="targetX" ${usesTargetMotion ? '' : 'disabled'} />
-        </label>
-
-        <label class="field">
-          <span class="field-label">Target Y</span>
-          <input class="field-input" type="number" value="${Math.round(state.instance.targetY ?? state.instance.y)}" data-anchor-field="targetY" ${usesTargetMotion ? '' : 'disabled'} />
-        </label>
-      </div>
-
-      <p class="section-note">
-        Use <strong>Line</strong> for straight projectile travel, <strong>Path</strong> for arcs and wiggle, and <strong>Fixed</strong> when the effect stays on its spawn point.
-      </p>
-    `,
-    })}
-
-    ${renderCollapsibleSection({
       panelKey: 'assetMotion',
       kicker: 'Motion',
       title: 'Motion Over Lifetime',
+      note:
+        '<span class="section-note">Move the Spawn and Target anchors directly in the preview stage when you need to reposition the effect.</span>',
       body: `
       ${
         motionMode === 'fixed'
@@ -1756,6 +2617,7 @@ function renderAssetPanel() {
     `,
     })}
   `;
+  schedulePersistEditorSession();
 }
 
 function renderLayersPanel() {
@@ -1765,6 +2627,11 @@ function renderLayersPanel() {
         <button class="chip-button" data-action="add-layer" data-layer-type="orb">Add Orb</button>
         <button class="chip-button" data-action="add-layer" data-layer-type="ring">Add Ring</button>
         <button class="chip-button" data-action="add-layer" data-layer-type="trail">Add Trail</button>
+        <button class="chip-button" data-action="add-layer" data-layer-type="streak">Add Streak</button>
+        <button class="chip-button" data-action="add-layer" data-layer-type="diamond">Add Diamond</button>
+        <button class="chip-button" data-action="add-layer" data-layer-type="arc">Add Arc</button>
+        <button class="chip-button" data-action="add-layer" data-layer-type="starburst">Add Starburst</button>
+        <button class="chip-button" data-action="add-layer" data-layer-type="sprite">Add Sprite</button>
       </div>
 
       <div class="button-row">
@@ -1805,22 +2672,23 @@ function renderLayersPanel() {
             <button class="layer-card ${layer.id === state.selectedLayerId ? 'is-selected' : ''}" data-action="select-layer" data-layer-id="${escapeHtml(layer.id)}">
               <div class="layer-card-header">
                 <strong>${escapeHtml(layer.id)}</strong>
-                <span class="swatch" style="background: ${escapeHtml(layer.color)};"></span>
+                <span class="swatch" style="${getLayerCardSwatchStyle(layer)}"></span>
               </div>
               <div class="layer-card-header">
-                <span class="layer-type">${escapeHtml(layer.type)}</span>
+                <span class="layer-type">${escapeHtml(layer.type === 'trail' ? `trail${layer.style === 'ring' ? ' (ring)' : layer.style === 'sprite' ? ' (sprite)' : ''}` : layer.type)}</span>
                 <span class="section-note">${layer.tracks ? Object.keys(layer.tracks).length : 0} curve set${layer.tracks && Object.keys(layer.tracks).length === 1 ? '' : 's'}</span>
               </div>
             </button>
           `,
               )
               .join('')
-          : '<p class="empty-note">No layers yet. Start by adding an orb, ring, or trail layer.</p>'
+          : '<p class="empty-note">No layers yet. Start by adding an orb, ring, trail, streak, diamond, arc, starburst, or sprite layer.</p>'
       }
       `
       }
     </div>
   `;
+  schedulePersistEditorSession();
 }
 
 function renderLayerInspector() {
@@ -1829,6 +2697,7 @@ function renderLayerInspector() {
   if (!layer) {
     ui.layerInspectorPanel.innerHTML =
       '<p class="empty-note">Select a layer to edit its properties and curves over lifetime.</p>';
+    schedulePersistEditorSession();
     return;
   }
 
@@ -1836,7 +2705,7 @@ function renderLayerInspector() {
   const selectedTrack = validTracks.includes(state.selectedLayerTrack)
     ? state.selectedLayerTrack
     : validTracks[0];
-  const currentTrack = layer.tracks?.[selectedTrack] ?? [];
+  const trailStyle = layer.type === 'trail' ? layer.style ?? 'fill' : null;
 
   ui.layerInspectorPanel.innerHTML = `
     ${renderCollapsibleSection({
@@ -1852,43 +2721,152 @@ function renderLayerInspector() {
           <input class="field-input" type="text" value="${escapeHtml(layer.id)}" data-layer-field="id" />
         </label>
 
-        ${renderColorField({
-          label: 'Base Color',
-          value: layer.color,
-          field: 'color',
-          datasetName: 'layer-field',
-          fallback: '#ffffff',
-        })}
+        ${
+          layer.type === 'sprite'
+            ? renderSpriteField({
+                value: layer.spriteId,
+                field: 'spriteId',
+                datasetName: 'layer-field',
+              })
+            : layer.type === 'trail' && trailStyle === 'sprite'
+              ? renderSpriteField({
+                  value: layer.spriteId,
+                  field: 'spriteId',
+                  datasetName: 'layer-field',
+                })
+              : renderColorField({
+                  label: 'Base Color',
+                  value: layer.color,
+                  field: 'color',
+                  datasetName: 'layer-field',
+                  fallback: '#ffffff',
+                })
+        }
 
-        <div class="field-grid two-up">
-          <label class="field">
-            <span class="field-label">Radius</span>
-            <input class="field-input" type="number" step="0.1" value="${layer.radius}" data-layer-field="radius" />
-          </label>
+        ${
+          layer.type === 'sprite' || (layer.type === 'trail' && trailStyle === 'sprite')
+            ? renderTintField({
+                value: layer.tintColor ?? '',
+                field: 'tintColor',
+                datasetName: 'layer-field',
+              })
+            : ''
+        }
 
-          ${
-            layer.type === 'ring'
+        ${
+          layer.type === 'sprite'
+            ? `
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Width</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.width}" data-layer-field="width" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Height</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.height}" data-layer-field="height" />
+            </label>
+          </div>
+        `
+            : layer.type === 'streak' || layer.type === 'diamond'
               ? `
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Width</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.width}" data-layer-field="width" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Height</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.height}" data-layer-field="height" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Rotation</span>
+              <input class="field-input" type="number" step="1" value="${layer.rotationDeg ?? 0}" data-layer-field="rotationDeg" />
+            </label>
+          </div>
+        `
+              : layer.type === 'arc'
+                ? `
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Radius</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.radius}" data-layer-field="radius" />
+            </label>
+
             <label class="field">
               <span class="field-label">Thickness</span>
               <input class="field-input" type="number" step="0.1" value="${layer.thickness}" data-layer-field="thickness" />
             </label>
-          `
-              : layer.type === 'orb'
+
+            <label class="field">
+              <span class="field-label">Sweep Degrees</span>
+              <input class="field-input" type="number" step="1" value="${layer.sweepDeg}" data-layer-field="sweepDeg" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Rotation</span>
+              <input class="field-input" type="number" step="1" value="${layer.rotationDeg ?? -90}" data-layer-field="rotationDeg" />
+            </label>
+          </div>
+        `
+                : layer.type === 'starburst'
+                  ? `
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Inner Radius</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.innerRadius}" data-layer-field="innerRadius" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Outer Radius</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.outerRadius}" data-layer-field="outerRadius" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Points</span>
+              <input class="field-input" type="number" step="1" min="3" value="${layer.points}" data-layer-field="points" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Rotation</span>
+              <input class="field-input" type="number" step="1" value="${layer.rotationDeg ?? -90}" data-layer-field="rotationDeg" />
+            </label>
+          </div>
+        `
+            : `
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Radius</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.radius}" data-layer-field="radius" />
+            </label>
+
+            ${
+              layer.type === 'ring'
                 ? `
-            <label class="field">
-              <span class="field-label">Glow Scale</span>
-              <input class="field-input" type="number" step="0.1" value="${layer.glowScale ?? 2.3}" data-layer-field="glowScale" />
-            </label>
-          `
-                : `
-            <label class="field">
-              <span class="field-label">Segments</span>
-              <input class="field-input" type="number" step="1" min="1" value="${layer.segments}" data-layer-field="segments" />
-            </label>
-          `
-          }
-        </div>
+              <label class="field">
+                <span class="field-label">Thickness</span>
+                <input class="field-input" type="number" step="0.1" value="${layer.thickness}" data-layer-field="thickness" />
+              </label>
+            `
+                : layer.type === 'orb'
+                  ? `
+              <label class="field">
+                <span class="field-label">Glow Scale</span>
+                <input class="field-input" type="number" step="0.1" value="${layer.glowScale ?? 2.3}" data-layer-field="glowScale" />
+              </label>
+            `
+                  : `
+              <label class="field">
+                <span class="field-label">Segments</span>
+                <input class="field-input" type="number" step="1" min="1" value="${layer.segments}" data-layer-field="segments" />
+              </label>
+            `
+            }
+          </div>
+        `
+        }
 
         ${
           layer.type === 'orb'
@@ -1907,6 +2885,15 @@ function renderLayerInspector() {
         ${
           layer.type === 'trail'
             ? `
+          <label class="field">
+            <span class="field-label">Trail Style</span>
+            <select class="field-select" data-layer-field="style">
+              <option value="fill" ${trailStyle === 'fill' ? 'selected' : ''}>Filled Circles</option>
+              <option value="ring" ${trailStyle === 'ring' ? 'selected' : ''}>Outlined Circles</option>
+              <option value="sprite" ${trailStyle === 'sprite' ? 'selected' : ''}>Sprites</option>
+            </select>
+          </label>
+
           <div class="field-grid two-up">
             <label class="field">
               <span class="field-label">Spacing</span>
@@ -1918,6 +2905,35 @@ function renderLayerInspector() {
               <input class="field-input" type="number" step="0.01" value="${layer.falloff ?? 0.1}" data-layer-field="falloff" />
             </label>
           </div>
+
+          ${
+            trailStyle === 'ring'
+              ? `
+            <label class="field">
+              <span class="field-label">Thickness</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.thickness ?? 2.5}" data-layer-field="thickness" />
+            </label>
+          `
+              : ''
+          }
+
+          ${
+            trailStyle === 'sprite'
+              ? `
+            <div class="field-grid two-up">
+              <label class="field">
+                <span class="field-label">Sprite Width</span>
+                <input class="field-input" type="number" step="0.1" value="${layer.width ?? layer.radius * 2}" data-layer-field="width" />
+              </label>
+
+              <label class="field">
+                <span class="field-label">Sprite Height</span>
+                <input class="field-input" type="number" step="0.1" value="${layer.height ?? layer.radius * 2}" data-layer-field="height" />
+              </label>
+            </div>
+          `
+              : ''
+          }
         `
             : ''
         }
@@ -1947,9 +2963,129 @@ function renderLayerInspector() {
     `,
     })}
   `;
+  schedulePersistEditorSession();
+}
+
+function renderToolbarMenus() {
+  const backdrop = state.previewBackground;
+  const recentFiles = state.recentFiles;
+  const repoLinked = Boolean(state.repoRootHandle);
+
+  ui.fileMenuContent.innerHTML = `
+    <div class="menu-grid">
+      <section class="menu-section">
+        <p class="menu-section-title">Project Files</p>
+        <div class="menu-button-stack">
+          <button class="menu-action" type="button" data-toolbar-action="open-file">Open .json</button>
+          <button class="menu-action" type="button" data-toolbar-action="save-file">Save</button>
+          <button class="menu-action" type="button" data-toolbar-action="save-file-as">Save As...</button>
+          <button class="menu-action" type="button" data-toolbar-action="export-json">Export .json</button>
+        </div>
+        <p class="menu-section-note">
+          ${state.fileName ? `Current file: <strong>${escapeHtml(state.fileName)}</strong>` : 'No file is attached yet. Save will prompt for a location if needed.'}
+        </p>
+      </section>
+
+      <section class="menu-section">
+        <p class="menu-section-title">Open Recent</p>
+        ${
+          recentFiles.length
+            ? `
+          <div class="menu-recent-list">
+            ${recentFiles
+              .map(
+                (item) => `
+              <button class="menu-recent-item" type="button" data-toolbar-action="open-recent" data-recent-file-id="${escapeHtml(item.id)}">
+                <span class="menu-recent-name">${escapeHtml(item.name)}</span>
+                <span class="menu-recent-meta">${new Date(item.lastOpenedAt).toLocaleString()}</span>
+              </button>
+            `,
+              )
+              .join('')}
+          </div>
+        `
+            : '<p class="menu-section-note">No recent local JSON files yet.</p>'
+        }
+      </section>
+
+      <section class="menu-section">
+        <p class="menu-section-title">Quick Load Examples</p>
+        <div class="menu-button-stack">
+          ${Object.entries(DEMO_EFFECTS)
+            .map(
+              ([effectId]) => `
+            <button class="menu-action" type="button" data-toolbar-action="load-demo" data-demo-effect="${escapeHtml(effectId)}">${escapeHtml(titleCaseFromId(effectId))}</button>
+          `,
+            )
+            .join('')}
+        </div>
+      </section>
+    </div>
+  `;
+
+  ui.editorMenuContent.innerHTML = `
+    <div class="menu-grid">
+      <section class="menu-section">
+        <p class="menu-section-title">Workspace</p>
+        <div class="menu-button-stack">
+          <button class="menu-action" type="button" data-toolbar-action="link-repo-root">${repoLinked ? 'Relink Repo Root' : 'Link Repo Root for Autosave'}</button>
+          <button class="menu-action" type="button" data-toolbar-action="import-sprite">Import Sprite</button>
+        </div>
+        <p class="menu-section-note">
+          ${repoLinked ? 'Repo root is linked for editor autosave and sprite import.' : 'Link the repo root once so editor-session.json autosaves into tools/vfx-editor.'}
+        </p>
+      </section>
+
+      <section class="menu-section">
+        <p class="menu-section-title">Preview Environment</p>
+        <div class="menu-field-grid">
+          <label class="menu-compact-field">
+            <span class="field-label">Backdrop Preset</span>
+            <select class="field-select" data-preview-field="preset">
+              ${Object.entries(PREVIEW_BACKDROPS)
+                .map(
+                  ([presetId, preset]) => `
+                <option value="${presetId}" ${backdrop.preset === presetId ? 'selected' : ''}>${escapeHtml(preset.label)}</option>
+              `,
+                )
+                .join('')}
+            </select>
+          </label>
+
+          ${renderToolbarColorField({
+            label: 'Top Color',
+            value: backdrop.top,
+            field: 'top',
+            fallback: '#181017',
+          })}
+
+          ${renderToolbarColorField({
+            label: 'Bottom Color',
+            value: backdrop.bottom,
+            field: 'bottom',
+            fallback: '#0e0b10',
+          })}
+
+          ${renderToolbarColorField({
+            label: 'Ambient Glow',
+            value: backdrop.glow,
+            field: 'glow',
+            fallback: '#df945c',
+          })}
+        </div>
+        <p class="menu-section-note">Editor-only preview controls. They do not affect exported runtime JSON.</p>
+      </section>
+    </div>
+  `;
+}
+
+function closeToolbarMenus() {
+  ui.fileMenu.open = false;
+  ui.editorMenu.open = false;
 }
 
 function renderPanels() {
+  renderToolbarMenus();
   renderAssetPanel();
   renderLayersPanel();
   renderLayerInspector();
@@ -2002,6 +3138,83 @@ function createLayer(type) {
     };
   }
 
+  if (type === 'streak') {
+    return {
+      id,
+      type: 'streak',
+      width: 48,
+      height: 12,
+      rotationDeg: -24,
+      color: '#ffd27a',
+      tracks: {
+        scale: [{ at: 0, value: 1 }],
+        alpha: [{ at: 0, value: 1 }],
+      },
+    };
+  }
+
+  if (type === 'diamond') {
+    return {
+      id,
+      type: 'diamond',
+      width: 24,
+      height: 36,
+      rotationDeg: 0,
+      color: '#9ee7ff',
+      tracks: {
+        scale: [{ at: 0, value: 1 }],
+        alpha: [{ at: 0, value: 1 }],
+      },
+    };
+  }
+
+  if (type === 'arc') {
+    return {
+      id,
+      type: 'arc',
+      radius: 22,
+      thickness: 5,
+      sweepDeg: 130,
+      rotationDeg: -90,
+      color: '#ffcf88',
+      tracks: {
+        scale: [{ at: 0, value: 1 }],
+        alpha: [{ at: 0, value: 1 }],
+      },
+    };
+  }
+
+  if (type === 'starburst') {
+    return {
+      id,
+      type: 'starburst',
+      innerRadius: 8,
+      outerRadius: 20,
+      points: 6,
+      rotationDeg: -90,
+      color: '#fff1c9',
+      tracks: {
+        scale: [{ at: 0, value: 1 }],
+        alpha: [{ at: 0, value: 1 }],
+      },
+    };
+  }
+
+  if (type === 'sprite') {
+    return {
+      id,
+      type: 'sprite',
+      spriteId: getDefaultSpriteId(),
+      width: 42,
+      height: 42,
+      tintColor: '',
+      tracks: {
+        scale: [{ at: 0, value: 1 }],
+        alpha: [{ at: 0, value: 1 }],
+      },
+    };
+  }
+
   return {
     id,
     type: 'trail',
@@ -2009,6 +3222,7 @@ function createLayer(type) {
     segments: 6,
     spacing: 0.06,
     falloff: 0.1,
+    style: 'fill',
     color: 'rgba(255, 140, 60, 0.66)',
     tracks: {
       scale: [{ at: 0, value: 1 }],
@@ -2040,8 +3254,9 @@ function updatePreviewField(field, rawValue, fromColorPicker = false) {
       preset: rawValue,
       ...cloneData(preset),
     };
-    renderAssetPanel();
+    renderToolbarMenus();
     renderPreview();
+    schedulePersistEditorSession();
     return;
   }
 
@@ -2050,8 +3265,9 @@ function updatePreviewField(field, rawValue, fromColorPicker = false) {
     ? mergePickedHexWithSource(currentValue, rawValue)
     : rawValue;
   state.previewBackground.preset = 'custom';
-  renderAssetPanel();
+  renderToolbarMenus();
   renderPreview();
+  schedulePersistEditorSession();
 }
 
 function updateMotionField(field, rawValue) {
@@ -2070,17 +3286,25 @@ function updateSelectedLayerField(field, rawValue, fromColorPicker = false) {
   const nextAsset = cloneData(state.asset);
   const layer = nextAsset.layers[layerIndex];
 
-  if (['radius', 'glowScale', 'thickness', 'spacing', 'falloff'].includes(field)) {
+  if (['radius', 'glowScale', 'thickness', 'spacing', 'falloff', 'width', 'height', 'rotationDeg', 'sweepDeg', 'innerRadius', 'outerRadius'].includes(field)) {
     if (rawValue === '') {
       delete layer[field];
     } else {
       layer[field] = Number(rawValue);
     }
-  } else if (field === 'segments') {
-    layer.segments = Math.max(1, Math.round(Number(rawValue) || 1));
-  } else if (field === 'color' || field === 'glowColor') {
-    const currentValue = layer[field] ?? (field === 'glowColor' ? layer.color : '#ffffff');
+  } else if (field === 'segments' || field === 'points') {
+    layer[field] = Math.max(field === 'points' ? 3 : 1, Math.round(Number(rawValue) || 1));
+  } else if (field === 'color' || field === 'glowColor' || field === 'tintColor') {
+    const currentValue =
+      layer[field] ?? (field === 'glowColor' ? layer.color : '#ffffff');
     layer[field] = fromColorPicker ? mergePickedHexWithSource(currentValue, rawValue) : rawValue;
+  } else if (field === 'style') {
+    layer.style = rawValue;
+    if (rawValue === 'sprite' && !hasSpriteDefinition(layer.spriteId)) {
+      layer.spriteId = getDefaultSpriteId();
+    }
+  } else if (field === 'spriteId') {
+    layer.spriteId = hasSpriteDefinition(rawValue) ? rawValue : getDefaultSpriteId();
   } else {
     layer[field] = rawValue;
   }
@@ -2088,6 +3312,11 @@ function updateSelectedLayerField(field, rawValue, fromColorPicker = false) {
   if (field === 'id') {
     clearCurveEditors();
     state.selectedLayerId = rawValue;
+    commitAsset(nextAsset, { renderPanels: true });
+    return;
+  }
+
+  if (field === 'style' || field === 'spriteId') {
     commitAsset(nextAsset, { renderPanels: true });
     return;
   }
@@ -2373,6 +3602,42 @@ function loadAssetFromObject(asset, { fileHandle = null, fileName = '' } = {}) {
   );
 }
 
+function getRecentFileKey(fileName) {
+  return `recent-file:${slugify(fileName)}`;
+}
+
+async function rememberRecentFile(handle, fileName) {
+  if (!handle || !fileName) return;
+
+  const key = getRecentFileKey(fileName);
+
+  try {
+    await writeStoredHandle(key, handle);
+  } catch (error) {
+    console.warn('Could not store recent file handle.', error);
+  }
+
+  state.recentFiles = sanitizeRecentFiles([
+    { id: key, name: fileName, lastOpenedAt: Date.now() },
+    ...state.recentFiles.filter((item) => item.id !== key),
+  ]);
+  renderToolbarMenus();
+  schedulePersistEditorSession();
+}
+
+async function openEffectFromHandle(handle) {
+  const hasPermission = await ensureHandlePermission(handle, true);
+  if (!hasPermission) {
+    throw new Error('Permission was not granted for that file.');
+  }
+
+  const file = await handle.getFile();
+  const text = await file.text();
+  const asset = JSON.parse(text);
+  loadAssetFromObject(asset, { fileHandle: handle, fileName: file.name });
+  await rememberRecentFile(handle, file.name);
+}
+
 async function loadDemoEffect(effectId) {
   const path = DEMO_EFFECTS[effectId];
   if (!path) return;
@@ -2408,10 +3673,7 @@ async function openEffectFile() {
         ],
       });
 
-      const file = await handle.getFile();
-      const text = await file.text();
-      const asset = JSON.parse(text);
-      loadAssetFromObject(asset, { fileHandle: handle, fileName: file.name });
+      await openEffectFromHandle(handle);
       return;
     }
 
@@ -2422,18 +3684,50 @@ async function openEffectFile() {
   }
 }
 
+async function loadRecentFile(recentFileId) {
+  try {
+    const handle = await readStoredHandle(recentFileId);
+    if (!handle) {
+      state.recentFiles = state.recentFiles.filter((item) => item.id !== recentFileId);
+      renderToolbarMenus();
+      schedulePersistEditorSession();
+      setSaveStatus('That recent file is no longer available. Open it again manually.', 'error');
+      return;
+    }
+
+    await openEffectFromHandle(handle);
+  } catch (error) {
+    setSaveStatus(`Could not open recent file: ${error.message}`, 'error');
+  }
+}
+
+async function writeEffectToHandle(handle, suggestedFileName = '') {
+  const writable = await handle.createWritable();
+  await writable.write(stringifyAsset(buildExportAsset()));
+  await writable.close();
+  state.fileHandle = handle;
+  state.fileName = handle.name || suggestedFileName || state.fileName || `${state.asset.id || 'effect'}.json`;
+  renderPanels();
+  await rememberRecentFile(handle, state.fileName);
+}
+
 async function saveToAttachedFile() {
   try {
-    const exportedAsset = buildExportAsset();
-
     if (state.fileHandle && 'createWritable' in state.fileHandle) {
-      const writable = await state.fileHandle.createWritable();
-      await writable.write(stringifyAsset(exportedAsset));
-      await writable.close();
+      await writeEffectToHandle(state.fileHandle, state.fileName);
       setSaveStatus(`Saved directly to ${state.fileName}.`, 'success');
       return;
     }
 
+    await saveAsFile();
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    setSaveStatus(`Could not save file: ${error.message}`, 'error');
+  }
+}
+
+async function saveAsFile() {
+  try {
     if ('showSaveFilePicker' in window) {
       const handle = await window.showSaveFilePicker({
         suggestedName: `${state.asset.id || 'effect'}.json`,
@@ -2445,12 +3739,7 @@ async function saveToAttachedFile() {
         ],
       });
 
-      const writable = await handle.createWritable();
-      await writable.write(stringifyAsset(exportedAsset));
-      await writable.close();
-      state.fileHandle = handle;
-      state.fileName = `${state.asset.id || 'effect'}.json`;
-      renderPanels();
+      await writeEffectToHandle(handle, `${state.asset.id || 'effect'}.json`);
       setSaveStatus(`Saved directly to ${state.fileName}.`, 'success');
       return;
     }
@@ -2679,6 +3968,53 @@ function handleLayerInspectorClick(event) {
   }
 }
 
+function handleToolbarMenuInput(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
+
+  if (target.dataset.previewField) {
+    updatePreviewField(
+      target.dataset.previewField,
+      target.value,
+      target.dataset.colorPicker === 'true',
+    );
+  }
+}
+
+function handleToolbarMenuClick(event) {
+  const button = event.target.closest('[data-toolbar-action]');
+  if (!button) return;
+
+  const { toolbarAction, recentFileId, demoEffect } = button.dataset;
+
+  if (toolbarAction === 'open-file') {
+    closeToolbarMenus();
+    void openEffectFile();
+  } else if (toolbarAction === 'save-file') {
+    closeToolbarMenus();
+    void saveToAttachedFile();
+  } else if (toolbarAction === 'save-file-as') {
+    closeToolbarMenus();
+    void saveAsFile();
+  } else if (toolbarAction === 'export-json') {
+    closeToolbarMenus();
+    downloadJson();
+    setSaveStatus(`Exported ${state.asset.id || 'effect'}.json.`, 'success');
+  } else if (toolbarAction === 'link-repo-root') {
+    closeToolbarMenus();
+    void linkRepoRoot();
+  } else if (toolbarAction === 'import-sprite') {
+    closeToolbarMenus();
+    void importSprite();
+  } else if (toolbarAction === 'open-recent' && recentFileId) {
+    closeToolbarMenus();
+    void loadRecentFile(recentFileId);
+  } else if (toolbarAction === 'load-demo' && demoEffect) {
+    closeToolbarMenus();
+    void loadDemoEffect(demoEffect);
+  }
+}
+
 function handleFallbackFileChange(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -2847,6 +4183,16 @@ function handleGlobalKeyDown(event) {
   }
 }
 
+function syncJsonEditorFromState() {
+  if (state.jsonDirty) {
+    ui.jsonEditor.value = state.jsonDraft;
+    setJsonStatus('Restored unapplied raw JSON draft from the previous session.');
+    return;
+  }
+
+  syncJsonFromAsset();
+}
+
 function resetTemplate() {
   state.fileHandle = null;
   state.fileName = '';
@@ -2890,22 +4236,26 @@ function animationLoop(timestamp) {
 }
 
 function wireEvents() {
-  ui.openFileButton.addEventListener('click', openEffectFile);
-  ui.saveFileButton.addEventListener('click', saveToAttachedFile);
-  ui.downloadFileButton.addEventListener('click', downloadJson);
-  ui.copyJsonButton.addEventListener('click', copyJson);
+  ui.fileMenuContent.addEventListener('click', handleToolbarMenuClick);
+  ui.editorMenuContent.addEventListener('click', handleToolbarMenuClick);
+  ui.editorMenuContent.addEventListener('input', handleToolbarMenuInput);
+  ui.editorMenuContent.addEventListener('change', handleToolbarMenuInput);
+  ui.fileMenu.addEventListener('toggle', () => {
+    if (ui.fileMenu.open) {
+      ui.editorMenu.open = false;
+    }
+  });
+  ui.editorMenu.addEventListener('toggle', () => {
+    if (ui.editorMenu.open) {
+      ui.fileMenu.open = false;
+    }
+  });
   ui.jsonCollapseButton.addEventListener('click', () => {
     togglePanelCollapse('jsonPanel');
     renderStaticPanelState();
   });
   ui.applyJsonButton.addEventListener('click', applyRawJson);
   ui.fallbackFileInput.addEventListener('change', handleFallbackFileChange);
-
-  for (const button of document.querySelectorAll('[data-demo-effect]')) {
-    button.addEventListener('click', () => {
-      loadDemoEffect(button.dataset.demoEffect);
-    });
-  }
 
   ui.togglePlaybackButton.addEventListener('click', () => {
     state.playing = !state.playing;
@@ -2934,6 +4284,7 @@ function wireEvents() {
     state.jsonDraft = ui.jsonEditor.value;
     state.jsonDirty = true;
     setJsonStatus('Raw JSON has local edits. Click "Apply Raw JSON" to load it into the visual editor.');
+    schedulePersistEditorSession();
   });
 
   ui.assetPanel.addEventListener('input', handleAssetPanelInput);
@@ -2958,13 +4309,30 @@ function wireEvents() {
   });
   window.addEventListener('pointerup', endCurveDrag);
   window.addEventListener('keydown', handleGlobalKeyDown);
+  window.addEventListener('pointerdown', (event) => {
+    if (!(event.target instanceof Node)) return;
+    if (ui.fileMenu.contains(event.target) || ui.editorMenu.contains(event.target)) {
+      return;
+    }
+    closeToolbarMenus();
+  });
+  window.addEventListener('beforeunload', persistEditorSessionNow);
 }
 
-function init() {
+async function init() {
+  await loadSpriteManifest();
+  await restoreLinkedRepoRootHandle();
+  const restoredSessionSource = await restorePersistedEditorSessionFromSources();
   renderPanels();
   renderPreview();
-  syncJsonFromAsset();
-  setSaveStatus('Open an effect JSON or quick-load one from the repo.');
+  syncJsonEditorFromState();
+  setSaveStatus(
+    restoredSessionSource === 'file'
+      ? 'Restored the last editor session from tools/vfx-editor/editor-session.json.'
+      : restoredSessionSource === 'browser'
+        ? 'Restored the last editor session from this browser.'
+      : 'Open an effect JSON or quick-load one from the repo.',
+  );
   ui.togglePlaybackButton.textContent = 'Pause';
   wireEvents();
   window.requestAnimationFrame(animationLoop);
