@@ -71,6 +71,13 @@ function createDefaultPreviewViewport() {
   };
 }
 
+function createDefaultPreviewDevice() {
+  return {
+    preset: 'free',
+    showSafeArea: true,
+  };
+}
+
 function createDefaultCollapsedPanels() {
   return {
     assetMotion: false,
@@ -132,6 +139,39 @@ const PREVIEW_BACKDROPS = {
   },
 };
 
+const PREVIEW_DEVICE_PRESETS = {
+  free: {
+    label: 'Free',
+    width: null,
+    height: null,
+    safeArea: null,
+  },
+  phoneTall: {
+    label: 'Phone Tall',
+    width: 393,
+    height: 852,
+    safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+  },
+  phoneCompact: {
+    label: 'Phone Compact',
+    width: 375,
+    height: 667,
+    safeArea: { top: 20, right: 0, bottom: 0, left: 0 },
+  },
+  tabletPortrait: {
+    label: 'Tablet Portrait',
+    width: 820,
+    height: 1180,
+    safeArea: { top: 24, right: 0, bottom: 20, left: 0 },
+  },
+  tabletLandscape: {
+    label: 'Tablet Landscape',
+    width: 1180,
+    height: 820,
+    safeArea: { top: 24, right: 0, bottom: 20, left: 0 },
+  },
+};
+
 const CURVE_PRESETS = {
   linear: { label: 'Linear', x1: 0.333, y1: 0.333, x2: 0.667, y2: 0.667 },
   easeInQuad: { label: 'Ease In Quad', x1: 0.55, y1: 0.085, x2: 0.68, y2: 0.53 },
@@ -163,7 +203,16 @@ const ui = {
   previewResizeHandle: document.getElementById('previewResizeHandle'),
   layersResizeHandle: document.getElementById('layersResizeHandle'),
   stageFrame: document.getElementById('stageFrame'),
+  stageViewportSurface: document.getElementById('stageViewportSurface'),
   stageSvg: document.getElementById('stageSvg'),
+  safeAreaOverlay: document.getElementById('safeAreaOverlay'),
+  safeAreaTop: document.getElementById('safeAreaTop'),
+  safeAreaRight: document.getElementById('safeAreaRight'),
+  safeAreaBottom: document.getElementById('safeAreaBottom'),
+  safeAreaLeft: document.getElementById('safeAreaLeft'),
+  safeAreaGuide: document.getElementById('safeAreaGuide'),
+  previewDeviceSelect: document.getElementById('previewDeviceSelect'),
+  safeAreaToggleButton: document.getElementById('safeAreaToggleButton'),
   zoomOutButton: document.getElementById('zoomOutButton'),
   zoomResetButton: document.getElementById('zoomResetButton'),
   zoomInButton: document.getElementById('zoomInButton'),
@@ -949,6 +998,7 @@ const state = {
   curveEditorModes: {},
   activeCurveDrag: null,
   previewBackground: createDefaultPreviewBackground(),
+  previewDevice: createDefaultPreviewDevice(),
   previewViewport: createDefaultPreviewViewport(),
   collapsedPanels: createDefaultCollapsedPanels(),
   undoStack: [],
@@ -1022,8 +1072,81 @@ function clampPreviewViewportCenter(centerX, centerY, width, height) {
   };
 }
 
+function applySafeAreaOverlay(width, height) {
+  if (
+    !ui.safeAreaOverlay ||
+    !ui.safeAreaTop ||
+    !ui.safeAreaRight ||
+    !ui.safeAreaBottom ||
+    !ui.safeAreaLeft ||
+    !ui.safeAreaGuide
+  ) {
+    return;
+  }
+
+  const preset = PREVIEW_DEVICE_PRESETS[state.previewDevice.preset] ?? PREVIEW_DEVICE_PRESETS.free;
+  const safeArea = preset.safeArea;
+  const shouldShow =
+    Boolean(safeArea) &&
+    state.previewDevice.showSafeArea &&
+    width > 0 &&
+    height > 0 &&
+    preset.width &&
+    preset.height;
+
+  ui.safeAreaOverlay.hidden = !shouldShow;
+  if (!shouldShow) {
+    return;
+  }
+
+  const scaleX = width / preset.width;
+  const scaleY = height / preset.height;
+  const top = (safeArea.top ?? 0) * scaleY;
+  const right = (safeArea.right ?? 0) * scaleX;
+  const bottom = (safeArea.bottom ?? 0) * scaleY;
+  const left = (safeArea.left ?? 0) * scaleX;
+
+  ui.safeAreaTop.style.cssText = `top:0;left:0;right:0;height:${top}px;`;
+  ui.safeAreaRight.style.cssText = `top:0;right:0;bottom:0;width:${right}px;`;
+  ui.safeAreaBottom.style.cssText = `left:0;right:0;bottom:0;height:${bottom}px;`;
+  ui.safeAreaLeft.style.cssText = `top:0;left:0;bottom:0;width:${left}px;`;
+  ui.safeAreaGuide.style.cssText = `top:${top}px;right:${right}px;bottom:${bottom}px;left:${left}px;`;
+}
+
+function applyStageViewportFrame() {
+  const surface = ui.stageViewportSurface;
+  const frame = ui.stageFrame;
+  if (!surface || !frame) {
+    return;
+  }
+
+  const preset = PREVIEW_DEVICE_PRESETS[state.previewDevice.preset] ?? PREVIEW_DEVICE_PRESETS.free;
+  const frameBounds = frame.getBoundingClientRect();
+  const padding = 18;
+  const availableWidth = Math.max(0, frameBounds.width - padding * 2);
+  const availableHeight = Math.max(0, frameBounds.height - padding * 2);
+
+  let width = availableWidth;
+  let height = availableHeight;
+
+  if (preset.width && preset.height) {
+    width = availableWidth;
+    height = (width * preset.height) / preset.width;
+
+    if (height > availableHeight) {
+      height = availableHeight;
+      width = (height * preset.width) / preset.height;
+    }
+  }
+
+  surface.style.width = `${Math.max(0, width)}px`;
+  surface.style.height = `${Math.max(0, height)}px`;
+  surface.classList.toggle('is-device-framed', Boolean(preset.width && preset.height));
+  applySafeAreaOverlay(width, height);
+}
+
 function getStageContainerAspect() {
-  const bounds = ui.stageFrame?.getBoundingClientRect();
+  const bounds = ui.stageViewportSurface?.getBoundingClientRect();
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
     return STAGE.width / STAGE.height;
   }
@@ -1088,7 +1211,17 @@ function getStageViewport() {
 
 function renderPreviewViewportControls() {
   if (!ui.zoomResetButton) return;
+  const preset = PREVIEW_DEVICE_PRESETS[state.previewDevice.preset] ?? PREVIEW_DEVICE_PRESETS.free;
+
   ui.zoomResetButton.textContent = `${Math.round(state.previewViewport.zoom * 100)}%`;
+  if (ui.previewDeviceSelect) {
+    ui.previewDeviceSelect.value = state.previewDevice.preset;
+  }
+  if (ui.safeAreaToggleButton) {
+    ui.safeAreaToggleButton.classList.toggle('is-active', state.previewDevice.showSafeArea);
+    ui.safeAreaToggleButton.disabled = !preset.safeArea;
+    ui.safeAreaToggleButton.textContent = 'Safe Area';
+  }
   ui.stageFrame?.classList.toggle('is-pannable', state.previewViewport.zoom > 1.001);
   ui.stageFrame?.classList.toggle('is-panning', Boolean(state.activeViewportPan));
 }
@@ -1200,6 +1333,19 @@ function normalizePreviewBackground(rawBackground) {
   };
 }
 
+function normalizePreviewDevice(rawDevice) {
+  return {
+    preset:
+      typeof rawDevice?.preset === 'string' && PREVIEW_DEVICE_PRESETS[rawDevice.preset]
+        ? rawDevice.preset
+        : 'free',
+    showSafeArea:
+      typeof rawDevice?.showSafeArea === 'boolean'
+        ? rawDevice.showSafeArea
+        : createDefaultPreviewDevice().showSafeArea,
+  };
+}
+
 function normalizeInstance(rawInstance) {
   const defaults = createInstance();
   return {
@@ -1271,6 +1417,7 @@ function buildPersistedEditorSession() {
     curveStates: cloneData(state.curveStates),
     curveEditorModes: cloneData(state.curveEditorModes),
     previewBackground: cloneData(state.previewBackground),
+    previewDevice: cloneData(state.previewDevice),
     previewViewport: cloneData(state.previewViewport),
     collapsedPanels: cloneData(state.collapsedPanels),
     fileName: state.fileName,
@@ -1374,6 +1521,7 @@ function applyPersistedEditorSession(persisted) {
       ? cloneData(persisted.curveEditorModes)
       : {};
   state.previewBackground = normalizePreviewBackground(persisted.previewBackground);
+  state.previewDevice = normalizePreviewDevice(persisted.previewDevice);
   state.previewViewport = normalizePreviewViewport(persisted.previewViewport);
   state.collapsedPanels = {
     ...createDefaultCollapsedPanels(),
@@ -2487,6 +2635,7 @@ function renderTrail(layer, progress) {
 
 function renderPreview() {
   const backdrop = state.previewBackground;
+  applyStageViewportFrame();
   const viewport = getStageViewport();
   const shapes = state.asset.layers
     .map((layer) => {
@@ -4644,6 +4793,20 @@ function wireEvents() {
   });
 
   ui.resetTemplateButton.addEventListener('click', resetTemplate);
+  ui.previewDeviceSelect?.addEventListener('change', (event) => {
+    state.previewDevice.preset = normalizePreviewDevice({ preset: event.target.value }).preset;
+    renderPreview();
+    schedulePersistEditorSession();
+  });
+  ui.safeAreaToggleButton?.addEventListener('click', () => {
+    const preset = PREVIEW_DEVICE_PRESETS[state.previewDevice.preset] ?? PREVIEW_DEVICE_PRESETS.free;
+    if (!preset.safeArea) {
+      return;
+    }
+    state.previewDevice.showSafeArea = !state.previewDevice.showSafeArea;
+    renderPreview();
+    schedulePersistEditorSession();
+  });
   ui.zoomOutButton?.addEventListener('click', () => {
     setPreviewZoom(state.previewViewport.zoom - PREVIEW_VIEWPORT_LIMITS.buttonStep);
   });

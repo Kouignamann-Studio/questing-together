@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Questing Together VFX Editor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260322m" />
+    <link rel="stylesheet" href="./styles.css?v=20260322n" />
   </head>
   <body>
     <div id="appShell" class="app-shell">
@@ -51,6 +51,25 @@
 
           <div id="stageFrame" class="stage-frame">
             <div class="stage-viewport-toolbar" aria-label="Preview viewport controls">
+              <select
+                id="previewDeviceSelect"
+                class="viewport-select"
+                aria-label="Preview device frame"
+                title="Preview device frame"
+              >
+                <option value="free">Free</option>
+                <option value="phoneTall">Phone Tall</option>
+                <option value="phoneCompact">Phone Compact</option>
+                <option value="tabletPortrait">Tablet Portrait</option>
+                <option value="tabletLandscape">Tablet Landscape</option>
+              </select>
+              <button
+                id="safeAreaToggleButton"
+                class="viewport-button viewport-button-toggle"
+                type="button"
+                aria-label="Toggle safe area overlay"
+                title="Toggle safe area overlay"
+              >Safe Area</button>
               <button
                 id="zoomOutButton"
                 class="viewport-button"
@@ -73,12 +92,22 @@
                 title="Zoom in"
               >+</button>
             </div>
-            <svg
-              id="stageSvg"
-              class="stage-svg"
-              viewBox="0 0 720 420"
-              preserveAspectRatio="xMidYMid meet"
-            ></svg>
+            <div id="stageViewportSurface" class="stage-viewport-surface">
+              <svg
+                id="stageSvg"
+                class="stage-svg"
+                viewBox="0 0 720 420"
+                preserveAspectRatio="xMidYMid meet"
+              ></svg>
+
+              <div id="safeAreaOverlay" class="safe-area-overlay" aria-hidden="true">
+                <div id="safeAreaTop" class="safe-area-block safe-area-top"></div>
+                <div id="safeAreaRight" class="safe-area-block safe-area-right"></div>
+                <div id="safeAreaBottom" class="safe-area-block safe-area-bottom"></div>
+                <div id="safeAreaLeft" class="safe-area-block safe-area-left"></div>
+                <div id="safeAreaGuide" class="safe-area-guide"></div>
+              </div>
+            </div>
           </div>
 
           <div class="timeline-panel">
@@ -106,7 +135,7 @@
             <p class="panel-note">
               Drag the orange anchor for the spawn point and the blue anchor for the target point. Use the
               slider to scrub over lifetime. Use the mouse wheel or the viewport controls to zoom the preview,
-              then hold Cmd and drag to pan.
+              hold Cmd and drag to pan, and switch the device frame when you want a phone or tablet view.
             </p>
           </div>
         </section>
@@ -196,6 +225,6 @@
 
     <input id="fallbackFileInput" type="file" accept=".json,application/json" hidden />
 
-    <script type="module" src="./app.js?v=20260322m"></script>
+    <script type="module" src="./app.js?v=20260322n"></script>
   </body>
 </html>
