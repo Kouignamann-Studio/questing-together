@@ -1,0 +1,254 @@
+{
+  "id": "lightning-strike-muzzle",
+  "label": "Lightning Strike Muzzle",
+  "durationMs": 220,
+  "motion": {
+    "mode": "fixed"
+  },
+  "layers": [
+    {
+      "id": "charge-ring",
+      "type": "ring",
+      "radius": 11,
+      "thickness": 3,
+      "color": "rgba(255, 231, 122, 0.96)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.28
+          },
+          {
+            "at": 0.36,
+            "value": 1.08
+          },
+          {
+            "at": 1,
+            "value": 1.62
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.96
+          },
+          {
+            "at": 0.52,
+            "value": 0.62
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "charge-core",
+      "type": "orb",
+      "radius": 12,
+      "color": "rgba(255, 252, 230, 0.88)",
+      "glowColor": "rgba(255, 187, 48, 0.58)",
+      "glowScale": 3.2,
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.18
+          },
+          {
+            "at": 0.2,
+            "value": 1.18
+          },
+          {
+            "at": 1,
+            "value": 0.82
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.12
+          },
+          {
+            "at": 0.1,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "glow": [
+          {
+            "at": 0,
+            "value": 0.22
+          },
+          {
+            "at": 0.24,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.12
+          }
+        ]
+      }
+    },
+    {
+      "id": "spark-a",
+      "type": "streak",
+      "width": 30,
+      "height": 4,
+      "rotationDeg": 24,
+      "color": "rgba(255, 242, 176, 0.82)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.34
+          },
+          {
+            "at": 0.18,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.7
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.84
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "spark-b",
+      "type": "streak",
+      "width": 28,
+      "height": 3,
+      "rotationDeg": -28,
+      "color": "rgba(255, 196, 82, 0.76)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.3
+          },
+          {
+            "at": 0.18,
+            "value": 0.94
+          },
+          {
+            "at": 1,
+            "value": 0.68
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.76
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "halo-arc-a",
+      "type": "arc",
+      "radius": 21,
+      "thickness": 2.5,
+      "sweepDeg": 110,
+      "rotationDeg": -28,
+      "color": "rgba(255, 214, 104, 0.8)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.52
+          },
+          {
+            "at": 0.3,
+            "value": 0.98
+          },
+          {
+            "at": 1,
+            "value": 1.18
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.86
+          },
+          {
+            "at": 0.44,
+            "value": 0.54
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "halo-arc-b",
+      "type": "arc",
+      "radius": 17,
+      "thickness": 2,
+      "sweepDeg": 78,
+      "rotationDeg": 42,
+      "color": "rgba(255, 244, 179, 0.74)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.46
+          },
+          {
+            "at": 0.28,
+            "value": 0.9
+          },
+          {
+            "at": 1,
+            "value": 1.12
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.74
+          },
+          {
+            "at": 0.4,
+            "value": 0.42
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    }
+  ],
+  "loop": false
+}

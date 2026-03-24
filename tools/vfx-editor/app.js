@@ -1,15 +1,27 @@
 const STAGE = { width: 720, height: 420 };
 
 const DEMO_EFFECTS = {
+  'fire-blast-muzzle': '../../src/features/vfx/assets/effects/fire-blast-muzzle.json',
+  'fire-blast-impact': '../../src/features/vfx/assets/effects/fire-blast-impact.json',
   'fireball-muzzle': '../../src/features/vfx/assets/effects/fireball-muzzle.json',
   'fireball-travel': '../../src/features/vfx/assets/effects/fireball-travel.json',
   'fireball-impact': '../../src/features/vfx/assets/effects/fireball-impact.json',
+  'frostbolt-muzzle': '../../src/features/vfx/assets/effects/frostbolt-muzzle.json',
   'frostbolt-travel': '../../src/features/vfx/assets/effects/frostbolt-travel.json',
   'frostbolt-impact': '../../src/features/vfx/assets/effects/frostbolt-impact.json',
+  'lightning-strike-muzzle': '../../src/features/vfx/assets/effects/lightning-strike-muzzle.json',
+  'lightning-strike-travel': '../../src/features/vfx/assets/effects/lightning-strike-travel.json',
+  'lightning-strike-impact': '../../src/features/vfx/assets/effects/lightning-strike-impact.json',
+  'sleek-slash-muzzle': '../../src/features/vfx/assets/effects/sleek-slash-muzzle.json',
+  'sleek-slash-impact': '../../src/features/vfx/assets/effects/sleek-slash-impact.json',
 };
 
 const DEMO_SEQUENCES = {
+  'fire-blast': '../../src/features/vfx/assets/sequences/fire-blast.json',
   'fireball-cast': '../../src/features/vfx/assets/sequences/fireball-cast.json',
+  'frostbolt-cast': '../../src/features/vfx/assets/sequences/frostbolt-cast.json',
+  'lightning-strike': '../../src/features/vfx/assets/sequences/lightning-strike.json',
+  'sleek-slash': '../../src/features/vfx/assets/sequences/sleek-slash.json',
 };
 
 const PREVIEW_PLAYBACK_OPTIONS = [

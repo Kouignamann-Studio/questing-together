@@ -1,0 +1,24 @@
+{
+  "id": "lightning-strike",
+  "label": "Lightning Strike",
+  "cues": [
+    {
+      "id": "muzzle",
+      "assetId": "lightning-strike-muzzle",
+      "atMs": 0,
+      "anchor": "caster"
+    },
+    {
+      "id": "bolt",
+      "assetId": "lightning-strike-travel",
+      "atMs": 120,
+      "anchor": "target"
+    },
+    {
+      "id": "impact",
+      "assetId": "lightning-strike-impact",
+      "atMs": 210,
+      "anchor": "target"
+    }
+  ]
+}

@@ -1,55 +1,493 @@
 {
   "id": "frostbolt-impact",
   "label": "Frostbolt Impact",
-  "durationMs": 540,
+  "durationMs": 620,
   "motion": {
     "mode": "fixed"
   },
   "layers": [
     {
-      "id": "burst-ring",
-      "type": "ring",
-      "radius": 14,
-      "thickness": 4,
-      "color": "#bfe9ff",
-      "tracks": {
-        "scale": [
-          { "at": 0, "value": 0.42 },
-          { "at": 0.45, "value": 1.28 },
-          { "at": 1, "value": 1.72 }
-        ],
-        "alpha": [{ "at": 0, "value": 1 }, { "at": 0.58, "value": 0.72 }, { "at": 1, "value": 0 }]
-      }
-    },
-    {
-      "id": "flash",
+      "id": "flash-core",
       "type": "orb",
       "radius": 18,
-      "color": "rgba(172, 231, 255, 0.6)",
-      "glowColor": "rgba(99, 165, 255, 0.34)",
-      "glowScale": 3,
+      "color": "rgba(236, 249, 255, 0.84)",
+      "glowColor": "rgba(121, 208, 255, 0.56)",
+      "glowScale": 3.6,
       "tracks": {
         "scale": [
-          { "at": 0, "value": 0.36 },
-          { "at": 0.22, "value": 1.42 },
-          { "at": 1, "value": 0.92 }
+          {
+            "at": 0,
+            "value": 0.3
+          },
+          {
+            "at": 0.18,
+            "value": 1.58
+          },
+          {
+            "at": 1,
+            "value": 0.96
+          }
         ],
-        "alpha": [{ "at": 0, "value": 1 }, { "at": 0.3, "value": 0.8 }, { "at": 1, "value": 0 }],
-        "glow": [{ "at": 0, "value": 1 }, { "at": 0.55, "value": 0.72 }, { "at": 1, "value": 0.1 }]
+        "alpha": [
+          {
+            "at": 0,
+            "value": 1
+          },
+          {
+            "at": 0.24,
+            "value": 0.82
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "glow": [
+          {
+            "at": 0,
+            "value": 1
+          },
+          {
+            "at": 0.45,
+            "value": 0.72
+          },
+          {
+            "at": 1,
+            "value": 0.14
+          }
+        ]
       }
     },
     {
-      "id": "embers",
-      "type": "trail",
-      "radius": 10,
-      "segments": 6,
-      "spacing": 0.075,
-      "falloff": 0.1,
-      "color": "rgba(120, 212, 255, 0.58)",
+      "id": "shock-ring",
+      "type": "ring",
+      "radius": 15,
+      "thickness": 3,
+      "color": "rgba(184, 238, 255, 0.95)",
       "tracks": {
-        "y": [{ "at": 0, "value": 0 }, { "at": 1, "value": -24 }],
-        "scale": [{ "at": 0, "value": 1.06 }, { "at": 1, "value": 0.42 }],
-        "alpha": [{ "at": 0, "value": 0.95 }, { "at": 1, "value": 0 }]
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.34
+          },
+          {
+            "at": 0.4,
+            "value": 1.42
+          },
+          {
+            "at": 1,
+            "value": 2.04
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 1
+          },
+          {
+            "at": 0.56,
+            "value": 0.62
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "echo-ring",
+      "type": "ring",
+      "radius": 10,
+      "thickness": 2,
+      "color": "rgba(138, 207, 255, 0.7)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.26
+          },
+          {
+            "at": 0.18,
+            "value": 0.26
+          },
+          {
+            "at": 0.56,
+            "value": 1.26
+          },
+          {
+            "at": 1,
+            "value": 1.7
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 0.16,
+            "value": 0
+          },
+          {
+            "at": 0.26,
+            "value": 0.72
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "cross-streak-a",
+      "type": "streak",
+      "width": 58,
+      "height": 5,
+      "rotationDeg": 28,
+      "color": "rgba(204, 245, 255, 0.68)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.26
+          },
+          {
+            "at": 0.18,
+            "value": 1.1
+          },
+          {
+            "at": 1,
+            "value": 0.74
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.86
+          },
+          {
+            "at": 0.3,
+            "value": 0.46
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "cross-streak-b",
+      "type": "streak",
+      "width": 58,
+      "height": 5,
+      "rotationDeg": -28,
+      "color": "rgba(184, 232, 255, 0.6)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.26
+          },
+          {
+            "at": 0.18,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.72
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.76
+          },
+          {
+            "at": 0.3,
+            "value": 0.42
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "mist",
+      "type": "trail",
+      "radius": 9,
+      "segments": 7,
+      "spacing": 0.075,
+      "falloff": 0.11,
+      "style": "fill",
+      "color": "rgba(141, 214, 255, 0.34)",
+      "tracks": {
+        "y": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": -18
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 1.12
+          },
+          {
+            "at": 1,
+            "value": 0.54
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.82
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "ice-shard-up-right",
+      "type": "streak",
+      "width": 28,
+      "height": 4,
+      "rotationDeg": 16,
+      "color": "rgba(226, 250, 255, 0.84)",
+      "tracks": {
+        "x": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": 18
+          }
+        ],
+        "y": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": -24
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.48
+          },
+          {
+            "at": 0.28,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.72
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.96
+          },
+          {
+            "at": 0.55,
+            "value": 0.62
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "ice-shard-up-left",
+      "type": "streak",
+      "width": 28,
+      "height": 4,
+      "rotationDeg": -14,
+      "color": "rgba(204, 245, 255, 0.8)",
+      "tracks": {
+        "x": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": -18
+          }
+        ],
+        "y": [
+          {
+            "at": 0,
+            "value": -2
+          },
+          {
+            "at": 1,
+            "value": -22
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.44
+          },
+          {
+            "at": 0.28,
+            "value": 0.96
+          },
+          {
+            "at": 1,
+            "value": 0.7
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.92
+          },
+          {
+            "at": 0.56,
+            "value": 0.58
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "ice-shard-down-right",
+      "type": "streak",
+      "width": 20,
+      "height": 4,
+      "rotationDeg": 34,
+      "color": "rgba(153, 222, 255, 0.68)",
+      "tracks": {
+        "x": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": 15
+          }
+        ],
+        "y": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": 18
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.42
+          },
+          {
+            "at": 0.24,
+            "value": 0.88
+          },
+          {
+            "at": 1,
+            "value": 0.66
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.74
+          },
+          {
+            "at": 0.5,
+            "value": 0.46
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "ice-shard-down-left",
+      "type": "streak",
+      "width": 20,
+      "height": 4,
+      "rotationDeg": -32,
+      "color": "rgba(153, 222, 255, 0.68)",
+      "tracks": {
+        "x": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": -15
+          }
+        ],
+        "y": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 1,
+            "value": 18
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.42
+          },
+          {
+            "at": 0.24,
+            "value": 0.88
+          },
+          {
+            "at": 1,
+            "value": 0.66
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.74
+          },
+          {
+            "at": 0.5,
+            "value": 0.46
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
       }
     }
   ]

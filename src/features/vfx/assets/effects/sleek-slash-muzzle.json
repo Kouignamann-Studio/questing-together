@@ -1,0 +1,87 @@
+{
+  "id": "sleek-slash-muzzle",
+  "label": "Sleek Slash Muzzle",
+  "durationMs": 140,
+  "motion": {
+    "mode": "fixed"
+  },
+  "layers": [
+    {
+      "id": "glint-horizontal",
+      "type": "streak",
+      "width": 34,
+      "height": 4,
+      "rotationDeg": 0,
+      "color": "rgba(242, 248, 255, 0.9)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.18
+          },
+          {
+            "at": 0.22,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.62
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.06
+          },
+          {
+            "at": 0.14,
+            "value": 0.92
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "glint-vertical",
+      "type": "streak",
+      "width": 4,
+      "height": 24,
+      "rotationDeg": 0,
+      "color": "rgba(194, 228, 255, 0.68)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.22
+          },
+          {
+            "at": 0.24,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.58
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.04
+          },
+          {
+            "at": 0.16,
+            "value": 0.74
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    }
+  ],
+  "loop": false
+}

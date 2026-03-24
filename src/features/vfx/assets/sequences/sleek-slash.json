@@ -1,0 +1,18 @@
+{
+  "id": "sleek-slash",
+  "label": "Sleek Slash",
+  "cues": [
+    {
+      "id": "muzzle",
+      "assetId": "sleek-slash-muzzle",
+      "atMs": 0,
+      "anchor": "caster"
+    },
+    {
+      "id": "impact",
+      "assetId": "sleek-slash-impact",
+      "atMs": 110,
+      "anchor": "target"
+    }
+  ]
+}

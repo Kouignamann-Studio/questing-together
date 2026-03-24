@@ -1,0 +1,293 @@
+{
+  "id": "lightning-strike-travel",
+  "label": "Lightning Strike Travel",
+  "durationMs": 180,
+  "motion": {
+    "mode": "fixed"
+  },
+  "layers": [
+    {
+      "id": "main-column",
+      "type": "streak",
+      "width": 9,
+      "height": 138,
+      "rotationDeg": -4,
+      "color": "rgba(255, 248, 214, 0.98)",
+      "tracks": {
+        "y": [
+          {
+            "at": 0,
+            "value": -92
+          },
+          {
+            "at": 0.74,
+            "value": -26
+          },
+          {
+            "at": 1,
+            "value": -12
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.56
+          },
+          {
+            "at": 0.18,
+            "value": 1.02
+          },
+          {
+            "at": 1,
+            "value": 0.9
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.12
+          },
+          {
+            "at": 0.12,
+            "value": 1
+          },
+          {
+            "at": 0.88,
+            "value": 0.86
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "branch-left",
+      "type": "streak",
+      "width": 6,
+      "height": 84,
+      "rotationDeg": 22,
+      "color": "rgba(255, 225, 120, 0.88)",
+      "tracks": {
+        "x": [
+          {
+            "at": 0,
+            "value": -12
+          },
+          {
+            "at": 1,
+            "value": -6
+          }
+        ],
+        "y": [
+          {
+            "at": 0,
+            "value": -82
+          },
+          {
+            "at": 1,
+            "value": -28
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.5
+          },
+          {
+            "at": 0.18,
+            "value": 0.92
+          },
+          {
+            "at": 1,
+            "value": 0.78
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.84
+          },
+          {
+            "at": 0.9,
+            "value": 0.62
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "branch-right",
+      "type": "streak",
+      "width": 5,
+      "height": 74,
+      "rotationDeg": -28,
+      "color": "rgba(255, 185, 58, 0.8)",
+      "tracks": {
+        "x": [
+          {
+            "at": 0,
+            "value": 14
+          },
+          {
+            "at": 1,
+            "value": 8
+          }
+        ],
+        "y": [
+          {
+            "at": 0,
+            "value": -88
+          },
+          {
+            "at": 1,
+            "value": -24
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.44
+          },
+          {
+            "at": 0.18,
+            "value": 0.88
+          },
+          {
+            "at": 1,
+            "value": 0.74
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.8
+          },
+          {
+            "at": 0.9,
+            "value": 0.58
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "descent-haze",
+      "type": "trail",
+      "radius": 11,
+      "segments": 6,
+      "spacing": 0.082,
+      "falloff": 0.12,
+      "style": "fill",
+      "color": "rgba(255, 210, 96, 0.24)",
+      "tracks": {
+        "y": [
+          {
+            "at": 0,
+            "value": -62
+          },
+          {
+            "at": 1,
+            "value": -6
+          }
+        ],
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.92
+          },
+          {
+            "at": 1,
+            "value": 1.16
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.18
+          },
+          {
+            "at": 0.18,
+            "value": 0.64
+          },
+          {
+            "at": 1,
+            "value": 0.08
+          }
+        ]
+      }
+    },
+    {
+      "id": "target-preflash",
+      "type": "orb",
+      "radius": 14,
+      "color": "rgba(255, 245, 181, 0.46)",
+      "glowColor": "rgba(255, 194, 68, 0.42)",
+      "glowScale": 3,
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.32
+          },
+          {
+            "at": 0.62,
+            "value": 0.76
+          },
+          {
+            "at": 1,
+            "value": 1.18
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0
+          },
+          {
+            "at": 0.42,
+            "value": 0.18
+          },
+          {
+            "at": 0.84,
+            "value": 0.72
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "glow": [
+          {
+            "at": 0,
+            "value": 0.2
+          },
+          {
+            "at": 0.84,
+            "value": 0.88
+          },
+          {
+            "at": 1,
+            "value": 0.1
+          }
+        ]
+      }
+    }
+  ],
+  "loop": false
+}

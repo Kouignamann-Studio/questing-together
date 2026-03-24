@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import CharacterPicker from '@/features/home/components/CharacterPicker';
@@ -8,6 +9,7 @@ import type { RoleId } from '@/types/player';
 type Step = 'home' | 'browse' | 'pick';
 
 const GameLauncher = () => {
+  const router = useRouter();
   const { roomConnection } = useGame();
 
   const [step, setStep] = useState<Step>('home');
@@ -61,7 +63,13 @@ const GameLauncher = () => {
     return <RoomBrowser onSelectRoom={(code) => void handleSelectRoom(code)} onBack={handleBack} />;
   }
 
-  return <TitleScreen onCreate={handleCreate} onBrowse={() => setStep('browse')} />;
+  return (
+    <TitleScreen
+      onCreate={handleCreate}
+      onBrowse={() => setStep('browse')}
+      onOpenLocalVfxPreview={__DEV__ ? () => router.push('/fx-local') : undefined}
+    />
+  );
 };
 
 export default GameLauncher;

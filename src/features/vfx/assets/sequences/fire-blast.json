@@ -1,0 +1,18 @@
+{
+  "id": "fire-blast",
+  "label": "Fire Blast",
+  "cues": [
+    {
+      "id": "muzzle",
+      "assetId": "fire-blast-muzzle",
+      "atMs": 0,
+      "anchor": "caster"
+    },
+    {
+      "id": "impact",
+      "assetId": "fire-blast-impact",
+      "atMs": 140,
+      "anchor": "target"
+    }
+  ]
+}

@@ -17,9 +17,10 @@ import { useHomeScreenLayout } from '@/utils/homeScreenLayout';
 type TitleScreenProps = {
   onCreate: () => void;
   onBrowse: () => void;
+  onOpenLocalVfxPreview?: () => void;
 };
 
-const TitleScreen = ({ onCreate, onBrowse }: TitleScreenProps) => {
+const TitleScreen = ({ onCreate, onBrowse, onOpenLocalVfxPreview }: TitleScreenProps) => {
   const {
     minHeight,
     titleTopOffset,
@@ -68,6 +69,16 @@ const TitleScreen = ({ onCreate, onBrowse }: TitleScreenProps) => {
             label="Join Room"
             hint="Browse available rooms"
           />
+          {onOpenLocalVfxPreview ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              textured={false}
+              disabled={isBusy}
+              onPress={onOpenLocalVfxPreview}
+              label="Open Local VFX Preview"
+            />
+          ) : null}
           {roomError ? <Typography variant="error">{roomError}</Typography> : null}
         </ActionGroup>
       </ContentContainer>

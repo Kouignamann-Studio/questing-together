@@ -1,0 +1,176 @@
+{
+  "id": "fire-blast-muzzle",
+  "label": "Fire Blast Muzzle",
+  "durationMs": 220,
+  "motion": {
+    "mode": "fixed"
+  },
+  "layers": [
+    {
+      "id": "heat-ring",
+      "type": "ring",
+      "radius": 12,
+      "thickness": 3,
+      "color": "rgba(255, 217, 122, 0.92)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.3
+          },
+          {
+            "at": 0.38,
+            "value": 1.08
+          },
+          {
+            "at": 1,
+            "value": 1.58
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.98
+          },
+          {
+            "at": 0.5,
+            "value": 0.66
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "heat-core",
+      "type": "orb",
+      "radius": 13,
+      "color": "rgba(255, 238, 188, 0.82)",
+      "glowColor": "rgba(255, 136, 46, 0.5)",
+      "glowScale": 3.3,
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.24
+          },
+          {
+            "at": 0.2,
+            "value": 1.18
+          },
+          {
+            "at": 1,
+            "value": 0.84
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.12
+          },
+          {
+            "at": 0.1,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "glow": [
+          {
+            "at": 0,
+            "value": 0.22
+          },
+          {
+            "at": 0.24,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.12
+          }
+        ]
+      }
+    },
+    {
+      "id": "flare-a",
+      "type": "streak",
+      "width": 28,
+      "height": 5,
+      "rotationDeg": 18,
+      "color": "rgba(255, 241, 184, 0.78)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.34
+          },
+          {
+            "at": 0.18,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.72
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.84
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "flare-b",
+      "type": "streak",
+      "width": 24,
+      "height": 4,
+      "rotationDeg": -24,
+      "color": "rgba(255, 164, 81, 0.72)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.3
+          },
+          {
+            "at": 0.18,
+            "value": 0.94
+          },
+          {
+            "at": 1,
+            "value": 0.68
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.78
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    }
+  ],
+  "loop": false
+}

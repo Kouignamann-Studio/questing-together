@@ -1,0 +1,214 @@
+{
+  "id": "frostbolt-muzzle",
+  "label": "Frostbolt Muzzle",
+  "durationMs": 240,
+  "motion": {
+    "mode": "fixed"
+  },
+  "layers": [
+    {
+      "id": "charge-ring",
+      "type": "ring",
+      "radius": 12,
+      "thickness": 3,
+      "color": "rgba(177, 236, 255, 0.92)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.34
+          },
+          {
+            "at": 0.42,
+            "value": 1.12
+          },
+          {
+            "at": 1,
+            "value": 1.58
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.98
+          },
+          {
+            "at": 0.48,
+            "value": 0.68
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "sigil-ring",
+      "type": "ring",
+      "radius": 18,
+      "thickness": 1.5,
+      "color": "rgba(217, 247, 255, 0.78)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.38
+          },
+          {
+            "at": 0.32,
+            "value": 1.02
+          },
+          {
+            "at": 1,
+            "value": 0.78
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.16
+          },
+          {
+            "at": 0.14,
+            "value": 0.92
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "sigil-cross",
+      "type": "streak",
+      "width": 30,
+      "height": 4,
+      "rotationDeg": 32,
+      "color": "rgba(217, 247, 255, 0.74)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.3
+          },
+          {
+            "at": 0.2,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.72
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.08
+          },
+          {
+            "at": 0.14,
+            "value": 0.86
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "flash",
+      "type": "orb",
+      "radius": 14,
+      "color": "rgba(210, 242, 255, 0.68)",
+      "glowColor": "rgba(93, 188, 255, 0.46)",
+      "glowScale": 3.2,
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.26
+          },
+          {
+            "at": 0.24,
+            "value": 1.22
+          },
+          {
+            "at": 1,
+            "value": 0.92
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.1
+          },
+          {
+            "at": 0.1,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "glow": [
+          {
+            "at": 0,
+            "value": 0.24
+          },
+          {
+            "at": 0.26,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0.14
+          }
+        ]
+      }
+    },
+    {
+      "id": "crest",
+      "type": "arc",
+      "radius": 23,
+      "thickness": 3,
+      "sweepDeg": 150,
+      "rotationDeg": -18,
+      "color": "rgba(113, 214, 255, 0.82)",
+      "tracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 0.52
+          },
+          {
+            "at": 0.34,
+            "value": 0.94
+          },
+          {
+            "at": 1,
+            "value": 1.12
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0.9
+          },
+          {
+            "at": 0.42,
+            "value": 0.58
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      }
+    }
+  ],
+  "loop": false
+}

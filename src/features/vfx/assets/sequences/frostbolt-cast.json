@@ -1,0 +1,25 @@
+{
+  "id": "frostbolt-cast",
+  "label": "Frostbolt Cast",
+  "cues": [
+    {
+      "id": "muzzle",
+      "assetId": "frostbolt-muzzle",
+      "atMs": 0,
+      "anchor": "caster"
+    },
+    {
+      "id": "travel",
+      "assetId": "frostbolt-travel",
+      "atMs": 20,
+      "anchor": "caster",
+      "targetAnchor": "target"
+    },
+    {
+      "id": "impact",
+      "assetId": "frostbolt-impact",
+      "atMs": 600,
+      "anchor": "target"
+    }
+  ]
+}
