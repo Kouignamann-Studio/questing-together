@@ -1,9 +1,9 @@
 {
   "id": "Stars Travel",
   "label": "Stars Travel",
-  "durationMs": 600,
+  "durationMs": 720,
   "motion": {
-    "mode": "path",
+    "mode": "line",
     "tracks": {
       "travel": [
         {
@@ -14,12 +14,82 @@
           "at": 1,
           "value": 1
         }
+      ],
+      "x": [
+        {
+          "at": 0,
+          "value": 0
+        },
+        {
+          "at": 0.07299811364374462,
+          "value": 8.539063881646241
+        },
+        {
+          "at": 0.14514894328318473,
+          "value": 15.472921824812634
+        },
+        {
+          "at": 0.21633410367227868,
+          "value": 20.90157327684068
+        },
+        {
+          "at": 0.2864352095649846,
+          "value": 24.925017685071886
+        },
+        {
+          "at": 0.35533387571526087,
+          "value": 27.643254496847753
+        },
+        {
+          "at": 0.42291171687706564,
+          "value": 29.156283159509787
+        },
+        {
+          "at": 0.4890503478043573,
+          "value": 29.564103120399487
+        },
+        {
+          "at": 0.553631383251094,
+          "value": 28.966713826858363
+        },
+        {
+          "at": 0.6165364379712339,
+          "value": 27.464114726227912
+        },
+        {
+          "at": 0.6776471267187354,
+          "value": 25.156305265849646
+        },
+        {
+          "at": 0.7368450642475568,
+          "value": 22.143284893065058
+        },
+        {
+          "at": 0.7940118653116562,
+          "value": 18.525053055215658
+        },
+        {
+          "at": 0.849029144664992,
+          "value": 14.40160919964295
+        },
+        {
+          "at": 0.9017785170615225,
+          "value": 9.872952773688436
+        },
+        {
+          "at": 0.9521415972552056,
+          "value": 5.039083224693616
+        },
+        {
+          "at": 1,
+          "value": 0
+        }
       ]
     }
   },
   "layers": [
     {
-      "id": "particleEmitter-3",
+      "id": "Smoke",
       "type": "particleEmitter",
       "renderer": "sprite",
       "color": "#fff1c9",
@@ -47,23 +117,56 @@
       },
       "spriteId": "t-vfx-particle-default",
       "spreadDeg": 360,
-      "endSize": 0,
-      "startAlpha": 1,
+      "particleTracks": {
+        "scale": [
+          {
+            "at": 0,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 1
+          },
+          {
+            "at": 1,
+            "value": 0
+          }
+        ]
+      },
       "tintColor": "#000000",
       "speed": 60,
       "emissionRate": 8,
-      "startSize": 20
+      "startSize": 20,
+      "emitterShape": "point",
+      "emitterRadius": 24,
+      "emitterWidth": 48,
+      "emitterHeight": 48,
+      "emitterTracks": {}
     },
     {
       "id": "Fire Orb",
       "type": "sprite",
       "spriteId": "t-vfx-firerock",
-      "height": 30,
+      "height": 26,
       "tintColor": "",
       "tracks": {
         "scale": [
           {
             "at": 0,
+            "value": 0
+          },
+          {
+            "at": 0.35,
+            "value": 1
+          },
+          {
+            "at": 1,
             "value": 1
           }
         ],
@@ -71,27 +174,6 @@
           {
             "at": 0,
             "value": 1
-          }
-        ]
-      },
-      "width": 30
-    },
-    {
-      "id": "particleEmitter-4",
-      "type": "particleEmitter",
-      "renderer": "sprite",
-      "color": "#fff1c9",
-      "maxParticles": 64,
-      "emissionRate": 32,
-      "particleLifetimeMs": 720,
-      "speed": 12,
-      "spreadDeg": 180,
-      "startSize": 36,
-      "tracks": {
-        "x": [
-          {
-            "at": 0,
-            "value": 0
           }
         ],
         "y": [
@@ -99,85 +181,59 @@
             "at": 0,
             "value": 0
           }
-        ],
-        "alpha": [
+        ]
+      },
+      "width": 26
+    },
+    {
+      "id": "Fire",
+      "type": "particleEmitter",
+      "renderer": "sprite",
+      "color": "#ff3300",
+      "maxParticles": 64,
+      "emissionRate": 32,
+      "particleLifetimeMs": 720,
+      "speed": 16,
+      "spreadDeg": 180,
+      "tracks": {},
+      "spriteId": "t-vfx-particle-default",
+      "burstCount": 0,
+      "particleTracks": {
+        "scale": [
           {
             "at": 0,
             "value": 1
           },
           {
-            "at": 0.0625,
-            "value": 0.994384765625
+            "at": 1,
+            "value": 0
+          }
+        ],
+        "alpha": [
+          {
+            "at": 0,
+            "value": 0
           },
           {
-            "at": 0.125,
-            "value": 0.978515625
-          },
-          {
-            "at": 0.1875,
-            "value": 0.953857421875
-          },
-          {
-            "at": 0.25,
-            "value": 0.921875
-          },
-          {
-            "at": 0.3125,
-            "value": 0.884033203125
-          },
-          {
-            "at": 0.375,
-            "value": 0.841796875
-          },
-          {
-            "at": 0.4375,
-            "value": 0.796630859375
-          },
-          {
-            "at": 0.5,
-            "value": 0.75
-          },
-          {
-            "at": 0.5625,
-            "value": 0.703369140625
-          },
-          {
-            "at": 0.625,
-            "value": 0.658203125
-          },
-          {
-            "at": 0.6875,
-            "value": 0.615966796875
-          },
-          {
-            "at": 0.75,
-            "value": 0.578125
-          },
-          {
-            "at": 0.8125,
-            "value": 0.546142578125
-          },
-          {
-            "at": 0.875,
-            "value": 0.521484375
-          },
-          {
-            "at": 0.9375,
-            "value": 0.505615234375
+            "at": 0.05,
+            "value": 1
           },
           {
             "at": 1,
-            "value": 0.5
+            "value": 0
           }
         ]
       },
-      "spriteId": "t-vfx-particle-default",
-      "burstCount": 0,
-      "endSize": 0,
-      "startAlpha": 1,
-      "speedJitter": 0,
-      "tintColor": "#ff5900"
+      "tintColor": "#ff6600",
+      "emitterShape": "point",
+      "emitterRadius": 24,
+      "emitterWidth": 48,
+      "emitterHeight": 48,
+      "emitterTracks": {},
+      "color2": "#fab700",
+      "tintColor2": "#ff5900",
+      "startSize": 28
     }
   ],
-  "loop": true
+  "loop": false
 }

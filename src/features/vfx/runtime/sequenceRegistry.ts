@@ -1,7 +1,8 @@
 import fireballCastData from '@/features/vfx/assets/sequences/fireball-cast.json';
+import seqFireballTestData from '@/features/vfx/assets/sequences/fireball-cast_02.json';
 import type { EffectSequence } from '@/features/vfx/types/sequences';
 
-const effectSequences = [fireballCastData] as EffectSequence[];
+const effectSequences = [fireballCastData, seqFireballTestData] as EffectSequence[];
 
 const effectSequenceById = new Map(effectSequences.map((sequence) => [sequence.id, sequence]));
 

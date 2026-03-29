@@ -6,6 +6,8 @@ const DEMO_EFFECTS = {
   'fireball-impact': '../../src/features/vfx/assets/effects/fireball-impact.json',
   'frostbolt-travel': '../../src/features/vfx/assets/effects/frostbolt-travel.json',
   'frostbolt-impact': '../../src/features/vfx/assets/effects/frostbolt-impact.json',
+  'Stars Travel': '../../src/features/vfx/assets/effects/stars-travel.json',
+  'stars-impact': '../../src/features/vfx/assets/effects/stars-impact.json',
 };
 
 const DEMO_SEQUENCES = {
@@ -72,6 +74,12 @@ const PARTICLE_RENDER_OPTIONS = [
   { value: 'sprite', label: 'Sprite' },
 ];
 
+const PARTICLE_EMITTER_SHAPE_OPTIONS = [
+  { value: 'point', label: 'None (single point)' },
+  { value: 'circle', label: 'Circle' },
+  { value: 'rectangle', label: 'Rectangle' },
+];
+
 const SPRITE_MANIFEST_PATH = '../../src/features/vfx/assets/sprites/manifest.json';
 const SPRITE_EDITOR_BASE_PATH = '../../src/features/vfx/assets/sprites';
 const REPO_EFFECTS_SEGMENTS = ['src', 'features', 'vfx', 'assets', 'effects'];
@@ -129,6 +137,10 @@ function createDefaultPreviewDevice() {
     preset: 'free',
     showSafeArea: true,
   };
+}
+
+function createDefaultPreviewAnchorsVisible() {
+  return true;
 }
 
 function createDefaultCollapsedPanels() {
@@ -268,6 +280,7 @@ const ui = {
   safeAreaGuide: document.getElementById('safeAreaGuide'),
   previewDeviceSelect: document.getElementById('previewDeviceSelect'),
   safeAreaToggleButton: document.getElementById('safeAreaToggleButton'),
+  anchorToggleButton: document.getElementById('anchorToggleButton'),
   zoomOutButton: document.getElementById('zoomOutButton'),
   zoomResetButton: document.getElementById('zoomResetButton'),
   zoomInButton: document.getElementById('zoomInButton'),
@@ -429,6 +442,27 @@ function mergePickedHexWithSource(sourceColor, pickedHex) {
   return pickedHex;
 }
 
+function rgbaToCssColor({ red, green, blue, alpha = 1 }) {
+  const safeAlpha = clamp(alpha, 0, 1);
+  return `rgba(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)}, ${Number(safeAlpha.toFixed(3))})`;
+}
+
+function mixColors(colorA, colorB, amount) {
+  const start = parseColorToRgba(colorA);
+  const end = parseColorToRgba(colorB);
+
+  if (start && end) {
+    return rgbaToCssColor({
+      red: lerp(start.red, end.red, amount),
+      green: lerp(start.green, end.green, amount),
+      blue: lerp(start.blue, end.blue, amount),
+      alpha: lerp(start.alpha, end.alpha, amount),
+    });
+  }
+
+  return amount < 0.5 ? colorA : colorB;
+}
+
 function renderColorField({ label, value, field, datasetName, fallback = '#ffffff' }) {
   return `
     <label class="field">
@@ -450,6 +484,40 @@ function renderColorField({ label, value, field, datasetName, fallback = '#fffff
         />
       </div>
       <span class="section-note">Accepts CSS color strings like <code>#ff8844</code>, <code>#ff8844cc</code>, <code>rgb(...)</code>, or <code>rgba(...)</code>.</span>
+    </label>
+  `;
+}
+
+function renderCompactColorField({
+  label,
+  value,
+  field,
+  datasetName,
+  fallback = '#ffffff',
+  placeholder = '',
+  note = '',
+}) {
+  return `
+    <label class="field">
+      <span class="field-label">${escapeHtml(label)}</span>
+      <div class="color-input-row">
+        <span class="swatch" style="background: ${escapeHtml(value || fallback)};"></span>
+        <input
+          class="field-color"
+          type="color"
+          value="${escapeHtml(getColorInputValue(value, fallback))}"
+          data-${datasetName}="${field}"
+          data-color-picker="true"
+        />
+        <input
+          class="field-input"
+          type="text"
+          value="${escapeHtml(value ?? '')}"
+          ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
+          data-${datasetName}="${field}"
+        />
+      </div>
+      ${note ? `<span class="section-note">${note}</span>` : ''}
     </label>
   `;
 }
@@ -543,8 +611,71 @@ function normalizeParticleRenderer(renderer) {
   return PARTICLE_RENDER_OPTIONS.some((option) => option.value === renderer) ? renderer : 'orb';
 }
 
+function normalizeParticleEmitterShape(shape) {
+  return PARTICLE_EMITTER_SHAPE_OPTIONS.some((option) => option.value === shape) ? shape : 'point';
+}
+
 function getDefaultParticleRotationDeg(renderer) {
   return renderer === 'arc' || renderer === 'starburst' ? -90 : 0;
+}
+
+function hasDynamicTrack(trackMap, name) {
+  return Array.isArray(trackMap?.[name]) && trackMap[name].length > 0;
+}
+
+function normalizeMinMaxPair(minValue, maxValue) {
+  if (!Number.isFinite(Number(maxValue))) {
+    return {
+      min: minValue,
+      max: undefined,
+    };
+  }
+
+  const resolvedMax = Number(maxValue);
+  if (resolvedMax < minValue) {
+    return {
+      min: resolvedMax,
+      max: minValue,
+    };
+  }
+
+  return {
+    min: minValue,
+    max: resolvedMax,
+  };
+}
+
+function buildLegacyParticleScaleTrack(layer) {
+  const startSize = Number.isFinite(Number(layer.startSize)) ? Number(layer.startSize) : 18;
+  const endSize = Number.isFinite(Number(layer.endSize)) ? Number(layer.endSize) : startSize;
+  const endScale = Math.abs(startSize) > 0.001 ? endSize / startSize : 1;
+
+  return normalizeTrack([
+    { at: 0, value: 1 },
+    { at: 1, value: endScale },
+  ]);
+}
+
+function buildLegacyParticleAlphaTrack(layer) {
+  const startAlpha = Number.isFinite(Number(layer.startAlpha)) ? Number(layer.startAlpha) : 1;
+  const endAlpha = Number.isFinite(Number(layer.endAlpha)) ? Number(layer.endAlpha) : 0;
+
+  return normalizeTrack([
+    { at: 0, value: startAlpha },
+    { at: 1, value: endAlpha },
+  ]);
+}
+
+function getTrackLabel(scope, trackName) {
+  if (scope === 'particle' && trackName === 'scale') {
+    return 'Size over lifetime';
+  }
+
+  if (scope === 'particle' && trackName === 'alpha') {
+    return 'Alpha over lifetime';
+  }
+
+  return TRACK_LABELS[trackName] ?? trackName;
 }
 
 function getParticleRendererForLayer(layer) {
@@ -719,6 +850,21 @@ function renderJsonTextareaField({ label, value, field, rows = 6, note = '' }) {
       >${escapeHtml(serializedValue)}</textarea>
       ${note ? `<span class="section-note">${note}</span>` : ''}
     </label>
+  `;
+}
+
+function renderInspectorSubsection({ kicker = 'Particle System', title, note = '', body }) {
+  return `
+    <section class="subpanel">
+      <div class="subpanel-heading">
+        <div class="subpanel-copy">
+          <p class="panel-kicker">${escapeHtml(kicker)}</p>
+          <h3>${escapeHtml(title)}</h3>
+          ${note ? `<div class="subpanel-note"><p class="section-note">${note}</p></div>` : ''}
+        </div>
+      </div>
+      ${body}
+    </section>
   `;
 }
 
@@ -1306,6 +1452,9 @@ function normalizeAsset(rawAsset) {
     ].includes(nextLayer.type)
       ? nextLayer.type
       : 'orb';
+    nextLayer.layerLifetimeMs = Number.isFinite(Number(nextLayer.layerLifetimeMs))
+      ? Math.max(1, Number(nextLayer.layerLifetimeMs))
+      : undefined;
     nextLayer.tracks = typeof nextLayer.tracks === 'object' && nextLayer.tracks ? nextLayer.tracks : {};
 
     for (const trackName of Object.keys(nextLayer.tracks)) {
@@ -1315,12 +1464,15 @@ function normalizeAsset(rawAsset) {
     if (nextLayer.type === 'particleEmitter') {
       nextLayer.renderer = normalizeParticleRenderer(nextLayer.renderer);
       nextLayer.color = typeof nextLayer.color === 'string' ? nextLayer.color : '#ffffff';
+      nextLayer.color2 = typeof nextLayer.color2 === 'string' ? nextLayer.color2 : undefined;
       nextLayer.spriteId =
         typeof nextLayer.spriteId === 'string' && hasSpriteDefinition(nextLayer.spriteId)
           ? nextLayer.spriteId
           : getDefaultSpriteId();
       nextLayer.tintColor =
         typeof nextLayer.tintColor === 'string' ? nextLayer.tintColor : undefined;
+      nextLayer.tintColor2 =
+        typeof nextLayer.tintColor2 === 'string' ? nextLayer.tintColor2 : undefined;
       nextLayer.maxParticles = Number.isFinite(Number(nextLayer.maxParticles))
         ? Math.max(1, Math.round(Number(nextLayer.maxParticles)))
         : 36;
@@ -1333,9 +1485,21 @@ function normalizeAsset(rawAsset) {
       nextLayer.particleLifetimeMs = Number.isFinite(Number(nextLayer.particleLifetimeMs))
         ? Math.max(1, Number(nextLayer.particleLifetimeMs))
         : 420;
+      nextLayer.particleLifetimeMaxMs = Number.isFinite(Number(nextLayer.particleLifetimeMaxMs))
+        ? Math.max(1, Number(nextLayer.particleLifetimeMaxMs))
+        : undefined;
       nextLayer.speed = Number.isFinite(Number(nextLayer.speed)) ? Number(nextLayer.speed) : 120;
+      nextLayer.speedMax = Number.isFinite(Number(nextLayer.speedMax))
+        ? Number(nextLayer.speedMax)
+        : undefined;
       nextLayer.speedJitter = Number.isFinite(Number(nextLayer.speedJitter))
         ? Number(nextLayer.speedJitter)
+        : undefined;
+      nextLayer.velocityX = Number.isFinite(Number(nextLayer.velocityX))
+        ? Number(nextLayer.velocityX)
+        : undefined;
+      nextLayer.velocityY = Number.isFinite(Number(nextLayer.velocityY))
+        ? Number(nextLayer.velocityY)
         : undefined;
       nextLayer.spreadDeg = Number.isFinite(Number(nextLayer.spreadDeg))
         ? Number(nextLayer.spreadDeg)
@@ -1346,6 +1510,19 @@ function normalizeAsset(rawAsset) {
       nextLayer.startSize = Number.isFinite(Number(nextLayer.startSize))
         ? Number(nextLayer.startSize)
         : 18;
+      nextLayer.startSizeMax = Number.isFinite(Number(nextLayer.startSizeMax))
+        ? Number(nextLayer.startSizeMax)
+        : undefined;
+      nextLayer.emitterShape = normalizeParticleEmitterShape(nextLayer.emitterShape);
+      nextLayer.emitterRadius = Number.isFinite(Number(nextLayer.emitterRadius))
+        ? Math.max(0, Number(nextLayer.emitterRadius))
+        : 24;
+      nextLayer.emitterWidth = Number.isFinite(Number(nextLayer.emitterWidth))
+        ? Math.max(0, Number(nextLayer.emitterWidth))
+        : 48;
+      nextLayer.emitterHeight = Number.isFinite(Number(nextLayer.emitterHeight))
+        ? Math.max(0, Number(nextLayer.emitterHeight))
+        : 48;
       nextLayer.endSize = Number.isFinite(Number(nextLayer.endSize))
         ? Number(nextLayer.endSize)
         : undefined;
@@ -1365,11 +1542,47 @@ function normalizeAsset(rawAsset) {
       nextLayer.rotationDeg = Number.isFinite(Number(nextLayer.rotationDeg))
         ? Number(nextLayer.rotationDeg)
         : undefined;
+      nextLayer.rotationOverLifetimeDeg = Number.isFinite(Number(nextLayer.rotationOverLifetimeDeg))
+        ? Number(nextLayer.rotationOverLifetimeDeg)
+        : Number.isFinite(Number(nextLayer.spinDeg))
+          ? Number(nextLayer.spinDeg) *
+            ((Number(nextLayer.particleLifetimeMaxMs ?? nextLayer.particleLifetimeMs) || 0) / 1000)
+          : undefined;
       nextLayer.spinDeg = Number.isFinite(Number(nextLayer.spinDeg))
         ? Number(nextLayer.spinDeg)
         : undefined;
-      nextLayer.emitterTracks = normalizeLooseTrackMap(nextLayer.emitterTracks);
-      nextLayer.particleTracks = normalizeLooseTrackMap(nextLayer.particleTracks);
+      nextLayer.emitterTracks = normalizeLooseTrackMap(nextLayer.emitterTracks) ?? {};
+      nextLayer.particleTracks = normalizeLooseTrackMap(nextLayer.particleTracks) ?? {};
+      {
+        const lifetimeRange = normalizeMinMaxPair(
+          nextLayer.particleLifetimeMs,
+          nextLayer.particleLifetimeMaxMs,
+        );
+        nextLayer.particleLifetimeMs = lifetimeRange.min;
+        nextLayer.particleLifetimeMaxMs = lifetimeRange.max;
+      }
+      {
+        const speedRange = normalizeMinMaxPair(nextLayer.speed, nextLayer.speedMax);
+        nextLayer.speed = speedRange.min;
+        nextLayer.speedMax = speedRange.max;
+      }
+      {
+        const sizeRange = normalizeMinMaxPair(nextLayer.startSize, nextLayer.startSizeMax);
+        nextLayer.startSize = sizeRange.min;
+        nextLayer.startSizeMax = sizeRange.max;
+      }
+
+      if (!hasDynamicTrack(nextLayer.particleTracks, 'scale')) {
+        nextLayer.particleTracks.scale = buildLegacyParticleScaleTrack(nextLayer);
+      }
+
+      if (!hasDynamicTrack(nextLayer.particleTracks, 'alpha')) {
+        nextLayer.particleTracks.alpha = buildLegacyParticleAlphaTrack(nextLayer);
+      }
+
+      delete nextLayer.endSize;
+      delete nextLayer.startAlpha;
+      delete nextLayer.endAlpha;
       return nextLayer;
     }
 
@@ -1825,6 +2038,7 @@ const state = {
   activeCurveDrag: null,
   previewBackground: createDefaultPreviewBackground(),
   previewDevice: createDefaultPreviewDevice(),
+  previewAnchorsVisible: createDefaultPreviewAnchorsVisible(),
   previewViewport: createDefaultPreviewViewport(),
   previewPlaybackMode: 'single',
   previewSequenceId: 'fireball-cast',
@@ -1844,6 +2058,8 @@ const state = {
   previewSpritesReady: true,
   previewSpriteLoadKey: '',
 };
+
+let eventsWired = false;
 
 state.jsonDraft = stringifyAsset(state.asset);
 state.previewSequence = createSequenceFromCurrentAsset();
@@ -2062,6 +2278,10 @@ function renderPreviewViewportControls() {
     ui.safeAreaToggleButton.disabled = !preset.safeArea;
     ui.safeAreaToggleButton.textContent = 'Safe Area';
   }
+  if (ui.anchorToggleButton) {
+    ui.anchorToggleButton.classList.toggle('is-active', state.previewAnchorsVisible);
+    ui.anchorToggleButton.textContent = 'Anchors';
+  }
   ui.stageFrame?.classList.toggle('is-pannable', state.previewViewport.zoom > 1.001);
   ui.stageFrame?.classList.toggle('is-panning', Boolean(state.activeViewportPan));
 }
@@ -2256,6 +2476,7 @@ function normalizeCurveStates(rawCurveStates) {
 
 function buildPersistedEditorSession() {
   return {
+    savedAt: Date.now(),
     asset: cloneData(state.asset),
     instance: cloneData(state.instance),
     recentFiles: cloneData(state.recentFiles),
@@ -2267,6 +2488,7 @@ function buildPersistedEditorSession() {
     curveEditorModes: cloneData(state.curveEditorModes),
     previewBackground: cloneData(state.previewBackground),
     previewDevice: cloneData(state.previewDevice),
+    previewAnchorsVisible: state.previewAnchorsVisible,
     previewViewport: cloneData(state.previewViewport),
     previewPlaybackMode: state.previewPlaybackMode,
     previewSequenceId: state.previewSequenceId,
@@ -2343,6 +2565,25 @@ function restorePersistedEditorSession() {
   }
 }
 
+function loadPersistedEditorSessionFromBrowser() {
+  try {
+    const rawSession = window.localStorage.getItem(EDITOR_SESSION_STORAGE_KEY);
+    if (!rawSession) {
+      return null;
+    }
+
+    const persisted = JSON.parse(rawSession);
+    return persisted && typeof persisted === 'object' ? persisted : null;
+  } catch (error) {
+    console.warn('Could not read the browser VFX editor session.', error);
+    return null;
+  }
+}
+
+function getPersistedEditorSessionTimestamp(persisted) {
+  return Number.isFinite(Number(persisted?.savedAt)) ? Number(persisted.savedAt) : 0;
+}
+
 async function loadPersistedEditorSessionFromFile() {
   try {
     const response = await fetch(EDITOR_SESSION_FETCH_PATH, { cache: 'no-store' });
@@ -2382,6 +2623,10 @@ function applyPersistedEditorSession(persisted) {
       : {};
   state.previewBackground = normalizePreviewBackground(persisted.previewBackground);
   state.previewDevice = normalizePreviewDevice(persisted.previewDevice);
+  state.previewAnchorsVisible =
+    typeof persisted.previewAnchorsVisible === 'boolean'
+      ? persisted.previewAnchorsVisible
+      : createDefaultPreviewAnchorsVisible();
   state.previewViewport = normalizePreviewViewport(persisted.previewViewport);
   state.previewPlaybackMode = 'single';
   state.previewSequenceId = normalizePreviewSequenceId(persisted.previewSequenceId);
@@ -2421,14 +2666,25 @@ function applyPersistedEditorSession(persisted) {
 }
 
 async function restorePersistedEditorSessionFromSources() {
+  const browserSession = loadPersistedEditorSessionFromBrowser();
   const fileSession = await loadPersistedEditorSessionFromFile();
-  if (fileSession) {
+
+  const browserTimestamp = getPersistedEditorSessionTimestamp(browserSession);
+  const fileTimestamp = getPersistedEditorSessionTimestamp(fileSession);
+  const preferredSession =
+    fileSession && fileTimestamp > browserTimestamp ? fileSession : browserSession ?? fileSession;
+
+  if (preferredSession) {
     try {
-      window.localStorage.setItem(EDITOR_SESSION_STORAGE_KEY, JSON.stringify(fileSession));
+      window.localStorage.setItem(EDITOR_SESSION_STORAGE_KEY, JSON.stringify(preferredSession));
     } catch (error) {
       console.warn('Could not mirror file session into local storage.', error);
     }
-    return applyPersistedEditorSession(fileSession) ? 'file' : null;
+    return applyPersistedEditorSession(preferredSession)
+      ? preferredSession === fileSession && fileTimestamp > browserTimestamp
+        ? 'file'
+        : 'browser'
+      : null;
   }
 
   return restorePersistedEditorSession() ? 'browser' : null;
@@ -2559,6 +2815,7 @@ function createHistorySnapshot() {
     curveStates: cloneData(state.curveStates),
     curveEditorModes: cloneData(state.curveEditorModes),
     previewBackground: cloneData(state.previewBackground),
+    previewAnchorsVisible: state.previewAnchorsVisible,
   };
 }
 
@@ -2618,6 +2875,10 @@ function restoreHistorySnapshot(snapshot) {
   state.curveStates = cloneData(snapshot.curveStates ?? {});
   state.curveEditorModes = cloneData(snapshot.curveEditorModes ?? {});
   state.previewBackground = normalizePreviewBackground(snapshot.previewBackground);
+  state.previewAnchorsVisible =
+    typeof snapshot.previewAnchorsVisible === 'boolean'
+      ? snapshot.previewAnchorsVisible
+      : createDefaultPreviewAnchorsVisible();
   ensureSelection();
   ensureSequenceSelection();
   syncJsonFromAsset();
@@ -2659,7 +2920,7 @@ function getCurveDefaultValue(trackName) {
 }
 
 function getCurveStateKey(scope, trackName, layerId = state.selectedLayerId) {
-  return scope === 'motion' ? `motion:${trackName}` : `layer:${layerId}:${trackName}`;
+  return scope === 'motion' ? `motion:${trackName}` : `${scope}:${layerId}:${trackName}`;
 }
 
 function parseCurveStateKey(key) {
@@ -2678,7 +2939,9 @@ function getRawTrack(scope, trackName, layerId = state.selectedLayerId) {
   }
 
   const layer = state.asset.layers.find((item) => item.id === layerId);
-  return cloneData(layer?.tracks?.[trackName] ?? []);
+  return cloneData(
+    scope === 'particle' ? layer?.particleTracks?.[trackName] ?? [] : layer?.tracks?.[trackName] ?? [],
+  );
 }
 
 function sanitizeCurvePoints(points) {
@@ -2965,9 +3228,12 @@ function getTrackForSampling(asset, scope, trackName, layerId = state.selectedLa
     }
   }
 
-  return scope === 'motion'
-    ? asset.motion?.tracks?.[trackName]
-    : asset.layers.find((layer) => layer.id === layerId)?.tracks?.[trackName];
+  if (scope === 'motion') {
+    return asset.motion?.tracks?.[trackName];
+  }
+
+  const layer = asset.layers.find((item) => item.id === layerId);
+  return scope === 'particle' ? layer?.particleTracks?.[trackName] : layer?.tracks?.[trackName];
 }
 
 function buildExportAsset() {
@@ -2997,12 +3263,13 @@ function buildExportAsset() {
     const layer = exported.layers.find((item) => item.id === parsed.layerId);
     if (!layer) continue;
 
-    layer.tracks ??= {};
+    const targetTrackMap =
+      parsed.scope === 'particle' ? (layer.particleTracks ??= {}) : (layer.tracks ??= {});
 
     if (bakedTrack.length > 0) {
-      layer.tracks[parsed.trackName] = bakedTrack;
+      targetTrackMap[parsed.trackName] = bakedTrack;
     } else {
-      delete layer.tracks[parsed.trackName];
+      delete targetTrackMap[parsed.trackName];
     }
   }
 
@@ -3171,6 +3438,25 @@ function sampleLayerTrack(asset, layer, name, progress, fallback = 0) {
   return sampleTrack(getTrackForSampling(asset, 'layer', name, layer.id), progress, fallback);
 }
 
+function resolveLayerTimelineProgress(asset, layer, progress) {
+  const lifetimeMs = Number.isFinite(Number(layer?.layerLifetimeMs))
+    ? Math.max(1, Number(layer.layerLifetimeMs))
+    : null;
+
+  if (!lifetimeMs) {
+    return clamp01(progress);
+  }
+
+  const effectDurationMs = Math.max(1, asset.durationMs);
+  const lifetimeProgress = Math.min(1, lifetimeMs / effectDurationMs);
+
+  if (progress > lifetimeProgress) {
+    return null;
+  }
+
+  return clamp01(progress / lifetimeProgress);
+}
+
 function motionUsesTarget(mode) {
   return mode === 'line' || mode === 'path';
 }
@@ -3261,10 +3547,75 @@ function resolveParticleBirthProgress(layer, effectDurationMs, index) {
     : continuousStart + (continuousIndex / continuousCount) * (1 - continuousStart);
 }
 
+function sampleParticleTrackValue(asset, layer, name, progress, fallback = 0) {
+  return sampleTrack(getTrackForSampling(asset, 'particle', name, layer.id), progress, fallback);
+}
+
+function sampleRandomRange(minValue, maxValue, seed) {
+  const low = Math.min(minValue, maxValue);
+  const high = Math.max(minValue, maxValue);
+  return low === high ? low : lerp(low, high, random01(seed));
+}
+
+function getParticleColorRange(layer) {
+  if (normalizeParticleRenderer(layer.renderer) === 'sprite') {
+    const firstTint = typeof layer.tintColor === 'string' ? layer.tintColor.trim() : '';
+    const secondTint = typeof layer.tintColor2 === 'string' ? layer.tintColor2.trim() : '';
+    const colorA = firstTint || secondTint || '';
+    const colorB = secondTint || firstTint || '';
+    return { colorA, colorB };
+  }
+
+  const firstColor =
+    typeof layer.color === 'string' && layer.color.trim() ? layer.color : '#ffffff';
+  const secondColor =
+    typeof layer.color2 === 'string' && layer.color2.trim() ? layer.color2 : firstColor;
+  const colorA = firstColor;
+  const colorB = secondColor;
+  return { colorA, colorB };
+}
+
+function sampleParticleRenderColor(layer, seed) {
+  const { colorA, colorB } = getParticleColorRange(layer);
+
+  if (!colorA && !colorB) {
+    return '';
+  }
+
+  if (colorA === colorB) {
+    return colorA;
+  }
+
+  return mixColors(colorA, colorB, random01(seed));
+}
+
+function sampleEmitterShapeOffset(layer, seed) {
+  const shape = normalizeParticleEmitterShape(layer.emitterShape);
+
+  if (shape === 'circle') {
+    const radius = Math.max(0, layer.emitterRadius ?? 24) * Math.sqrt(random01(seed + 13.7));
+    const angle = random01(seed + 91.3) * Math.PI * 2;
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    };
+  }
+
+  if (shape === 'rectangle') {
+    return {
+      x: randomSigned(seed + 17.1) * Math.max(0, layer.emitterWidth ?? 48) * 0.5,
+      y: randomSigned(seed + 43.9) * Math.max(0, layer.emitterHeight ?? 48) * 0.5,
+    };
+  }
+
+  return { x: 0, y: 0 };
+}
+
 function sampleParticleEmitterState(asset, instance, layer, progress, index) {
   const effectDurationMs = Math.max(1, asset.durationMs);
   const birthProgress = resolveParticleBirthProgress(layer, effectDurationMs, index);
   const defaultRotationDeg = getDefaultParticleRotationDeg(layer.renderer);
+  const defaultColor = sampleParticleRenderColor(layer, index * 73.17 + 1.9);
 
   if (birthProgress == null) {
     return {
@@ -3273,16 +3624,25 @@ function sampleParticleEmitterState(asset, instance, layer, progress, index) {
       size: 0,
       alpha: 0,
       rotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      color: defaultColor,
     };
   }
 
-  const lifetimeMs = Math.max(
+  const lifetimeMinMs = Math.max(
     1,
     sampleDynamicTrackValue(
       layer.emitterTracks,
       'particleLifetimeMs',
       birthProgress,
       layer.particleLifetimeMs,
+    ),
+  );
+  const lifetimeMs = Math.max(
+    1,
+    sampleRandomRange(
+      lifetimeMinMs,
+      layer.particleLifetimeMaxMs ?? lifetimeMinMs,
+      index * 19.73 + birthProgress * 541.7,
     ),
   );
   const lifetimeProgress = Math.max(0.001, lifetimeMs / effectDurationMs);
@@ -3301,30 +3661,50 @@ function sampleParticleEmitterState(asset, instance, layer, progress, index) {
   const lifeProgress = clamp01(ageProgress / lifetimeProgress);
   const ageSeconds = (ageProgress * effectDurationMs) / 1000;
   const origin = sampleMotionPosition(asset, instance, birthProgress);
-  const originX = origin.x + sampleLayerTrack(asset, layer, 'x', birthProgress, 0);
-  const originY = origin.y + sampleLayerTrack(asset, layer, 'y', birthProgress, 0);
+  const emitterOffset = sampleEmitterShapeOffset(
+    layer,
+    index * 47.19 + birthProgress * 683.5,
+  );
+  const originX =
+    origin.x + sampleLayerTrack(asset, layer, 'x', birthProgress, 0) + emitterOffset.x;
+  const originY =
+    origin.y + sampleLayerTrack(asset, layer, 'y', birthProgress, 0) + emitterOffset.y;
+  const motionMode = asset.motion?.mode ?? 'fixed';
+  const hasVelocityOverride =
+    Number.isFinite(Number(layer.velocityX)) ||
+    Number.isFinite(Number(layer.velocityY)) ||
+    hasDynamicTrack(layer.emitterTracks, 'velocityX') ||
+    hasDynamicTrack(layer.emitterTracks, 'velocityY');
+  const hasDirectionOverride =
+    Number.isFinite(Number(layer.directionDeg)) ||
+    hasDynamicTrack(layer.emitterTracks, 'directionDeg');
   const directionDeg = sampleDynamicTrackValue(
     layer.emitterTracks,
     'directionDeg',
     birthProgress,
-    layer.directionDeg ?? sampleMotionHeadingDeg(asset, instance, birthProgress),
+    layer.directionDeg ?? (motionMode === 'fixed' ? 0 : sampleMotionHeadingDeg(asset, instance, birthProgress)),
   );
   const spreadDeg = sampleDynamicTrackValue(
     layer.emitterTracks,
     'spreadDeg',
     birthProgress,
-    layer.spreadDeg,
+    !hasVelocityOverride && motionMode === 'fixed' && !hasDirectionOverride ? 360 : layer.spreadDeg,
   );
+  const speedMin = sampleDynamicTrackValue(layer.emitterTracks, 'speed', birthProgress, layer.speed);
+  const speedRangeSeed = index * 37.11 + birthProgress * 997.1;
+  const speedBase = sampleRandomRange(speedMin, layer.speedMax ?? speedMin, speedRangeSeed);
   const speed = Math.max(
     0,
-    sampleDynamicTrackValue(layer.emitterTracks, 'speed', birthProgress, layer.speed) +
-      randomSigned(index * 37.11 + birthProgress * 997.1) *
-        sampleDynamicTrackValue(
-          layer.emitterTracks,
-          'speedJitter',
-          birthProgress,
-          layer.speedJitter ?? 0,
-        ),
+    speedBase +
+      (layer.speedMax == null
+        ? randomSigned(speedRangeSeed) *
+          sampleDynamicTrackValue(
+            layer.emitterTracks,
+            'speedJitter',
+            birthProgress,
+            layer.speedJitter ?? 0,
+          )
+        : 0),
   );
   const gravityX = sampleDynamicTrackValue(
     layer.emitterTracks,
@@ -3345,17 +3725,22 @@ function sampleParticleEmitterState(asset, instance, layer, progress, index) {
   const angleRad =
     ((directionDeg + randomSigned(index * 83.17 + 11.9) * spreadDeg * 0.5) * Math.PI) / 180;
   const travelTime = drag > 0 ? (1 - Math.exp(-drag * ageSeconds)) / drag : ageSeconds;
-  const startSize = sampleDynamicTrackValue(
+  const velocityX = hasVelocityOverride
+    ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityX', birthProgress, layer.velocityX ?? 0)
+    : Math.cos(angleRad) * speed;
+  const velocityY = hasVelocityOverride
+    ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityY', birthProgress, layer.velocityY ?? 0)
+    : Math.sin(angleRad) * speed;
+  const startSizeMin = sampleDynamicTrackValue(
     layer.emitterTracks,
     'startSize',
     birthProgress,
     layer.startSize,
   );
-  const endSize = sampleDynamicTrackValue(
-    layer.emitterTracks,
-    'endSize',
-    birthProgress,
-    layer.endSize ?? startSize,
+  const startSize = sampleRandomRange(
+    startSizeMin,
+    layer.startSizeMax ?? startSizeMin,
+    index * 61.23 + birthProgress * 719.4,
   );
   const startAlpha = sampleDynamicTrackValue(
     layer.emitterTracks,
@@ -3369,16 +3754,24 @@ function sampleParticleEmitterState(asset, instance, layer, progress, index) {
     birthProgress,
     layer.endAlpha ?? 0,
   );
+  const hasScaleTrack = hasDynamicTrack(layer.particleTracks, 'scale');
+  const hasAlphaTrack = hasDynamicTrack(layer.particleTracks, 'alpha');
+  const legacyEndSize = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'endSize',
+    birthProgress,
+    layer.endSize ?? startSize,
+  );
   const size = Math.max(
     0.5,
-    lerp(startSize, endSize, lifeProgress) *
-      sampleDynamicTrackValue(layer.particleTracks, 'scale', lifeProgress, 1),
+    (hasScaleTrack ? startSize * sampleParticleTrackValue(asset, layer, 'scale', lifeProgress, 1) : lerp(startSize, legacyEndSize, lifeProgress)),
   );
   const alpha = Math.max(
     0,
     sampleLayerTrack(asset, layer, 'alpha', progress, 1) *
-      lerp(startAlpha, endAlpha, lifeProgress) *
-      sampleDynamicTrackValue(layer.particleTracks, 'alpha', lifeProgress, 1),
+      (hasAlphaTrack
+        ? sampleParticleTrackValue(asset, layer, 'alpha', lifeProgress, 1)
+        : lerp(startAlpha, endAlpha, lifeProgress)),
   );
   const rotationDeg =
     sampleDynamicTrackValue(
@@ -3387,30 +3780,41 @@ function sampleParticleEmitterState(asset, instance, layer, progress, index) {
       birthProgress,
       layer.rotationDeg ?? defaultRotationDeg,
     ) +
+    sampleDynamicTrackValue(
+      layer.emitterTracks,
+      'rotationOverLifetimeDeg',
+      birthProgress,
+      layer.rotationOverLifetimeDeg ?? 0,
+    ) *
+      lifeProgress +
     sampleDynamicTrackValue(layer.emitterTracks, 'spinDeg', birthProgress, layer.spinDeg ?? 0) *
       ageSeconds +
-    sampleDynamicTrackValue(layer.particleTracks, 'rotationDeg', lifeProgress, 0);
+    sampleParticleTrackValue(asset, layer, 'rotationDeg', lifeProgress, 0);
+  const color = sampleParticleRenderColor(layer, index * 59.81 + birthProgress * 443.2);
 
   return {
     x:
       originX +
-      Math.cos(angleRad) * speed * travelTime +
+      velocityX * travelTime +
       0.5 * gravityX * ageSeconds * ageSeconds +
-      sampleDynamicTrackValue(layer.particleTracks, 'x', lifeProgress, 0),
+      sampleParticleTrackValue(asset, layer, 'x', lifeProgress, 0),
     y:
       originY +
-      Math.sin(angleRad) * speed * travelTime +
+      velocityY * travelTime +
       0.5 * gravityY * ageSeconds * ageSeconds +
-      sampleDynamicTrackValue(layer.particleTracks, 'y', lifeProgress, 0),
+      sampleParticleTrackValue(asset, layer, 'y', lifeProgress, 0),
     size,
     alpha,
     rotationDeg,
+    color,
   };
 }
 
 function renderParticlePrimitive(layer, particle, index) {
   const size = Math.max(1, particle.size);
   const renderer = normalizeParticleRenderer(layer.renderer);
+  const particleColor =
+    particle.color || (renderer === 'sprite' ? layer.tintColor ?? '' : layer.color ?? '#ffffff');
 
   if (renderer === 'sprite') {
     return renderSpriteNode(
@@ -3420,7 +3824,7 @@ function renderParticlePrimitive(layer, particle, index) {
       size,
       size,
       particle.alpha,
-      layer.tintColor,
+      particleColor,
       `particle-sprite-mask-${escapeHtml(layer.id)}-${index}`,
       particle.rotationDeg,
     );
@@ -3433,7 +3837,7 @@ function renderParticlePrimitive(layer, particle, index) {
         cy="${particle.y}"
         r="${Math.max(0.5, size / 2)}"
         fill="transparent"
-        stroke="${escapeHtml(layer.color)}"
+        stroke="${escapeHtml(particleColor)}"
         stroke-width="${Math.max(1, size * 0.12)}"
         opacity="${particle.alpha}"
       ></circle>
@@ -3451,7 +3855,7 @@ function renderParticlePrimitive(layer, particle, index) {
         height="${height}"
         rx="${height / 2}"
         ry="${height / 2}"
-        fill="${escapeHtml(layer.color)}"
+        fill="${escapeHtml(particleColor)}"
         opacity="${particle.alpha}"
         transform="rotate(${particle.rotationDeg} ${particle.x} ${particle.y})"
       ></rect>
@@ -3478,7 +3882,7 @@ function renderParticlePrimitive(layer, particle, index) {
     return `
       <polygon
         points="${points}"
-        fill="${escapeHtml(layer.color)}"
+        fill="${escapeHtml(particleColor)}"
         opacity="${particle.alpha}"
       ></polygon>
     `;
@@ -3502,7 +3906,7 @@ function renderParticlePrimitive(layer, particle, index) {
       <path
         d="M ${start.x} ${start.y} A ${radius} ${radius} 0 ${sweepDeg > 180 ? 1 : 0} 1 ${end.x} ${end.y}"
         fill="transparent"
-        stroke="${escapeHtml(layer.color)}"
+        stroke="${escapeHtml(particleColor)}"
         stroke-width="${Math.max(1, size * 0.1)}"
         stroke-linecap="round"
         opacity="${particle.alpha}"
@@ -3523,7 +3927,7 @@ function renderParticlePrimitive(layer, particle, index) {
     return `
       <polygon
         points="${points}"
-        fill="${escapeHtml(layer.color)}"
+        fill="${escapeHtml(particleColor)}"
         opacity="${particle.alpha}"
       ></polygon>
     `;
@@ -3534,7 +3938,7 @@ function renderParticlePrimitive(layer, particle, index) {
       cx="${particle.x}"
       cy="${particle.y}"
       r="${Math.max(0.5, size / 2)}"
-      fill="${escapeHtml(layer.color)}"
+      fill="${escapeHtml(particleColor)}"
       opacity="${particle.alpha}"
     ></circle>
   `;
@@ -3765,31 +4169,33 @@ function renderSpriteNode(
   const transform = `rotate(${rotationDeg} ${x} ${y})`;
 
   if (tintColor) {
-    const resolvedMaskId = maskId || `sprite-mask-${Math.round(x)}-${Math.round(y)}-${Math.round(width)}-${Math.round(height)}`;
+    const resolvedFilterId =
+      maskId || `sprite-filter-${Math.round(x)}-${Math.round(y)}-${Math.round(width)}-${Math.round(height)}`;
     return `
       <defs>
-        <mask id="${escapeHtml(resolvedMaskId)}" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
-          <image
-            href="${escapeHtml(href)}"
-            x="${x - width / 2}"
-            y="${y - height / 2}"
-            width="${width}"
-            height="${height}"
-            preserveAspectRatio="xMidYMid meet"
-            transform="${transform}"
-          ></image>
-        </mask>
+        <filter
+          id="${escapeHtml(resolvedFilterId)}"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+          color-interpolation-filters="sRGB"
+        >
+          <feFlood flood-color="${escapeHtml(tintColor)}" result="tint"></feFlood>
+          <feComposite in="tint" in2="SourceAlpha" operator="in" result="tintedAlpha"></feComposite>
+        </filter>
       </defs>
-      <rect
+      <image
+        href="${escapeHtml(href)}"
         x="${x - width / 2}"
         y="${y - height / 2}"
         width="${width}"
         height="${height}"
-        fill="${escapeHtml(tintColor)}"
         opacity="${opacity}"
-        mask="url(#${escapeHtml(resolvedMaskId)})"
+        filter="url(#${escapeHtml(resolvedFilterId)})"
+        preserveAspectRatio="xMidYMid meet"
         transform="${transform}"
-      ></rect>
+      ></image>
     `;
   }
 
@@ -3980,15 +4386,24 @@ function renderTrail(asset, instance, layer, progress) {
 function renderEffectShapes(asset, instance, progress) {
   return asset.layers
     .map((layer) => {
-      if (layer.type === 'orb') return renderOrb(asset, instance, layer, progress);
-      if (layer.type === 'ring') return renderRing(asset, instance, layer, progress);
-      if (layer.type === 'streak') return renderStreak(asset, instance, layer, progress);
-      if (layer.type === 'diamond') return renderDiamond(asset, instance, layer, progress);
-      if (layer.type === 'arc') return renderArc(asset, instance, layer, progress);
-      if (layer.type === 'starburst') return renderStarburst(asset, instance, layer, progress);
-      if (layer.type === 'sprite') return renderSpriteLayer(asset, instance, layer, progress);
+      const layerProgress =
+        layer.type === 'particleEmitter' || layer.type === 'shaderLayer'
+          ? progress
+          : resolveLayerTimelineProgress(asset, layer, progress);
+
+      if (layerProgress == null) {
+        return '';
+      }
+
+      if (layer.type === 'orb') return renderOrb(asset, instance, layer, layerProgress);
+      if (layer.type === 'ring') return renderRing(asset, instance, layer, layerProgress);
+      if (layer.type === 'streak') return renderStreak(asset, instance, layer, layerProgress);
+      if (layer.type === 'diamond') return renderDiamond(asset, instance, layer, layerProgress);
+      if (layer.type === 'arc') return renderArc(asset, instance, layer, layerProgress);
+      if (layer.type === 'starburst') return renderStarburst(asset, instance, layer, layerProgress);
+      if (layer.type === 'sprite') return renderSpriteLayer(asset, instance, layer, layerProgress);
       if (layer.type === 'particleEmitter') return renderParticleEmitter(asset, instance, layer, progress);
-      if (layer.type === 'trail') return renderTrail(asset, instance, layer, progress);
+      if (layer.type === 'trail') return renderTrail(asset, instance, layer, layerProgress);
       return '';
     })
     .join('');
@@ -4085,42 +4500,48 @@ function renderPreview() {
 
     ${shapes}
 
-    <g data-anchor="start" style="cursor: grab;">
-      <circle cx="${state.instance.x}" cy="${state.instance.y}" r="12" fill="#df945c"></circle>
-      <circle
-        cx="${state.instance.x}"
-        cy="${state.instance.y}"
-        r="22"
-        fill="transparent"
-        stroke="rgba(223, 148, 92, 0.42)"
-      ></circle>
-      <text
-        x="${state.instance.x - 26}"
-        y="${state.instance.y - 28}"
-        fill="rgba(245,234,216,0.78)"
-        font-size="14"
-      >Spawn</text>
-    </g>
-
     ${
-      showTarget
+      state.previewAnchorsVisible
         ? `
-      <g data-anchor="target" style="cursor: grab;">
-        <circle cx="${targetX}" cy="${targetY}" r="12" fill="#8fd7ff"></circle>
+      <g data-anchor="start" style="cursor: grab;">
+        <circle cx="${state.instance.x}" cy="${state.instance.y}" r="12" fill="#df945c"></circle>
         <circle
-          cx="${targetX}"
-          cy="${targetY}"
+          cx="${state.instance.x}"
+          cy="${state.instance.y}"
           r="22"
           fill="transparent"
-          stroke="rgba(143, 215, 255, 0.42)"
+          stroke="rgba(223, 148, 92, 0.42)"
         ></circle>
         <text
-          x="${targetX - 20}"
-          y="${targetY - 28}"
+          x="${state.instance.x - 26}"
+          y="${state.instance.y - 28}"
           fill="rgba(245,234,216,0.78)"
           font-size="14"
-        >Target</text>
+        >Spawn</text>
       </g>
+
+      ${
+        showTarget
+          ? `
+        <g data-anchor="target" style="cursor: grab;">
+          <circle cx="${targetX}" cy="${targetY}" r="12" fill="#8fd7ff"></circle>
+          <circle
+            cx="${targetX}"
+            cy="${targetY}"
+            r="22"
+            fill="transparent"
+            stroke="rgba(143, 215, 255, 0.42)"
+          ></circle>
+          <text
+            x="${targetX - 20}"
+            y="${targetY - 28}"
+            fill="rgba(245,234,216,0.78)"
+            font-size="14"
+          >Target</text>
+        </g>
+      `
+          : ''
+      }
     `
         : ''
     }
@@ -4307,8 +4728,8 @@ function renderCurveEditor(scope, trackName) {
     <div class="curve-editor">
       <div class="curve-header">
         <div>
-          <p class="panel-kicker">${escapeHtml(TRACK_LABELS[trackName])}</p>
-          <p class="section-note">Key times are normalized from 0 to 1 across the full effect lifetime.</p>
+          <p class="panel-kicker">${escapeHtml(getTrackLabel(scope, trackName))}</p>
+          <p class="section-note">Key times are normalized from 0 to 1 across the ${scope === 'particle' ? 'particle lifetime' : 'full effect lifetime'}.</p>
         </div>
         <div class="curve-actions">
           <button class="stack-button ${mode === 'list' ? 'is-selected' : ''}" data-action="set-editor-mode" data-editor-mode="list" data-curve-scope="${scope}" data-track-name="${trackName}">Keyframe List</button>
@@ -4709,147 +5130,310 @@ function renderTrailInspectorFields(layer, trailStyle) {
 }
 
 function renderParticleEmitterInspectorFields(layer) {
+  const emitterShape = normalizeParticleEmitterShape(layer.emitterShape);
+  const usesSpriteRenderer = layer.renderer === 'sprite';
+
+  return `
+    ${renderInspectorSubsection({
+      title: 'General',
+      note: 'Looping is effect-wide. Lifetime, speed, size, and color randomize per particle at spawn.',
+      body: `
+        <div class="field-grid">
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Render Shape</span>
+              <select class="field-select" data-layer-field="renderer">
+                ${PARTICLE_RENDER_OPTIONS.map(
+                  (option) => `
+                    <option value="${option.value}" ${layer.renderer === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>
+                  `,
+                ).join('')}
+              </select>
+            </label>
+          </div>
+
+          <label class="field-checkbox">
+            <input type="checkbox" ${state.asset.loop ? 'checked' : ''} data-asset-field="loop" />
+            <span class="field-label">Loop playback</span>
+          </label>
+
+          ${
+            usesSpriteRenderer
+              ? renderSpriteField({
+                  label: 'Particle Sprite',
+                  value: layer.spriteId,
+                  field: 'spriteId',
+                  datasetName: 'layer-field',
+                })
+              : ''
+          }
+
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Start Lifetime Min (ms)</span>
+              <input class="field-input" type="number" step="1" min="1" value="${layer.particleLifetimeMs}" data-layer-field="particleLifetimeMs" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Start Lifetime Max (ms)</span>
+              <input class="field-input" type="number" step="1" min="1" value="${layer.particleLifetimeMaxMs ?? ''}" data-layer-field="particleLifetimeMaxMs" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Start Speed Min</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.speed}" data-layer-field="speed" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Start Speed Max</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.speedMax ?? ''}" data-layer-field="speedMax" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Start Size Min</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.startSize}" data-layer-field="startSize" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Start Size Max</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.startSizeMax ?? ''}" data-layer-field="startSizeMax" />
+            </label>
+          </div>
+
+          <div class="field-grid two-up">
+            ${
+              usesSpriteRenderer
+                ? renderCompactColorField({
+                    label: 'Start Tint 1',
+                    value: layer.tintColor ?? '',
+                    field: 'tintColor',
+                    datasetName: 'layer-field',
+                    fallback: '#ffffff',
+                    placeholder: 'leave empty for original sprite colors',
+                  })
+                : renderCompactColorField({
+                    label: 'Start Color 1',
+                    value: layer.color,
+                    field: 'color',
+                    datasetName: 'layer-field',
+                    fallback: '#ffffff',
+                  })
+            }
+
+            ${
+              usesSpriteRenderer
+                ? renderCompactColorField({
+                    label: 'Start Tint 2',
+                    value: layer.tintColor2 ?? '',
+                    field: 'tintColor2',
+                    datasetName: 'layer-field',
+                    fallback: getColorInputValue(layer.tintColor ?? '#ffffff', '#ffffff'),
+                    placeholder: 'optional second tint for randomness',
+                  })
+                : renderCompactColorField({
+                    label: 'Start Color 2',
+                    value: layer.color2 ?? '',
+                    field: 'color2',
+                    datasetName: 'layer-field',
+                    fallback: getColorInputValue(layer.color, '#ffffff'),
+                    placeholder: 'leave empty to use Color 1',
+                  })
+            }
+          </div>
+
+          <p class="section-note">
+            ${
+              usesSpriteRenderer
+                ? 'Leave both tint fields empty to keep the original sprite colors. Fill both to randomize tint between two constants.'
+                : 'Each particle picks a spawn color between Color 1 and Color 2.'
+            }
+          </p>
+        </div>
+      `,
+    })}
+
+    ${renderInspectorSubsection({
+      title: 'Velocity',
+      note: 'Velocity X and Y directly control particle travel. Leave them empty to use Speed, Direction, and Spread instead.',
+      body: `
+        <div class="field-grid two-up">
+          <label class="field">
+            <span class="field-label">Velocity X</span>
+            <input class="field-input" type="number" step="0.1" value="${layer.velocityX ?? ''}" placeholder="0" data-layer-field="velocityX" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Velocity Y</span>
+            <input class="field-input" type="number" step="0.1" value="${layer.velocityY ?? ''}" placeholder="0" data-layer-field="velocityY" />
+          </label>
+        </div>
+      `,
+    })}
+
+    ${renderInspectorSubsection({
+      title: 'Emission',
+      note: 'Spawn rate handles continuous particles. Burst count emits an instant batch at the start.',
+      body: `
+        <div class="field-grid two-up">
+          <label class="field">
+            <span class="field-label">Max Particles</span>
+            <input class="field-input" type="number" step="1" min="1" value="${layer.maxParticles}" data-layer-field="maxParticles" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Spawn Rate</span>
+            <input class="field-input" type="number" step="0.1" min="0" value="${layer.emissionRate}" data-layer-field="emissionRate" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Burst Count</span>
+            <input class="field-input" type="number" step="1" min="0" value="${layer.burstCount ?? ''}" data-layer-field="burstCount" />
+          </label>
+        </div>
+      `,
+    })}
+
+    ${renderInspectorSubsection({
+      title: 'Emitter Shape',
+      note: 'Choose where particles can spawn: a single point, a circle, or a rectangle.',
+      body: `
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Shape</span>
+            <select class="field-select" data-layer-field="emitterShape">
+              ${PARTICLE_EMITTER_SHAPE_OPTIONS.map(
+                (option) => `
+                  <option value="${option.value}" ${emitterShape === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>
+                `,
+              ).join('')}
+            </select>
+          </label>
+
+          ${
+            emitterShape === 'circle'
+              ? `
+                <div class="field-grid two-up">
+                  <label class="field">
+                    <span class="field-label">Circle Size</span>
+                    <input class="field-input" type="number" step="0.1" min="0" value="${layer.emitterRadius ?? 24}" data-layer-field="emitterRadius" />
+                  </label>
+                </div>
+              `
+              : emitterShape === 'rectangle'
+                ? `
+                  <div class="field-grid two-up">
+                    <label class="field">
+                      <span class="field-label">Width</span>
+                      <input class="field-input" type="number" step="0.1" min="0" value="${layer.emitterWidth ?? 48}" data-layer-field="emitterWidth" />
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">Height</span>
+                      <input class="field-input" type="number" step="0.1" min="0" value="${layer.emitterHeight ?? 48}" data-layer-field="emitterHeight" />
+                    </label>
+                  </div>
+                `
+                : '<p class="section-note">Particles spawn from a single point when Emitter Shape is set to None.</p>'
+          }
+        </div>
+      `,
+    })}
+
+    ${renderInspectorSubsection({
+      title: 'Alpha over lifetime',
+      note: 'First and last keys represent start and end alpha. Switch the editor to Bezier Curve when you want eased fades.',
+      body: renderCurveEditor('particle', 'alpha'),
+    })}
+
+    ${renderInspectorSubsection({
+      title: 'Size over lifetime',
+      note: 'Curve values are multipliers of Start Size. Use 1 for 100%, 0.5 for 50%, and so on.',
+      body: renderCurveEditor('particle', 'scale'),
+    })}
+
+    ${renderInspectorSubsection({
+      title: 'Rotation over lifetime',
+      note: 'Start Rotation sets the initial angle. Rotation over lifetime adds a constant turn from birth to death.',
+      body: `
+        <div class="field-grid two-up">
+          <label class="field">
+            <span class="field-label">Start Rotation</span>
+            <input class="field-input" type="number" step="1" value="${layer.rotationDeg ?? ''}" data-layer-field="rotationDeg" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Rotation over lifetime</span>
+            <input class="field-input" type="number" step="1" value="${layer.rotationOverLifetimeDeg ?? ''}" data-layer-field="rotationOverLifetimeDeg" />
+          </label>
+        </div>
+      `,
+    })}
+
+    ${renderInspectorSubsection({
+      kicker: 'Advanced',
+      title: 'Advanced Controls',
+      note: 'These go beyond the reference layout but stay available for shaping trajectories and custom keyed data.',
+      body: `
+        <div class="field-grid">
+          <div class="field-grid two-up">
+            <label class="field">
+              <span class="field-label">Direction</span>
+              <input class="field-input" type="number" step="1" value="${layer.directionDeg ?? ''}" data-layer-field="directionDeg" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Spread Degrees</span>
+              <input class="field-input" type="number" step="1" value="${layer.spreadDeg}" data-layer-field="spreadDeg" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Gravity X</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.gravityX ?? ''}" data-layer-field="gravityX" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Gravity Y</span>
+              <input class="field-input" type="number" step="0.1" value="${layer.gravityY ?? ''}" data-layer-field="gravityY" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">Drag</span>
+              <input class="field-input" type="number" step="0.01" value="${layer.drag ?? ''}" data-layer-field="drag" />
+            </label>
+          </div>
+
+          ${renderJsonTextareaField({
+            label: 'Emitter Tracks JSON',
+            value: layer.emitterTracks,
+            field: 'emitterTracks',
+            rows: 4,
+            note: 'Optional keyframe map for emitter params like emissionRate, burstCount, spreadDeg, speed, velocityX, velocityY, or rotationOverLifetimeDeg.',
+          })}
+
+          ${renderJsonTextareaField({
+            label: 'Particle Tracks JSON',
+            value: layer.particleTracks,
+            field: 'particleTracks',
+            rows: 4,
+            note: 'Optional advanced particle tracks such as x, y, or rotationDeg. Size and alpha are edited in the sections above.',
+          })}
+        </div>
+      `,
+    })}
+  `;
+}
+
+function renderLayerLifetimeField(layer) {
+  if (layer.type === 'particleEmitter' || layer.type === 'shaderLayer') {
+    return '';
+  }
+
   return `
     <label class="field">
-      <span class="field-label">Render Mode</span>
-      <select class="field-select" data-layer-field="renderer">
-        ${PARTICLE_RENDER_OPTIONS.map(
-          (option) => `
-          <option value="${option.value}" ${layer.renderer === option.value ? 'selected' : ''}>${escapeHtml(option.label)}</option>
-        `,
-        ).join('')}
-      </select>
+      <span class="field-label">Layer Lifetime (ms)</span>
+      <input class="field-input" type="number" step="1" min="1" value="${layer.layerLifetimeMs ?? ''}" placeholder="${state.asset.durationMs}" data-layer-field="layerLifetimeMs" />
+      <span class="section-note">Leave empty to use the full effect duration.</span>
     </label>
-
-    ${
-      layer.renderer === 'sprite'
-        ? renderSpriteField({
-            label: 'Particle Sprite',
-            value: layer.spriteId,
-            field: 'spriteId',
-            datasetName: 'layer-field',
-          })
-        : renderColorField({
-            label: 'Particle Color',
-            value: layer.color,
-            field: 'color',
-            datasetName: 'layer-field',
-            fallback: '#ffffff',
-          })
-    }
-
-    ${
-      layer.renderer === 'sprite'
-        ? renderTintField({
-            value: layer.tintColor ?? '',
-            field: 'tintColor',
-            datasetName: 'layer-field',
-          })
-        : ''
-    }
-
-    <div class="field-grid two-up">
-      <label class="field">
-        <span class="field-label">Max Particles</span>
-        <input class="field-input" type="number" step="1" min="1" value="${layer.maxParticles}" data-layer-field="maxParticles" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Emission Rate</span>
-        <input class="field-input" type="number" step="0.1" min="0" value="${layer.emissionRate}" data-layer-field="emissionRate" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Burst Count</span>
-        <input class="field-input" type="number" step="1" min="0" value="${layer.burstCount ?? ''}" data-layer-field="burstCount" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Lifetime (ms)</span>
-        <input class="field-input" type="number" step="1" min="1" value="${layer.particleLifetimeMs}" data-layer-field="particleLifetimeMs" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Speed</span>
-        <input class="field-input" type="number" step="0.1" value="${layer.speed}" data-layer-field="speed" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Speed Jitter</span>
-        <input class="field-input" type="number" step="0.1" value="${layer.speedJitter ?? ''}" data-layer-field="speedJitter" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Spread Degrees</span>
-        <input class="field-input" type="number" step="1" value="${layer.spreadDeg}" data-layer-field="spreadDeg" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Direction</span>
-        <input class="field-input" type="number" step="1" value="${layer.directionDeg ?? ''}" data-layer-field="directionDeg" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Start Size</span>
-        <input class="field-input" type="number" step="0.1" value="${layer.startSize}" data-layer-field="startSize" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">End Size</span>
-        <input class="field-input" type="number" step="0.1" value="${layer.endSize ?? ''}" data-layer-field="endSize" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Start Alpha</span>
-        <input class="field-input" type="number" step="0.05" value="${layer.startAlpha ?? ''}" data-layer-field="startAlpha" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">End Alpha</span>
-        <input class="field-input" type="number" step="0.05" value="${layer.endAlpha ?? ''}" data-layer-field="endAlpha" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Gravity X</span>
-        <input class="field-input" type="number" step="0.1" value="${layer.gravityX ?? ''}" data-layer-field="gravityX" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Gravity Y</span>
-        <input class="field-input" type="number" step="0.1" value="${layer.gravityY ?? ''}" data-layer-field="gravityY" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Drag</span>
-        <input class="field-input" type="number" step="0.01" value="${layer.drag ?? ''}" data-layer-field="drag" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Rotation</span>
-        <input class="field-input" type="number" step="1" value="${layer.rotationDeg ?? ''}" data-layer-field="rotationDeg" />
-      </label>
-
-      <label class="field">
-        <span class="field-label">Spin Degrees</span>
-        <input class="field-input" type="number" step="1" value="${layer.spinDeg ?? ''}" data-layer-field="spinDeg" />
-      </label>
-    </div>
-
-    ${renderJsonTextareaField({
-      label: 'Emitter Tracks JSON',
-      value: layer.emitterTracks,
-      field: 'emitterTracks',
-      note: 'Optional keyframe map for emitter params like emissionRate, burstCount, spreadDeg, or speed.',
-    })}
-
-    ${renderJsonTextareaField({
-      label: 'Particle Tracks JSON',
-      value: layer.particleTracks,
-      field: 'particleTracks',
-      note: 'Optional keyframe map for particle properties like size, alpha, speed, drag, or spin.',
-    })}
-
-    <p class="section-note">First-pass emitter preview is live in the editor and native Skia runtime. Shader layers are still schema-only.</p>
   `;
 }
 
@@ -4919,6 +5503,13 @@ function renderLayerInspector() {
     ? state.selectedLayerTrack
     : validTracks[0];
   const trailStyle = layer.type === 'trail' ? layer.style ?? 'fill' : null;
+  const curvesKicker = layer.type === 'particleEmitter' ? 'Emitter' : 'Curves';
+  const curvesTitle =
+    layer.type === 'particleEmitter' ? 'Emitter Over Lifetime' : 'Properties Over Lifetime';
+  const curvesNote =
+    layer.type === 'particleEmitter'
+      ? '<span class="section-note">These curves affect the emitter as a whole. Per-particle size, alpha, and rotation live in the particle settings above.</span>'
+      : '';
 
   ui.layerInspectorPanel.innerHTML = `
     ${renderCollapsibleSection({
@@ -4944,6 +5535,8 @@ function renderLayerInspector() {
             ).join('')}
           </select>
         </label>
+
+        ${renderLayerLifetimeField(layer)}
 
         ${
           layer.type === 'trail' || layer.type === 'particleEmitter' || layer.type === 'shaderLayer'
@@ -5117,8 +5710,9 @@ function renderLayerInspector() {
 
     ${renderCollapsibleSection({
       panelKey: 'layerCurves',
-      kicker: 'Curves',
-      title: 'Properties Over Lifetime',
+      kicker: curvesKicker,
+      title: curvesTitle,
+      note: curvesNote,
       className: 'inspector-block',
       body: `
       <div class="track-pills">
@@ -5616,16 +6210,32 @@ function createLayer(type) {
       type: 'particleEmitter',
       renderer: 'orb',
       color: '#fff1c9',
+      color2: '#ff9f7a',
       maxParticles: 36,
       emissionRate: 18,
       particleLifetimeMs: 420,
       speed: 120,
       spreadDeg: 45,
       startSize: 18,
+      emitterShape: 'point',
+      emitterRadius: 24,
+      emitterWidth: 48,
+      emitterHeight: 48,
+      rotationOverLifetimeDeg: 0,
       tracks: {
         alpha: [{ at: 0, value: 1 }],
         x: [{ at: 0, value: 0 }],
         y: [{ at: 0, value: 0 }],
+      },
+      particleTracks: {
+        scale: [
+          { at: 0, value: 1 },
+          { at: 1, value: 1 },
+        ],
+        alpha: [
+          { at: 0, value: 1 },
+          { at: 1, value: 0 },
+        ],
       },
     };
   }
@@ -5665,8 +6275,9 @@ function createLayer(type) {
 
 function createConvertedLayer(sourceLayer, nextType) {
   const converted = createLayer(nextType);
-  converted.id = sourceLayer.id;
-  converted.tracks = cloneData(sourceLayer.tracks ?? {});
+    converted.id = sourceLayer.id;
+    converted.layerLifetimeMs = sourceLayer.layerLifetimeMs ?? converted.layerLifetimeMs;
+    converted.tracks = cloneData(sourceLayer.tracks ?? {});
 
   if ('color' in converted) {
     converted.color =
@@ -5758,23 +6369,33 @@ function createConvertedLayer(sourceLayer, nextType) {
   if (nextType === 'particleEmitter') {
     converted.renderer = getParticleRendererForLayer(sourceLayer);
     converted.color = sourceLayer.color ?? sourceLayer.tintColor ?? converted.color;
+    converted.color2 = sourceLayer.color2 ?? converted.color2;
     converted.spriteId = sourceLayer.spriteId ?? getDefaultSpriteId();
     converted.tintColor = sourceLayer.tintColor ?? sourceLayer.color ?? converted.tintColor;
+    converted.tintColor2 = sourceLayer.tintColor2 ?? converted.tintColor2;
     converted.speed =
       sourceLayer.speed ??
       sourceLayer.motionSpeed ??
       (sourceLayer.radius ? sourceLayer.radius * 8 : undefined) ??
       converted.speed;
+    converted.velocityX = sourceLayer.velocityX ?? converted.velocityX;
+    converted.velocityY = sourceLayer.velocityY ?? converted.velocityY;
     converted.startSize =
       sourceLayer.startSize ??
       sourceLayer.radius ??
       sourceLayer.outerRadius ??
       converted.startSize;
+    converted.emitterShape = sourceLayer.emitterShape ?? converted.emitterShape;
+    converted.emitterRadius = sourceLayer.emitterRadius ?? converted.emitterRadius;
+    converted.emitterWidth = sourceLayer.emitterWidth ?? converted.emitterWidth;
+    converted.emitterHeight = sourceLayer.emitterHeight ?? converted.emitterHeight;
     converted.endSize =
       sourceLayer.endSize ??
       sourceLayer.innerRadius ??
       converted.endSize;
     converted.rotationDeg = sourceLayer.rotationDeg ?? converted.rotationDeg;
+    converted.rotationOverLifetimeDeg =
+      sourceLayer.rotationOverLifetimeDeg ?? converted.rotationOverLifetimeDeg;
     converted.emitterTracks = cloneData(sourceLayer.emitterTracks ?? converted.emitterTracks);
     converted.particleTracks = cloneData(sourceLayer.particleTracks ?? converted.particleTracks);
     return converted;
@@ -5892,6 +6513,7 @@ function updateSelectedLayerField(field, rawValue, fromColorPicker = false) {
 
   if (
     [
+      'layerLifetimeMs',
       'radius',
       'glowScale',
       'thickness',
@@ -5905,17 +6527,25 @@ function updateSelectedLayerField(field, rawValue, fromColorPicker = false) {
       'outerRadius',
       'emissionRate',
       'particleLifetimeMs',
+      'particleLifetimeMaxMs',
       'speed',
+      'speedMax',
       'speedJitter',
+      'velocityX',
+      'velocityY',
       'spreadDeg',
       'directionDeg',
       'startSize',
-      'endSize',
+      'startSizeMax',
+      'emitterRadius',
+      'emitterWidth',
+      'emitterHeight',
       'startAlpha',
       'endAlpha',
       'gravityX',
       'gravityY',
       'drag',
+      'rotationOverLifetimeDeg',
       'spinDeg',
     ].includes(field)
   ) {
@@ -5932,15 +6562,16 @@ function updateSelectedLayerField(field, rawValue, fromColorPicker = false) {
     }
   } else if (field === 'segments' || field === 'points' || field === 'maxParticles') {
     layer[field] = Math.max(field === 'points' ? 3 : 1, Math.round(Number(rawValue) || 1));
-  } else if (field === 'color' || field === 'glowColor' || field === 'tintColor') {
-    const currentValue =
-      layer[field] ?? (field === 'glowColor' ? layer.color : '#ffffff');
+  } else if (field === 'color' || field === 'color2' || field === 'glowColor' || field === 'tintColor' || field === 'tintColor2') {
+    const currentValue = layer[field] ?? (field === 'glowColor' ? layer.color : '#ffffff');
     layer[field] = fromColorPicker ? mergePickedHexWithSource(currentValue, rawValue) : rawValue;
   } else if (field === 'style') {
     layer.style = rawValue;
     applyTrailStyleDefaults(layer);
   } else if (field === 'renderer') {
     layer.renderer = normalizeParticleRenderer(rawValue);
+  } else if (field === 'emitterShape') {
+    layer.emitterShape = normalizeParticleEmitterShape(rawValue);
   } else if (field === 'spriteId') {
     layer.spriteId = hasSpriteDefinition(rawValue) ? rawValue : getDefaultSpriteId();
   } else {
@@ -5954,7 +6585,13 @@ function updateSelectedLayerField(field, rawValue, fromColorPicker = false) {
     return;
   }
 
-  if (field === 'style' || field === 'spriteId' || field === 'renderer' || field === 'target') {
+  if (
+    field === 'style' ||
+    field === 'spriteId' ||
+    field === 'renderer' ||
+    field === 'emitterShape' ||
+    field === 'target'
+  ) {
     commitAsset(nextAsset, { renderPanels: true });
     return;
   }
@@ -6018,7 +6655,9 @@ function getCurveTrack(scope, trackName) {
   }
 
   const layer = getSelectedLayer();
-  return cloneData(layer?.tracks?.[trackName] ?? []);
+  return cloneData(
+    scope === 'particle' ? layer?.particleTracks?.[trackName] ?? [] : layer?.tracks?.[trackName] ?? [],
+  );
 }
 
 function setRawTrack(scope, trackName, nextTrack, { rerenderPanels = false } = {}) {
@@ -6039,12 +6678,12 @@ function setRawTrack(scope, trackName, nextTrack, { rerenderPanels = false } = {
     const layerIndex = getSelectedLayerIndex();
     if (layerIndex < 0) return;
     const layer = nextAsset.layers[layerIndex];
-    layer.tracks ??= {};
+    const targetTrackMap = scope === 'particle' ? (layer.particleTracks ??= {}) : (layer.tracks ??= {});
 
     if (normalizedTrack.length > 0) {
-      layer.tracks[trackName] = normalizedTrack;
+      targetTrackMap[trackName] = normalizedTrack;
     } else {
-      delete layer.tracks[trackName];
+      delete targetTrackMap[trackName];
     }
   }
 
@@ -6780,7 +7419,7 @@ function exportSequence() {
 }
 
 function openSequenceComposerWindow() {
-  const composerUrl = `./sequence-composer.html?v=20260322x`;
+  const composerUrl = './sequence-composer.html';
   window.open(composerUrl, 'vfx-sequence-composer', 'popup=yes,width=1360,height=880');
 }
 
@@ -6843,6 +7482,9 @@ function handleAssetPanelInput(event) {
     const field = target.dataset.assetField;
     const value = target.type === 'checkbox' ? target.checked : target.value;
     updateAssetField(field, value);
+    if (event.type === 'change') {
+      renderPanels();
+    }
     return;
   }
 
@@ -6981,6 +7623,18 @@ function handleLayerInspectorInput(event) {
       target.value,
       target.dataset.colorPicker === 'true',
     );
+    return;
+  }
+
+  if (target.dataset.assetField) {
+    const field = target.dataset.assetField;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    updateAssetField(field, value);
+    return;
+  }
+
+  if (target.dataset.motionField) {
+    updateMotionField(target.dataset.motionField, target.value);
     return;
   }
 
@@ -7628,6 +8282,11 @@ function animationLoop(timestamp) {
 }
 
 function wireEvents() {
+  if (eventsWired) {
+    return;
+  }
+
+  eventsWired = true;
   ui.previewResizeHandle.addEventListener('pointerdown', (event) => {
     beginPanelResize('preview');
     event.preventDefault();
@@ -7684,6 +8343,11 @@ function wireEvents() {
       return;
     }
     state.previewDevice.showSafeArea = !state.previewDevice.showSafeArea;
+    renderPreview();
+    schedulePersistEditorSession();
+  });
+  ui.anchorToggleButton?.addEventListener('click', () => {
+    state.previewAnchorsVisible = !state.previewAnchorsVisible;
     renderPreview();
     schedulePersistEditorSession();
   });
@@ -7761,27 +8425,86 @@ function wireEvents() {
   window.addEventListener('beforeunload', persistEditorSessionNow);
 }
 
+function resetEditorStateForRecovery() {
+  state.asset = normalizeAsset(createStarterAsset());
+  state.instance = normalizeInstance(createInstance());
+  state.repoRootHandle = null;
+  state.recentFiles = [];
+  state.pendingLayerType = 'orb';
+  state.layoutSizes = normalizeLayoutSizes(state.layoutSizes);
+  state.selectedLayerId = state.asset.layers[0]?.id ?? 'trail';
+  state.selectedLayerTrack = 'scale';
+  state.progress = 0;
+  state.playing = true;
+  state.dragTarget = null;
+  state.fileHandle = null;
+  state.fileName = '';
+  state.jsonDraft = '';
+  state.jsonDirty = false;
+  state.lastFrameTime = 0;
+  state.curveStates = {};
+  state.curveEditorModes = {};
+  state.activeCurveDrag = null;
+  state.previewBackground = createDefaultPreviewBackground();
+  state.previewDevice = createDefaultPreviewDevice();
+  state.previewAnchorsVisible = createDefaultPreviewAnchorsVisible();
+  state.previewViewport = createDefaultPreviewViewport();
+  state.previewPlaybackMode = 'single';
+  state.previewSequenceId = 'fireball-cast';
+  state.previewSequence = createSequenceFromCurrentAsset();
+  state.pendingSequenceAssetId = state.asset.id;
+  state.selectedSequenceCueId = '';
+  state.sequenceFileHandle = null;
+  state.sequenceFileName = `${state.previewSequence.id}.json`;
+  state.collapsedPanels = createDefaultCollapsedPanels();
+  state.undoStack = [];
+  state.redoStack = [];
+  state.pendingHistorySnapshot = null;
+  state.isRestoringHistory = false;
+  state.activePanelResize = null;
+  state.activeViewportPan = null;
+  state.activeSequenceCueDrag = null;
+  state.previewSpritesReady = true;
+  state.previewSpriteLoadKey = '';
+  ensureSelection();
+  ensureSequenceSelection();
+  state.jsonDraft = stringifyAsset(state.asset);
+}
+
 async function init() {
-  await loadSpriteManifest();
-  await restoreLinkedRepoRootHandle();
-  const restoredSessionSource = await restorePersistedEditorSessionFromSources();
-  if (state.previewSequence?.cues?.length) {
-    await Promise.all(state.previewSequence.cues.map((cue) => loadPreviewEffectAsset(cue.assetId)));
-    sequenceLibrary[state.previewSequence.id] = cloneData(state.previewSequence);
-  } else {
-    await loadPreviewSequence(state.previewSequenceId);
+  try {
+    await loadSpriteManifest();
+    await restoreLinkedRepoRootHandle();
+    const restoredSessionSource = await restorePersistedEditorSessionFromSources();
+    if (state.previewSequence?.cues?.length) {
+      await Promise.all(state.previewSequence.cues.map((cue) => loadPreviewEffectAsset(cue.assetId)));
+      sequenceLibrary[state.previewSequence.id] = cloneData(state.previewSequence);
+    } else {
+      await loadPreviewSequence(state.previewSequenceId);
+    }
+    applyLayoutSizes();
+    renderPanels();
+    renderPreview();
+    syncJsonEditorFromState();
+    setSaveStatus(
+      restoredSessionSource === 'file'
+        ? 'Restored the last editor session from tools/vfx-editor/editor-session.json.'
+        : restoredSessionSource === 'browser'
+          ? 'Restored the last editor session from this browser.'
+          : 'Open an effect JSON or quick-load one from the repo.',
+    );
+  } catch (error) {
+    console.error('Could not initialize VFX editor.', error);
+    resetEditorStateForRecovery();
+    applyLayoutSizes();
+    renderPanels();
+    renderPreview();
+    syncJsonEditorFromState();
+    setSaveStatus(
+      `Recovered from an editor startup error and reset to the starter effect: ${error?.message ?? error}`,
+      'error',
+    );
   }
-  applyLayoutSizes();
-  renderPanels();
-  renderPreview();
-  syncJsonEditorFromState();
-  setSaveStatus(
-    restoredSessionSource === 'file'
-      ? 'Restored the last editor session from tools/vfx-editor/editor-session.json.'
-      : restoredSessionSource === 'browser'
-        ? 'Restored the last editor session from this browser.'
-      : 'Open an effect JSON or quick-load one from the repo.',
-  );
   ui.togglePlaybackButton.textContent = 'Pause';
   wireEvents();
   window.requestAnimationFrame(animationLoop);

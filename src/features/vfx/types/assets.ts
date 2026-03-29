@@ -11,6 +11,7 @@ export type ShaderUniformValue = number | number[];
 
 type EffectLayerBase = {
   id: string;
+  layerLifetimeMs?: number;
   tracks?: EffectTrackMap;
 };
 
@@ -103,22 +104,34 @@ export type PrimitiveLayerType =
   | 'sprite';
 
 export type ParticleEmitterRenderMode = PrimitiveLayerType;
+export type ParticleEmitterShape = 'point' | 'circle' | 'rectangle';
 
 export type ParticleEmitterLayer = EffectLayerBase & {
   type: 'particleEmitter';
   renderer: ParticleEmitterRenderMode;
   color: string;
+  color2?: string;
   spriteId?: string;
   tintColor?: string;
+  tintColor2?: string;
   maxParticles: number;
   emissionRate: number;
   burstCount?: number;
   particleLifetimeMs: number;
+  particleLifetimeMaxMs?: number;
   speed: number;
+  speedMax?: number;
   speedJitter?: number;
+  velocityX?: number;
+  velocityY?: number;
   spreadDeg: number;
   directionDeg?: number;
   startSize: number;
+  startSizeMax?: number;
+  emitterShape?: ParticleEmitterShape;
+  emitterRadius?: number;
+  emitterWidth?: number;
+  emitterHeight?: number;
   endSize?: number;
   startAlpha?: number;
   endAlpha?: number;
@@ -126,6 +139,7 @@ export type ParticleEmitterLayer = EffectLayerBase & {
   gravityY?: number;
   drag?: number;
   rotationDeg?: number;
+  rotationOverLifetimeDeg?: number;
   spinDeg?: number;
   emitterTracks?: EffectDynamicTrackMap;
   particleTracks?: EffectDynamicTrackMap;

@@ -19,6 +19,7 @@ export type {
   EffectTrackMap,
   ParticleEmitterLayer,
   ParticleEmitterRenderMode,
+  ParticleEmitterShape,
   PrimitiveLayerType,
   ShaderLayer,
   ShaderLayerTarget,

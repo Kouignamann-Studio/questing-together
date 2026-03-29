@@ -62,6 +62,7 @@ type SharedParticleMetrics = {
   size: SharedValue<number>;
   alpha: SharedValue<number>;
   rotationDeg: SharedValue<number>;
+  color: SharedValue<string>;
 };
 
 function resolveSkiaDataSource(spriteId: string) {
@@ -187,10 +188,205 @@ function resolveEffectDurationMs(asset: EffectAsset, instance: EffectInstance) {
   return Math.max(1, instance.durationMsOverride ?? asset.durationMs);
 }
 
+function resolveLayerTimelineProgress(
+  asset: EffectAsset,
+  instance: EffectInstance,
+  layer: EffectLayer,
+  progress: number,
+) {
+  'worklet';
+
+  const lifetimeMs = Number.isFinite(Number(layer.layerLifetimeMs))
+    ? Math.max(1, Number(layer.layerLifetimeMs))
+    : null;
+
+  if (!lifetimeMs) {
+    return Math.max(0, Math.min(1, progress));
+  }
+
+  const effectDurationMs = resolveEffectDurationMs(asset, instance);
+  const lifetimeProgress = Math.min(1, lifetimeMs / effectDurationMs);
+
+  if (progress > lifetimeProgress) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(1, progress / lifetimeProgress));
+}
+
 function getDefaultParticleRotationDeg(renderer: ParticleEmitterLayer['renderer']) {
   'worklet';
 
   return renderer === 'arc' || renderer === 'starburst' ? -90 : 0;
+}
+
+function hasDynamicTrack(
+  trackMap: Record<string, { at: number; value: number }[]> | undefined,
+  name: string,
+) {
+  'worklet';
+
+  return Boolean(trackMap?.[name]?.length);
+}
+
+function sampleRandomRange(minValue: number, maxValue: number, seed: number) {
+  'worklet';
+
+  const low = Math.min(minValue, maxValue);
+  const high = Math.max(minValue, maxValue);
+  return low === high ? low : low + (high - low) * random01(seed);
+}
+
+function parseColorToRgba(color: string | undefined) {
+  'worklet';
+
+  if (typeof color !== 'string') {
+    return null;
+  }
+
+  const value = color.trim();
+  if (!value) {
+    return null;
+  }
+
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    if (hex.length === 3 || hex.length === 4) {
+      const expanded = hex
+        .split('')
+        .map((part) => part + part)
+        .join('');
+      const red = Number.parseInt(expanded.slice(0, 2), 16);
+      const green = Number.parseInt(expanded.slice(2, 4), 16);
+      const blue = Number.parseInt(expanded.slice(4, 6), 16);
+      const alpha = expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
+      return { red, green, blue, alpha };
+    }
+
+    if (hex.length === 6 || hex.length === 8) {
+      const red = Number.parseInt(hex.slice(0, 2), 16);
+      const green = Number.parseInt(hex.slice(2, 4), 16);
+      const blue = Number.parseInt(hex.slice(4, 6), 16);
+      const alpha = hex.length === 8 ? Number.parseInt(hex.slice(6, 8), 16) / 255 : 1;
+      return { red, green, blue, alpha };
+    }
+  }
+
+  const rgbMatch = value.match(
+    /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i,
+  );
+
+  if (!rgbMatch) {
+    return null;
+  }
+
+  return {
+    red: Math.max(0, Math.min(255, Number(rgbMatch[1]))),
+    green: Math.max(0, Math.min(255, Number(rgbMatch[2]))),
+    blue: Math.max(0, Math.min(255, Number(rgbMatch[3]))),
+    alpha: rgbMatch[4] == null ? 1 : Math.max(0, Math.min(1, Number(rgbMatch[4]))),
+  };
+}
+
+function rgbaToCssColor({
+  red,
+  green,
+  blue,
+  alpha,
+}: {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+}) {
+  'worklet';
+
+  const safeAlpha = Math.max(0, Math.min(1, alpha));
+  return `rgba(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)}, ${Number(safeAlpha.toFixed(3))})`;
+}
+
+function mixColors(colorA: string, colorB: string, amount: number) {
+  'worklet';
+
+  const start = parseColorToRgba(colorA);
+  const end = parseColorToRgba(colorB);
+
+  if (start && end) {
+    return rgbaToCssColor({
+      red: start.red + (end.red - start.red) * amount,
+      green: start.green + (end.green - start.green) * amount,
+      blue: start.blue + (end.blue - start.blue) * amount,
+      alpha: start.alpha + (end.alpha - start.alpha) * amount,
+    });
+  }
+
+  return amount < 0.5 ? colorA : colorB;
+}
+
+function normalizeParticleEmitterShape(shape: ParticleEmitterLayer['emitterShape']) {
+  'worklet';
+
+  return shape === 'circle' || shape === 'rectangle' ? shape : 'point';
+}
+
+function getParticleColorRange(layer: ParticleEmitterLayer) {
+  'worklet';
+
+  if (layer.renderer === 'sprite') {
+    const firstTint = typeof layer.tintColor === 'string' ? layer.tintColor.trim() : '';
+    const secondTint = typeof layer.tintColor2 === 'string' ? layer.tintColor2.trim() : '';
+    const colorA = firstTint || secondTint || '';
+    const colorB = secondTint || firstTint || '';
+    return { colorA, colorB };
+  }
+
+  const firstColor =
+    typeof layer.color === 'string' && layer.color.trim() ? layer.color : '#ffffff';
+  const secondColor =
+    typeof layer.color2 === 'string' && layer.color2.trim() ? layer.color2 : firstColor;
+  const colorA = firstColor;
+  const colorB = secondColor;
+  return { colorA, colorB };
+}
+
+function sampleParticleRenderColor(layer: ParticleEmitterLayer, seed: number) {
+  'worklet';
+
+  const { colorA, colorB } = getParticleColorRange(layer);
+
+  if (!colorA && !colorB) {
+    return '';
+  }
+
+  if (colorA === colorB) {
+    return colorA;
+  }
+
+  return mixColors(colorA, colorB, random01(seed));
+}
+
+function sampleEmitterShapeOffset(layer: ParticleEmitterLayer, seed: number) {
+  'worklet';
+
+  const shape = normalizeParticleEmitterShape(layer.emitterShape);
+
+  if (shape === 'circle') {
+    const radius = Math.max(0, layer.emitterRadius ?? 24) * Math.sqrt(random01(seed + 13.7));
+    const angle = random01(seed + 91.3) * Math.PI * 2;
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    };
+  }
+
+  if (shape === 'rectangle') {
+    return {
+      x: randomSigned(seed + 17.1) * Math.max(0, layer.emitterWidth ?? 48) * 0.5,
+      y: randomSigned(seed + 43.9) * Math.max(0, layer.emitterHeight ?? 48) * 0.5,
+    };
+  }
+
+  return { x: 0, y: 0 };
 }
 
 function sampleMotionHeadingDeg(asset: EffectAsset, instance: EffectInstance, progress: number) {
@@ -253,6 +449,7 @@ function sampleParticleState(
   const effectDurationMs = resolveEffectDurationMs(asset, instance);
   const birthProgress = resolveParticleBirthProgress(layer, effectDurationMs, index);
   const defaultRotationDeg = getDefaultParticleRotationDeg(layer.renderer);
+  const defaultColor = sampleParticleRenderColor(layer, index * 73.17 + 1.9);
 
   if (birthProgress == null) {
     return {
@@ -261,16 +458,25 @@ function sampleParticleState(
       size: 0,
       alpha: 0,
       rotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      color: defaultColor,
     };
   }
 
-  const lifetimeMs = Math.max(
+  const lifetimeMinMs = Math.max(
     1,
     sampleDynamicTrackValue(
       layer.emitterTracks,
       'particleLifetimeMs',
       birthProgress,
       layer.particleLifetimeMs,
+    ),
+  );
+  const lifetimeMs = Math.max(
+    1,
+    sampleRandomRange(
+      lifetimeMinMs,
+      layer.particleLifetimeMaxMs ?? lifetimeMinMs,
+      index * 19.73 + birthProgress * 541.7,
     ),
   );
   const birthMs = birthProgress * effectDurationMs;
@@ -289,30 +495,51 @@ function sampleParticleState(
   const lifeProgress = Math.max(0, Math.min(1, ageMs / lifetimeMs));
   const ageSeconds = ageMs / 1000;
   const origin = sampleMotionPosition(asset, instance, birthProgress);
-  const originX = origin.x + sampleLayerTrack(layer, 'x', birthProgress, 0);
-  const originY = origin.y + sampleLayerTrack(layer, 'y', birthProgress, 0);
+  const emitterOffset = sampleEmitterShapeOffset(layer, index * 47.19 + birthProgress * 683.5);
+  const originX = origin.x + sampleLayerTrack(layer, 'x', birthProgress, 0) + emitterOffset.x;
+  const originY = origin.y + sampleLayerTrack(layer, 'y', birthProgress, 0) + emitterOffset.y;
+  const motionMode = asset.motion?.mode ?? 'fixed';
+  const hasVelocityOverride =
+    Number.isFinite(Number(layer.velocityX)) ||
+    Number.isFinite(Number(layer.velocityY)) ||
+    hasDynamicTrack(layer.emitterTracks, 'velocityX') ||
+    hasDynamicTrack(layer.emitterTracks, 'velocityY');
+  const hasDirectionOverride =
+    Number.isFinite(Number(layer.directionDeg)) ||
+    hasDynamicTrack(layer.emitterTracks, 'directionDeg');
   const directionDeg = sampleDynamicTrackValue(
     layer.emitterTracks,
     'directionDeg',
     birthProgress,
-    layer.directionDeg ?? sampleMotionHeadingDeg(asset, instance, birthProgress),
+    layer.directionDeg ??
+      (motionMode === 'fixed' ? 0 : sampleMotionHeadingDeg(asset, instance, birthProgress)),
   );
   const spreadDeg = sampleDynamicTrackValue(
     layer.emitterTracks,
     'spreadDeg',
     birthProgress,
-    layer.spreadDeg,
+    !hasVelocityOverride && motionMode === 'fixed' && !hasDirectionOverride ? 360 : layer.spreadDeg,
   );
+  const speedMin = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'speed',
+    birthProgress,
+    layer.speed,
+  );
+  const speedSeed = index * 37.11 + birthProgress * 997.1;
+  const speedBase = sampleRandomRange(speedMin, layer.speedMax ?? speedMin, speedSeed);
   const speed = Math.max(
     0,
-    sampleDynamicTrackValue(layer.emitterTracks, 'speed', birthProgress, layer.speed) +
-      randomSigned(index * 37.11 + birthProgress * 997.1) *
-        sampleDynamicTrackValue(
-          layer.emitterTracks,
-          'speedJitter',
-          birthProgress,
-          layer.speedJitter ?? 0,
-        ),
+    speedBase +
+      (layer.speedMax == null
+        ? randomSigned(speedSeed) *
+          sampleDynamicTrackValue(
+            layer.emitterTracks,
+            'speedJitter',
+            birthProgress,
+            layer.speedJitter ?? 0,
+          )
+        : 0),
   );
   const gravityX = sampleDynamicTrackValue(
     layer.emitterTracks,
@@ -333,19 +560,24 @@ function sampleParticleState(
   const angleRad =
     ((directionDeg + randomSigned(index * 83.17 + 11.9) * spreadDeg * 0.5) * Math.PI) / 180;
   const travelTime = drag > 0 ? (1 - Math.exp(-drag * ageSeconds)) / drag : ageSeconds;
+  const velocityX = hasVelocityOverride
+    ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityX', birthProgress, layer.velocityX ?? 0)
+    : Math.cos(angleRad) * speed;
+  const velocityY = hasVelocityOverride
+    ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityY', birthProgress, layer.velocityY ?? 0)
+    : Math.sin(angleRad) * speed;
   const offsetX = sampleDynamicTrackValue(layer.particleTracks, 'x', lifeProgress, 0);
   const offsetY = sampleDynamicTrackValue(layer.particleTracks, 'y', lifeProgress, 0);
-  const startSize = sampleDynamicTrackValue(
+  const startSizeMin = sampleDynamicTrackValue(
     layer.emitterTracks,
     'startSize',
     birthProgress,
     layer.startSize,
   );
-  const endSize = sampleDynamicTrackValue(
-    layer.emitterTracks,
-    'endSize',
-    birthProgress,
-    layer.endSize ?? startSize,
+  const startSize = sampleRandomRange(
+    startSizeMin,
+    layer.startSizeMax ?? startSizeMin,
+    index * 61.23 + birthProgress * 719.4,
   );
   const startAlpha = sampleDynamicTrackValue(
     layer.emitterTracks,
@@ -359,16 +591,26 @@ function sampleParticleState(
     birthProgress,
     layer.endAlpha ?? 0,
   );
+  const hasScaleTrack = hasDynamicTrack(layer.particleTracks, 'scale');
+  const hasAlphaTrack = hasDynamicTrack(layer.particleTracks, 'alpha');
+  const legacyEndSize = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'endSize',
+    birthProgress,
+    layer.endSize ?? startSize,
+  );
   const size = Math.max(
     0.5,
-    (startSize + (endSize - startSize) * lifeProgress) *
-      sampleDynamicTrackValue(layer.particleTracks, 'scale', lifeProgress, 1),
+    hasScaleTrack
+      ? startSize * sampleDynamicTrackValue(layer.particleTracks, 'scale', lifeProgress, 1)
+      : startSize + (legacyEndSize - startSize) * lifeProgress,
   );
   const alpha = Math.max(
     0,
     sampleLayerTrack(layer, 'alpha', progress, 1) *
-      (startAlpha + (endAlpha - startAlpha) * lifeProgress) *
-      sampleDynamicTrackValue(layer.particleTracks, 'alpha', lifeProgress, 1),
+      (hasAlphaTrack
+        ? sampleDynamicTrackValue(layer.particleTracks, 'alpha', lifeProgress, 1)
+        : startAlpha + (endAlpha - startAlpha) * lifeProgress),
   );
   const rotationDeg =
     sampleDynamicTrackValue(
@@ -377,24 +619,25 @@ function sampleParticleState(
       birthProgress,
       layer.rotationDeg ?? defaultRotationDeg,
     ) +
+    sampleDynamicTrackValue(
+      layer.emitterTracks,
+      'rotationOverLifetimeDeg',
+      birthProgress,
+      layer.rotationOverLifetimeDeg ?? 0,
+    ) *
+      lifeProgress +
     sampleDynamicTrackValue(layer.emitterTracks, 'spinDeg', birthProgress, layer.spinDeg ?? 0) *
       ageSeconds +
     sampleDynamicTrackValue(layer.particleTracks, 'rotationDeg', lifeProgress, 0);
+  const color = sampleParticleRenderColor(layer, index * 59.81 + birthProgress * 443.2);
 
   return {
-    x:
-      originX +
-      Math.cos(angleRad) * speed * travelTime +
-      0.5 * gravityX * ageSeconds * ageSeconds +
-      offsetX,
-    y:
-      originY +
-      Math.sin(angleRad) * speed * travelTime +
-      0.5 * gravityY * ageSeconds * ageSeconds +
-      offsetY,
+    x: originX + velocityX * travelTime + 0.5 * gravityX * ageSeconds * ageSeconds + offsetX,
+    y: originY + velocityY * travelTime + 0.5 * gravityY * ageSeconds * ageSeconds + offsetY,
     size,
     alpha,
     rotationDeg,
+    color,
   };
 }
 
@@ -404,19 +647,25 @@ function useLayerMetrics(
   layer: EffectLayer,
   progress: SharedValue<number>,
 ): SharedLayerMetrics {
+  const layerProgress = useDerivedValue(
+    () => resolveLayerTimelineProgress(asset, instance, layer, progress.value) ?? 1,
+  );
+  const layerVisible = useDerivedValue(() =>
+    resolveLayerTimelineProgress(asset, instance, layer, progress.value) == null ? 0 : 1,
+  );
   const x = useDerivedValue(() => {
-    const base = sampleMotionPosition(asset, instance, progress.value);
-    return base.x + sampleLayerTrack(layer, 'x', progress.value, 0);
+    const base = sampleMotionPosition(asset, instance, layerProgress.value);
+    return base.x + sampleLayerTrack(layer, 'x', layerProgress.value, 0);
   });
 
   const y = useDerivedValue(() => {
-    const base = sampleMotionPosition(asset, instance, progress.value);
-    return base.y + sampleLayerTrack(layer, 'y', progress.value, 0);
+    const base = sampleMotionPosition(asset, instance, layerProgress.value);
+    return base.y + sampleLayerTrack(layer, 'y', layerProgress.value, 0);
   });
 
-  const scale = useDerivedValue(() => sampleLayerTrack(layer, 'scale', progress.value, 1));
+  const scale = useDerivedValue(() => sampleLayerTrack(layer, 'scale', layerProgress.value, 1));
   const alpha = useDerivedValue(() =>
-    Math.max(0, sampleLayerTrack(layer, 'alpha', progress.value, 1)),
+    Math.max(0, layerVisible.value * sampleLayerTrack(layer, 'alpha', layerProgress.value, 1)),
   );
 
   return { x, y, scale, alpha };
@@ -439,8 +688,9 @@ function useParticleMetrics(
   const size = useDerivedValue(() => state.value.size);
   const alpha = useDerivedValue(() => state.value.alpha);
   const rotationDeg = useDerivedValue(() => state.value.rotationDeg);
+  const color = useDerivedValue(() => state.value.color ?? '');
 
-  return { x, y, size, alpha, rotationDeg };
+  return { x, y, size, alpha, rotationDeg, color };
 }
 
 const OrbPrimitiveSkia = ({
@@ -455,7 +705,10 @@ const OrbPrimitiveSkia = ({
   progress: SharedValue<number>;
 }) => {
   const { x, y, scale, alpha } = useLayerMetrics(asset, instance, layer, progress);
-  const glow = useDerivedValue(() => sampleLayerTrack(layer, 'glow', progress.value, 0));
+  const layerProgress = useDerivedValue(
+    () => resolveLayerTimelineProgress(asset, instance, layer, progress.value) ?? 1,
+  );
+  const glow = useDerivedValue(() => sampleLayerTrack(layer, 'glow', layerProgress.value, 0));
   const glowRadius = useDerivedValue(
     () => layer.radius * scale.value * (layer.glowScale ?? 2.3) * (1 + glow.value * 0.45),
   );
@@ -648,6 +901,7 @@ const SpriteNodeSkia = ({
   height,
   opacity,
   tintColor,
+  tintColorValue,
   rotationDeg,
   imageOverride,
 }: {
@@ -658,6 +912,7 @@ const SpriteNodeSkia = ({
   height: SharedValue<number>;
   opacity: SharedValue<number>;
   tintColor?: string;
+  tintColorValue?: SharedValue<string>;
   rotationDeg?: number;
   imageOverride?: SkImage | null;
 }) => {
@@ -676,7 +931,11 @@ const SpriteNodeSkia = ({
   return (
     <Group origin={origin} transform={[{ rotate: rotationRad }]} opacity={opacity}>
       <SkiaImage image={image} x={left} y={top} width={width} height={height} fit="fill">
-        {tintColor ? <BlendColor color={tintColor} mode="srcIn" /> : null}
+        {tintColorValue ? (
+          <BlendColor color={tintColorValue} mode="srcIn" />
+        ) : tintColor ? (
+          <BlendColor color={tintColor} mode="srcIn" />
+        ) : null}
       </SkiaImage>
     </Group>
   );
@@ -728,7 +987,7 @@ const ParticleOrbNodeSkia = ({
   elapsedMs: SharedValue<number>;
   index: number;
 }) => {
-  const { x, y, size, alpha } = useParticleMetrics(
+  const { x, y, size, alpha, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -738,7 +997,7 @@ const ParticleOrbNodeSkia = ({
   );
   const radius = useDerivedValue(() => Math.max(0.5, size.value / 2));
 
-  return <Circle cx={x} cy={y} r={radius} color={layer.color} opacity={alpha} />;
+  return <Circle cx={x} cy={y} r={radius} color={color} opacity={alpha} />;
 };
 
 const ParticleRingNodeSkia = ({
@@ -756,7 +1015,7 @@ const ParticleRingNodeSkia = ({
   elapsedMs: SharedValue<number>;
   index: number;
 }) => {
-  const { x, y, size, alpha } = useParticleMetrics(
+  const { x, y, size, alpha, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -772,7 +1031,7 @@ const ParticleRingNodeSkia = ({
       cx={x}
       cy={y}
       r={radius}
-      color={layer.color}
+      color={color}
       opacity={alpha}
       style="stroke"
       strokeWidth={strokeWidth}
@@ -795,7 +1054,7 @@ const ParticleStreakNodeSkia = ({
   elapsedMs: SharedValue<number>;
   index: number;
 }) => {
-  const { x, y, size, alpha, rotationDeg } = useParticleMetrics(
+  const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -816,7 +1075,7 @@ const ParticleStreakNodeSkia = ({
   return (
     <Path
       path={path}
-      color={layer.color}
+      color={color}
       opacity={alpha}
       style="stroke"
       strokeWidth={strokeWidth}
@@ -840,7 +1099,7 @@ const ParticleDiamondNodeSkia = ({
   elapsedMs: SharedValue<number>;
   index: number;
 }) => {
-  const { x, y, size, alpha, rotationDeg } = useParticleMetrics(
+  const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -864,7 +1123,7 @@ const ParticleDiamondNodeSkia = ({
     return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y} L ${points[2].x} ${points[2].y} L ${points[3].x} ${points[3].y} Z`;
   });
 
-  return <Path path={path} color={layer.color} opacity={alpha} />;
+  return <Path path={path} color={color} opacity={alpha} />;
 };
 
 const ParticleArcNodeSkia = ({
@@ -882,7 +1141,7 @@ const ParticleArcNodeSkia = ({
   elapsedMs: SharedValue<number>;
   index: number;
 }) => {
-  const { x, y, size, alpha, rotationDeg } = useParticleMetrics(
+  const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -905,7 +1164,7 @@ const ParticleArcNodeSkia = ({
   return (
     <Path
       path={path}
-      color={layer.color}
+      color={color}
       opacity={alpha}
       style="stroke"
       strokeWidth={strokeWidth}
@@ -929,7 +1188,7 @@ const ParticleStarburstNodeSkia = ({
   elapsedMs: SharedValue<number>;
   index: number;
 }) => {
-  const { x, y, size, alpha, rotationDeg } = useParticleMetrics(
+  const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -957,7 +1216,7 @@ const ParticleStarburstNodeSkia = ({
       .concat(' Z');
   });
 
-  return <Path path={path} color={layer.color} opacity={alpha} />;
+  return <Path path={path} color={color} opacity={alpha} />;
 };
 
 const ParticleSpriteNodeSkia = ({
@@ -977,7 +1236,7 @@ const ParticleSpriteNodeSkia = ({
   index: number;
   spriteImageCache?: Partial<Record<string, SkImage>>;
 }) => {
-  const { x, y, size, alpha } = useParticleMetrics(
+  const { x, y, size, alpha, color } = useParticleMetrics(
     asset,
     instance,
     layer,
@@ -994,7 +1253,14 @@ const ParticleSpriteNodeSkia = ({
       width={size}
       height={size}
       opacity={alpha}
-      tintColor={layer.tintColor}
+      tintColor={
+        !((layer.tintColor ?? '').trim() || (layer.tintColor2 ?? '').trim())
+          ? layer.tintColor
+          : undefined
+      }
+      tintColorValue={
+        (layer.tintColor ?? '').trim() || (layer.tintColor2 ?? '').trim() ? color : undefined
+      }
       imageOverride={layer.spriteId ? spriteImageCache?.[layer.spriteId] : undefined}
     />
   );
@@ -1149,8 +1415,14 @@ function useTrailSegmentMetrics(
   progress: SharedValue<number>,
   index: number,
 ): TrailSegmentMetrics {
+  const layerProgress = useDerivedValue(
+    () => resolveLayerTimelineProgress(asset, instance, layer, progress.value) ?? 1,
+  );
+  const layerVisible = useDerivedValue(() =>
+    resolveLayerTimelineProgress(asset, instance, layer, progress.value) == null ? 0 : 1,
+  );
   const segmentProgress = useDerivedValue(() =>
-    Math.max(0, progress.value - index * layer.spacing),
+    Math.max(0, layerProgress.value - index * layer.spacing),
   );
   const x = useDerivedValue(() => {
     const base = sampleMotionPosition(asset, instance, segmentProgress.value);
@@ -1165,7 +1437,7 @@ function useTrailSegmentMetrics(
   const opacity = useDerivedValue(() => {
     const alpha = sampleLayerTrack(layer, 'alpha', segmentProgress.value, 1);
     const falloff = layer.falloff ?? 0.1;
-    return Math.max(0, alpha * (0.65 - index * (falloff * 0.9)));
+    return Math.max(0, layerVisible.value * alpha * (0.65 - index * (falloff * 0.9)));
   });
 
   return { x, y, scale, sizeFactor, opacity };

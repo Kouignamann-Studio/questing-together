@@ -6,6 +6,8 @@ const DEMO_EFFECTS = {
   'fireball-impact': '../../src/features/vfx/assets/effects/fireball-impact.json',
   'frostbolt-travel': '../../src/features/vfx/assets/effects/frostbolt-travel.json',
   'frostbolt-impact': '../../src/features/vfx/assets/effects/frostbolt-impact.json',
+  'Stars Travel': '../../src/features/vfx/assets/effects/stars-travel.json',
+  'stars-impact': '../../src/features/vfx/assets/effects/stars-impact.json',
 };
 
 const STARTER_SEQUENCE = {
@@ -23,6 +25,32 @@ const STARTER_SEQUENCE = {
     { id: 'impact', assetId: 'fireball-impact', atMs: 1240, anchor: 'target' },
   ],
 };
+
+const TRAIL_STYLE_OPTIONS = [
+  { value: 'fill', label: 'Filled Circles' },
+  { value: 'ring', label: 'Outlined Circles' },
+  { value: 'streak', label: 'Streaks' },
+  { value: 'diamond', label: 'Diamonds' },
+  { value: 'arc', label: 'Arcs' },
+  { value: 'starburst', label: 'Starbursts' },
+  { value: 'sprite', label: 'Sprites' },
+];
+
+const PARTICLE_RENDER_OPTIONS = [
+  { value: 'orb', label: 'Orb' },
+  { value: 'ring', label: 'Ring' },
+  { value: 'streak', label: 'Streak' },
+  { value: 'diamond', label: 'Diamond' },
+  { value: 'arc', label: 'Arc' },
+  { value: 'starburst', label: 'Starburst' },
+  { value: 'sprite', label: 'Sprite' },
+];
+
+const PARTICLE_EMITTER_SHAPE_OPTIONS = [
+  { value: 'point', label: 'None (single point)' },
+  { value: 'circle', label: 'Circle' },
+  { value: 'rectangle', label: 'Rectangle' },
+];
 
 const SPRITE_MANIFEST_PATH = '../../src/features/vfx/assets/sprites/manifest.json';
 const SPRITE_EDITOR_BASE_PATH = '../../src/features/vfx/assets/sprites';
@@ -140,6 +168,9 @@ const state = {
   redoStack: [],
   historyGestureSnapshot: null,
 };
+
+const loadedSpritePreviewSrcs = new Set();
+const spritePreviewLoadPromises = new Map();
 
 function createPreviewInstance() {
   return {
@@ -278,6 +309,73 @@ function titleCaseFromId(value) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function parseColorToRgba(color) {
+  if (typeof color !== 'string') return null;
+
+  const value = color.trim();
+  if (!value) return null;
+
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    if (hex.length === 3 || hex.length === 4) {
+      const expanded = hex
+        .split('')
+        .map((part) => part + part)
+        .join('');
+      const red = Number.parseInt(expanded.slice(0, 2), 16);
+      const green = Number.parseInt(expanded.slice(2, 4), 16);
+      const blue = Number.parseInt(expanded.slice(4, 6), 16);
+      const alpha =
+        expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
+      return { red, green, blue, alpha };
+    }
+
+    if (hex.length === 6 || hex.length === 8) {
+      const red = Number.parseInt(hex.slice(0, 2), 16);
+      const green = Number.parseInt(hex.slice(2, 4), 16);
+      const blue = Number.parseInt(hex.slice(4, 6), 16);
+      const alpha = hex.length === 8 ? Number.parseInt(hex.slice(6, 8), 16) / 255 : 1;
+      return { red, green, blue, alpha };
+    }
+  }
+
+  const rgbMatch = value.match(
+    /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i,
+  );
+
+  if (rgbMatch) {
+    return {
+      red: clamp(Number(rgbMatch[1]), 0, 255),
+      green: clamp(Number(rgbMatch[2]), 0, 255),
+      blue: clamp(Number(rgbMatch[3]), 0, 255),
+      alpha: rgbMatch[4] == null ? 1 : clamp(Number(rgbMatch[4]), 0, 1),
+    };
+  }
+
+  return null;
+}
+
+function rgbaToCssColor({ red, green, blue, alpha = 1 }) {
+  const safeAlpha = clamp(alpha, 0, 1);
+  return `rgba(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)}, ${Number(safeAlpha.toFixed(3))})`;
+}
+
+function mixColors(colorA, colorB, amount) {
+  const start = parseColorToRgba(colorA);
+  const end = parseColorToRgba(colorB);
+
+  if (start && end) {
+    return rgbaToCssColor({
+      red: lerp(start.red, end.red, amount),
+      green: lerp(start.green, end.green, amount),
+      blue: lerp(start.blue, end.blue, amount),
+      alpha: lerp(start.alpha, end.alpha, amount),
+    });
+  }
+
+  return amount < 0.5 ? colorA : colorB;
 }
 
 function getRegistryImportName(prefix, value, suffix = 'Data', usedNames = new Set()) {
@@ -849,6 +947,65 @@ function buildSpriteLibraryFromManifest(entries) {
   );
 }
 
+function preloadSpritePreviewSrc(src) {
+  if (!src) {
+    return Promise.resolve(false);
+  }
+
+  if (loadedSpritePreviewSrcs.has(src)) {
+    return Promise.resolve(true);
+  }
+
+  if (spritePreviewLoadPromises.has(src)) {
+    return spritePreviewLoadPromises.get(src);
+  }
+
+  const promise = new Promise((resolve) => {
+    const image = new window.Image();
+    image.onload = () => {
+      loadedSpritePreviewSrcs.add(src);
+      spritePreviewLoadPromises.delete(src);
+      resolve(true);
+    };
+    image.onerror = () => {
+      spritePreviewLoadPromises.delete(src);
+      resolve(false);
+    };
+    image.src = src;
+  });
+
+  spritePreviewLoadPromises.set(src, promise);
+  return promise;
+}
+
+async function loadSpriteManifestFromRepoHandle() {
+  if (!state.repoRootHandle) {
+    return [];
+  }
+
+  try {
+    const hasPermission = await ensureHandlePermission(state.repoRootHandle, false);
+    if (!hasPermission) {
+      return [];
+    }
+
+    const spritesDirHandle = await getDirectoryHandle(state.repoRootHandle, [
+      'src',
+      'features',
+      'vfx',
+      'assets',
+      'sprites',
+    ]);
+    const manifestHandle = await spritesDirHandle.getFileHandle('manifest.json');
+    const manifestFile = await manifestHandle.getFile();
+    const manifest = JSON.parse(await manifestFile.text());
+    return Array.isArray(manifest?.sprites) ? manifest.sprites : [];
+  } catch (error) {
+    console.warn('Could not load sprite manifest from the linked repo root.', error);
+    return [];
+  }
+}
+
 async function loadSpriteManifest() {
   try {
     const response = await fetch(SPRITE_MANIFEST_PATH, { cache: 'no-store' });
@@ -859,9 +1016,16 @@ async function loadSpriteManifest() {
     const manifest = await response.json();
     const entries = Array.isArray(manifest?.sprites) ? manifest.sprites : [];
     state.spriteLibrary = buildSpriteLibraryFromManifest(entries);
+    await Promise.all(
+      Object.values(state.spriteLibrary).map((sprite) => preloadSpritePreviewSrc(sprite.src)),
+    );
   } catch (error) {
-    console.error('Could not load sprite manifest', error);
-    state.spriteLibrary = {};
+    console.warn('Could not load sprite manifest from fetch.', error);
+    const entries = await loadSpriteManifestFromRepoHandle();
+    state.spriteLibrary = buildSpriteLibraryFromManifest(entries);
+    await Promise.all(
+      Object.values(state.spriteLibrary).map((sprite) => preloadSpritePreviewSrc(sprite.src)),
+    );
   }
 }
 
@@ -879,6 +1043,82 @@ function getSpriteDefinition(spriteId) {
 
 function getSpritePreviewSrc(spriteId) {
   return getSpriteDefinition(spriteId)?.src ?? '';
+}
+
+function normalizeParticleRenderer(renderer) {
+  return PARTICLE_RENDER_OPTIONS.some((option) => option.value === renderer) ? renderer : 'orb';
+}
+
+function normalizeParticleEmitterShape(shape) {
+  return PARTICLE_EMITTER_SHAPE_OPTIONS.some((option) => option.value === shape) ? shape : 'point';
+}
+
+function getDefaultParticleRotationDeg(renderer) {
+  return renderer === 'arc' || renderer === 'starburst' ? -90 : 0;
+}
+
+function hasDynamicTrack(trackMap, name) {
+  return Array.isArray(trackMap?.[name]) && trackMap[name].length > 0;
+}
+
+function normalizeMinMaxPair(minValue, maxValue) {
+  if (!Number.isFinite(Number(maxValue))) {
+    return {
+      min: minValue,
+      max: undefined,
+    };
+  }
+
+  const resolvedMax = Number(maxValue);
+  if (resolvedMax < minValue) {
+    return {
+      min: resolvedMax,
+      max: minValue,
+    };
+  }
+
+  return {
+    min: minValue,
+    max: resolvedMax,
+  };
+}
+
+function buildLegacyParticleScaleTrack(layer) {
+  const startSize = Number.isFinite(Number(layer.startSize)) ? Number(layer.startSize) : 18;
+  const endSize = Number.isFinite(Number(layer.endSize)) ? Number(layer.endSize) : startSize;
+  const endScale = Math.abs(startSize) > 0.001 ? endSize / startSize : 1;
+
+  return normalizeTrack([
+    { at: 0, value: 1 },
+    { at: 1, value: endScale },
+  ]);
+}
+
+function buildLegacyParticleAlphaTrack(layer) {
+  const startAlpha = Number.isFinite(Number(layer.startAlpha)) ? Number(layer.startAlpha) : 1;
+  const endAlpha = Number.isFinite(Number(layer.endAlpha)) ? Number(layer.endAlpha) : 0;
+
+  return normalizeTrack([
+    { at: 0, value: startAlpha },
+    { at: 1, value: endAlpha },
+  ]);
+}
+
+function normalizeLooseTrackMap(trackMap) {
+  if (!trackMap || typeof trackMap !== 'object' || Array.isArray(trackMap)) {
+    return undefined;
+  }
+
+  const normalized = {};
+
+  for (const [key, value] of Object.entries(trackMap)) {
+    const nextTrack = normalizeTrack(value);
+    if (nextTrack.length > 0) {
+      normalized[key] = nextTrack;
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
 function ensureMotion(asset) {
@@ -905,7 +1145,7 @@ function normalizeTrack(track) {
 }
 
 function applyTrailStyleDefaults(layer) {
-  const style = ['fill', 'ring', 'streak', 'diamond', 'arc', 'starburst', 'sprite'].includes(layer.style)
+  const style = TRAIL_STYLE_OPTIONS.some((option) => option.value === layer.style)
     ? layer.style
     : 'fill';
   layer.style = style;
@@ -987,13 +1227,129 @@ function normalizeAsset(rawAsset) {
   asset.layers = asset.layers.map((rawLayer, index) => {
     const layer = cloneData(rawLayer ?? {});
     layer.id = typeof layer.id === 'string' ? layer.id : `layer-${index + 1}`;
-    layer.type = ['orb', 'ring', 'trail', 'streak', 'diamond', 'arc', 'starburst', 'sprite'].includes(layer.type)
+    layer.type = [
+      'orb',
+      'ring',
+      'trail',
+      'streak',
+      'diamond',
+      'arc',
+      'starburst',
+      'sprite',
+      'particleEmitter',
+    ].includes(layer.type)
       ? layer.type
       : 'orb';
+    layer.layerLifetimeMs = Number.isFinite(Number(layer.layerLifetimeMs))
+      ? Math.max(1, Number(layer.layerLifetimeMs))
+      : undefined;
     layer.tracks = typeof layer.tracks === 'object' && layer.tracks ? layer.tracks : {};
 
     for (const trackName of Object.keys(layer.tracks)) {
       layer.tracks[trackName] = normalizeTrack(layer.tracks[trackName]);
+    }
+
+    if (layer.type === 'particleEmitter') {
+      layer.renderer = normalizeParticleRenderer(layer.renderer);
+      layer.color = typeof layer.color === 'string' ? layer.color : '#ffffff';
+      layer.color2 = typeof layer.color2 === 'string' ? layer.color2 : undefined;
+      layer.spriteId =
+        typeof layer.spriteId === 'string' && hasSpriteDefinition(layer.spriteId)
+          ? layer.spriteId
+          : getDefaultSpriteId();
+      layer.tintColor = typeof layer.tintColor === 'string' ? layer.tintColor : undefined;
+      layer.tintColor2 = typeof layer.tintColor2 === 'string' ? layer.tintColor2 : undefined;
+      layer.maxParticles = Number.isFinite(Number(layer.maxParticles))
+        ? Math.max(1, Math.round(Number(layer.maxParticles)))
+        : 36;
+      layer.emissionRate = Number.isFinite(Number(layer.emissionRate))
+        ? Math.max(0, Number(layer.emissionRate))
+        : 18;
+      layer.burstCount = Number.isFinite(Number(layer.burstCount))
+        ? Math.max(0, Math.round(Number(layer.burstCount)))
+        : undefined;
+      layer.particleLifetimeMs = Number.isFinite(Number(layer.particleLifetimeMs))
+        ? Math.max(1, Number(layer.particleLifetimeMs))
+        : 420;
+      layer.particleLifetimeMaxMs = Number.isFinite(Number(layer.particleLifetimeMaxMs))
+        ? Math.max(1, Number(layer.particleLifetimeMaxMs))
+        : undefined;
+      layer.speed = Number.isFinite(Number(layer.speed)) ? Number(layer.speed) : 120;
+      layer.speedMax = Number.isFinite(Number(layer.speedMax)) ? Number(layer.speedMax) : undefined;
+      layer.speedJitter = Number.isFinite(Number(layer.speedJitter))
+        ? Number(layer.speedJitter)
+        : undefined;
+      layer.velocityX = Number.isFinite(Number(layer.velocityX)) ? Number(layer.velocityX) : undefined;
+      layer.velocityY = Number.isFinite(Number(layer.velocityY)) ? Number(layer.velocityY) : undefined;
+      layer.spreadDeg = Number.isFinite(Number(layer.spreadDeg)) ? Number(layer.spreadDeg) : 45;
+      layer.directionDeg = Number.isFinite(Number(layer.directionDeg))
+        ? Number(layer.directionDeg)
+        : undefined;
+      layer.startSize = Number.isFinite(Number(layer.startSize)) ? Number(layer.startSize) : 18;
+      layer.startSizeMax = Number.isFinite(Number(layer.startSizeMax))
+        ? Number(layer.startSizeMax)
+        : undefined;
+      layer.emitterShape = normalizeParticleEmitterShape(layer.emitterShape);
+      layer.emitterRadius = Number.isFinite(Number(layer.emitterRadius))
+        ? Math.max(0, Number(layer.emitterRadius))
+        : 24;
+      layer.emitterWidth = Number.isFinite(Number(layer.emitterWidth))
+        ? Math.max(0, Number(layer.emitterWidth))
+        : 48;
+      layer.emitterHeight = Number.isFinite(Number(layer.emitterHeight))
+        ? Math.max(0, Number(layer.emitterHeight))
+        : 48;
+      layer.endSize = Number.isFinite(Number(layer.endSize)) ? Number(layer.endSize) : undefined;
+      layer.startAlpha = Number.isFinite(Number(layer.startAlpha))
+        ? Number(layer.startAlpha)
+        : undefined;
+      layer.endAlpha = Number.isFinite(Number(layer.endAlpha)) ? Number(layer.endAlpha) : undefined;
+      layer.gravityX = Number.isFinite(Number(layer.gravityX)) ? Number(layer.gravityX) : undefined;
+      layer.gravityY = Number.isFinite(Number(layer.gravityY)) ? Number(layer.gravityY) : undefined;
+      layer.drag = Number.isFinite(Number(layer.drag)) ? Number(layer.drag) : undefined;
+      layer.rotationDeg = Number.isFinite(Number(layer.rotationDeg))
+        ? Number(layer.rotationDeg)
+        : undefined;
+      layer.rotationOverLifetimeDeg = Number.isFinite(Number(layer.rotationOverLifetimeDeg))
+        ? Number(layer.rotationOverLifetimeDeg)
+        : Number.isFinite(Number(layer.spinDeg))
+          ? Number(layer.spinDeg) *
+            ((Number(layer.particleLifetimeMaxMs ?? layer.particleLifetimeMs) || 0) / 1000)
+          : undefined;
+      layer.spinDeg = Number.isFinite(Number(layer.spinDeg)) ? Number(layer.spinDeg) : undefined;
+      layer.emitterTracks = normalizeLooseTrackMap(layer.emitterTracks) ?? {};
+      layer.particleTracks = normalizeLooseTrackMap(layer.particleTracks) ?? {};
+      {
+        const lifetimeRange = normalizeMinMaxPair(
+          layer.particleLifetimeMs,
+          layer.particleLifetimeMaxMs,
+        );
+        layer.particleLifetimeMs = lifetimeRange.min;
+        layer.particleLifetimeMaxMs = lifetimeRange.max;
+      }
+      {
+        const speedRange = normalizeMinMaxPair(layer.speed, layer.speedMax);
+        layer.speed = speedRange.min;
+        layer.speedMax = speedRange.max;
+      }
+      {
+        const sizeRange = normalizeMinMaxPair(layer.startSize, layer.startSizeMax);
+        layer.startSize = sizeRange.min;
+        layer.startSizeMax = sizeRange.max;
+      }
+
+      if (!hasDynamicTrack(layer.particleTracks, 'scale')) {
+        layer.particleTracks.scale = buildLegacyParticleScaleTrack(layer);
+      }
+
+      if (!hasDynamicTrack(layer.particleTracks, 'alpha')) {
+        layer.particleTracks.alpha = buildLegacyParticleAlphaTrack(layer);
+      }
+
+      delete layer.endSize;
+      delete layer.startAlpha;
+      delete layer.endAlpha;
+      return layer;
     }
 
     if (layer.type === 'sprite') {
@@ -1353,9 +1709,12 @@ function renderCueInspector() {
 }
 
 function getTrackForSampling(asset, scope, trackName, layerId = '') {
-  return scope === 'motion'
-    ? asset.motion?.tracks?.[trackName]
-    : asset.layers.find((layer) => layer.id === layerId)?.tracks?.[trackName];
+  if (scope === 'motion') {
+    return asset.motion?.tracks?.[trackName];
+  }
+
+  const layer = asset.layers.find((item) => item.id === layerId);
+  return scope === 'particle' ? layer?.particleTracks?.[trackName] : layer?.tracks?.[trackName];
 }
 
 function sampleTrack(track, progress, fallback = 0) {
@@ -1393,6 +1752,25 @@ function sampleLayerTrack(asset, layer, trackName, progress, fallback = 0) {
   return sampleTrack(getTrackForSampling(asset, 'layer', trackName, layer.id), progress, fallback);
 }
 
+function resolveLayerTimelineProgress(asset, layer, progress) {
+  const lifetimeMs = Number.isFinite(Number(layer?.layerLifetimeMs))
+    ? Math.max(1, Number(layer.layerLifetimeMs))
+    : null;
+
+  if (!lifetimeMs) {
+    return clamp01(progress);
+  }
+
+  const effectDurationMs = Math.max(1, asset.durationMs);
+  const lifetimeProgress = Math.min(1, lifetimeMs / effectDurationMs);
+
+  if (progress > lifetimeProgress) {
+    return null;
+  }
+
+  return clamp01(progress / lifetimeProgress);
+}
+
 function motionUsesTarget(mode) {
   return mode === 'line' || mode === 'path';
 }
@@ -1425,6 +1803,324 @@ function sampleMotionPosition(asset, instance, progress) {
   return {
     x: instance.x,
     y: instance.y,
+  };
+}
+
+function sampleDynamicTrackValue(trackMap, name, progress, fallback = 0) {
+  return sampleTrack(trackMap?.[name], progress, fallback);
+}
+
+function fract(value) {
+  return value - Math.floor(value);
+}
+
+function random01(seed) {
+  return fract(Math.sin(seed * 12.9898 + 78.233) * 43758.5453123);
+}
+
+function randomSigned(seed) {
+  return random01(seed) * 2 - 1;
+}
+
+function sampleMotionHeadingDeg(asset, instance, progress) {
+  const current = sampleMotionPosition(asset, instance, progress);
+  const next = sampleMotionPosition(asset, instance, Math.min(1, progress + 0.01));
+  const dx = next.x - current.x;
+  const dy = next.y - current.y;
+
+  if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
+    return (Math.atan2(dy, dx) * 180) / Math.PI;
+  }
+
+  return -90;
+}
+
+function resolveParticleBirthProgress(layer, effectDurationMs, index) {
+  const maxParticles = Math.max(1, Math.round(layer.maxParticles));
+  const burstCount = Math.min(maxParticles, Math.max(0, Math.round(layer.burstCount ?? 0)));
+  const durationSeconds = effectDurationMs / 1000;
+  const continuousCapacity = Math.max(0, maxParticles - burstCount);
+  const continuousCount =
+    layer.emissionRate > 0
+      ? Math.min(continuousCapacity, Math.max(1, Math.ceil(durationSeconds * layer.emissionRate)))
+      : 0;
+
+  if (index < burstCount) {
+    const burstWindow = burstCount > 1 ? Math.min(0.08, Math.max(0.015, burstCount * 0.01)) : 0;
+    return burstCount === 1 ? 0 : (index / Math.max(1, burstCount - 1)) * burstWindow;
+  }
+
+  const continuousIndex = index - burstCount;
+  if (continuousIndex < 0 || continuousIndex >= continuousCount) {
+    return null;
+  }
+
+  const continuousStart = burstCount > 0 ? Math.min(0.14, Math.max(0.02, burstCount * 0.012)) : 0;
+  return continuousCount === 1
+    ? continuousStart
+    : continuousStart + (continuousIndex / continuousCount) * (1 - continuousStart);
+}
+
+function sampleParticleTrackValue(asset, layer, name, progress, fallback = 0) {
+  return sampleTrack(getTrackForSampling(asset, 'particle', name, layer.id), progress, fallback);
+}
+
+function sampleRandomRange(minValue, maxValue, seed) {
+  const low = Math.min(minValue, maxValue);
+  const high = Math.max(minValue, maxValue);
+  return low === high ? low : lerp(low, high, random01(seed));
+}
+
+function getParticleColorRange(layer) {
+  if (normalizeParticleRenderer(layer.renderer) === 'sprite') {
+    const firstTint = typeof layer.tintColor === 'string' ? layer.tintColor.trim() : '';
+    const secondTint = typeof layer.tintColor2 === 'string' ? layer.tintColor2.trim() : '';
+    const colorA = firstTint || secondTint || '';
+    const colorB = secondTint || firstTint || '';
+    return { colorA, colorB };
+  }
+
+  const firstColor =
+    typeof layer.color === 'string' && layer.color.trim() ? layer.color : '#ffffff';
+  const secondColor =
+    typeof layer.color2 === 'string' && layer.color2.trim() ? layer.color2 : firstColor;
+  return {
+    colorA: firstColor,
+    colorB: secondColor,
+  };
+}
+
+function sampleParticleRenderColor(layer, seed) {
+  const { colorA, colorB } = getParticleColorRange(layer);
+
+  if (!colorA && !colorB) {
+    return '';
+  }
+
+  if (colorA === colorB) {
+    return colorA;
+  }
+
+  return mixColors(colorA, colorB, random01(seed));
+}
+
+function sampleEmitterShapeOffset(layer, seed) {
+  const shape = normalizeParticleEmitterShape(layer.emitterShape);
+
+  if (shape === 'circle') {
+    const radius = Math.max(0, layer.emitterRadius ?? 24) * Math.sqrt(random01(seed + 13.7));
+    const angle = random01(seed + 91.3) * Math.PI * 2;
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    };
+  }
+
+  if (shape === 'rectangle') {
+    return {
+      x: randomSigned(seed + 17.1) * Math.max(0, layer.emitterWidth ?? 48) * 0.5,
+      y: randomSigned(seed + 43.9) * Math.max(0, layer.emitterHeight ?? 48) * 0.5,
+    };
+  }
+
+  return { x: 0, y: 0 };
+}
+
+function sampleParticleEmitterState(asset, instance, layer, progress, index) {
+  const effectDurationMs = Math.max(1, asset.durationMs);
+  const birthProgress = resolveParticleBirthProgress(layer, effectDurationMs, index);
+  const defaultRotationDeg = getDefaultParticleRotationDeg(layer.renderer);
+  const defaultColor = sampleParticleRenderColor(layer, index * 73.17 + 1.9);
+
+  if (birthProgress == null) {
+    return {
+      x: instance.x,
+      y: instance.y,
+      size: 0,
+      alpha: 0,
+      rotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      color: defaultColor,
+    };
+  }
+
+  const lifetimeMinMs = Math.max(
+    1,
+    sampleDynamicTrackValue(
+      layer.emitterTracks,
+      'particleLifetimeMs',
+      birthProgress,
+      layer.particleLifetimeMs,
+    ),
+  );
+  const lifetimeMs = Math.max(
+    1,
+    sampleRandomRange(
+      lifetimeMinMs,
+      layer.particleLifetimeMaxMs ?? lifetimeMinMs,
+      index * 19.73 + birthProgress * 541.7,
+    ),
+  );
+  const lifetimeProgress = Math.max(0.001, lifetimeMs / effectDurationMs);
+  const ageProgress = progress - birthProgress;
+
+  if (ageProgress < 0 || ageProgress > lifetimeProgress) {
+    return {
+      x: instance.x,
+      y: instance.y,
+      size: 0,
+      alpha: 0,
+      rotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      color: defaultColor,
+    };
+  }
+
+  const lifeProgress = clamp01(ageProgress / lifetimeProgress);
+  const ageSeconds = (ageProgress * effectDurationMs) / 1000;
+  const origin = sampleMotionPosition(asset, instance, birthProgress);
+  const emitterOffset = sampleEmitterShapeOffset(layer, index * 47.19 + birthProgress * 683.5);
+  const originX = origin.x + sampleLayerTrack(asset, layer, 'x', birthProgress, 0) + emitterOffset.x;
+  const originY = origin.y + sampleLayerTrack(asset, layer, 'y', birthProgress, 0) + emitterOffset.y;
+  const motionMode = asset.motion?.mode ?? 'fixed';
+  const hasVelocityOverride =
+    Number.isFinite(Number(layer.velocityX)) ||
+    Number.isFinite(Number(layer.velocityY)) ||
+    hasDynamicTrack(layer.emitterTracks, 'velocityX') ||
+    hasDynamicTrack(layer.emitterTracks, 'velocityY');
+  const hasDirectionOverride =
+    Number.isFinite(Number(layer.directionDeg)) ||
+    hasDynamicTrack(layer.emitterTracks, 'directionDeg');
+  const directionDeg = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'directionDeg',
+    birthProgress,
+    layer.directionDeg ??
+      (motionMode === 'fixed' ? 0 : sampleMotionHeadingDeg(asset, instance, birthProgress)),
+  );
+  const spreadDeg = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'spreadDeg',
+    birthProgress,
+    !hasVelocityOverride && motionMode === 'fixed' && !hasDirectionOverride ? 360 : layer.spreadDeg,
+  );
+  const speedMin = sampleDynamicTrackValue(layer.emitterTracks, 'speed', birthProgress, layer.speed);
+  const speedRangeSeed = index * 37.11 + birthProgress * 997.1;
+  const speedBase = sampleRandomRange(speedMin, layer.speedMax ?? speedMin, speedRangeSeed);
+  const speed = Math.max(
+    0,
+    speedBase +
+      (layer.speedMax == null
+        ? randomSigned(speedRangeSeed) *
+          sampleDynamicTrackValue(
+            layer.emitterTracks,
+            'speedJitter',
+            birthProgress,
+            layer.speedJitter ?? 0,
+          )
+        : 0),
+  );
+  const gravityX = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'gravityX',
+    birthProgress,
+    layer.gravityX ?? 0,
+  );
+  const gravityY = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'gravityY',
+    birthProgress,
+    layer.gravityY ?? 0,
+  );
+  const drag = Math.max(
+    0,
+    sampleDynamicTrackValue(layer.emitterTracks, 'drag', birthProgress, layer.drag ?? 0),
+  );
+  const angleRad =
+    ((directionDeg + randomSigned(index * 83.17 + 11.9) * spreadDeg * 0.5) * Math.PI) / 180;
+  const travelTime = drag > 0 ? (1 - Math.exp(-drag * ageSeconds)) / drag : ageSeconds;
+  const velocityX = hasVelocityOverride
+    ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityX', birthProgress, layer.velocityX ?? 0)
+    : Math.cos(angleRad) * speed;
+  const velocityY = hasVelocityOverride
+    ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityY', birthProgress, layer.velocityY ?? 0)
+    : Math.sin(angleRad) * speed;
+  const startSizeMin = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'startSize',
+    birthProgress,
+    layer.startSize,
+  );
+  const startSize = sampleRandomRange(
+    startSizeMin,
+    layer.startSizeMax ?? startSizeMin,
+    index * 61.23 + birthProgress * 719.4,
+  );
+  const startAlpha = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'startAlpha',
+    birthProgress,
+    layer.startAlpha ?? 1,
+  );
+  const endAlpha = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'endAlpha',
+    birthProgress,
+    layer.endAlpha ?? 0,
+  );
+  const hasScaleTrack = hasDynamicTrack(layer.particleTracks, 'scale');
+  const hasAlphaTrack = hasDynamicTrack(layer.particleTracks, 'alpha');
+  const legacyEndSize = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'endSize',
+    birthProgress,
+    layer.endSize ?? startSize,
+  );
+  const size = Math.max(
+    0.5,
+    hasScaleTrack
+      ? startSize * sampleParticleTrackValue(asset, layer, 'scale', lifeProgress, 1)
+      : lerp(startSize, legacyEndSize, lifeProgress),
+  );
+  const alpha = Math.max(
+    0,
+    sampleLayerTrack(asset, layer, 'alpha', progress, 1) *
+      (hasAlphaTrack
+        ? sampleParticleTrackValue(asset, layer, 'alpha', lifeProgress, 1)
+        : lerp(startAlpha, endAlpha, lifeProgress)),
+  );
+  const rotationDeg =
+    sampleDynamicTrackValue(
+      layer.emitterTracks,
+      'rotationDeg',
+      birthProgress,
+      layer.rotationDeg ?? defaultRotationDeg,
+    ) +
+    sampleDynamicTrackValue(
+      layer.emitterTracks,
+      'rotationOverLifetimeDeg',
+      birthProgress,
+      layer.rotationOverLifetimeDeg ?? 0,
+    ) *
+      lifeProgress +
+    sampleDynamicTrackValue(layer.emitterTracks, 'spinDeg', birthProgress, layer.spinDeg ?? 0) *
+      ageSeconds +
+    sampleParticleTrackValue(asset, layer, 'rotationDeg', lifeProgress, 0);
+  const color = sampleParticleRenderColor(layer, index * 59.81 + birthProgress * 443.2);
+
+  return {
+    x:
+      originX +
+      velocityX * travelTime +
+      0.5 * gravityX * ageSeconds * ageSeconds +
+      sampleParticleTrackValue(asset, layer, 'x', lifeProgress, 0),
+    y:
+      originY +
+      velocityY * travelTime +
+      0.5 * gravityY * ageSeconds * ageSeconds +
+      sampleParticleTrackValue(asset, layer, 'y', lifeProgress, 0),
+    size,
+    alpha,
+    rotationDeg,
+    color,
   };
 }
 
@@ -1620,35 +2316,49 @@ function renderStarburst(asset, instance, layer, progress) {
   `;
 }
 
-function renderSpriteNode(spriteId, x, y, width, height, opacity, tintColor = '', maskId = '') {
+function renderSpriteNode(
+  spriteId,
+  x,
+  y,
+  width,
+  height,
+  opacity,
+  tintColor = '',
+  maskId = '',
+  rotationDeg = 0,
+) {
   const href = getSpritePreviewSrc(spriteId);
   if (!href) return '';
+  const transform = `rotate(${rotationDeg} ${x} ${y})`;
 
   if (tintColor) {
-    const resolvedMaskId =
-      maskId || `sprite-mask-${Math.round(x)}-${Math.round(y)}-${Math.round(width)}-${Math.round(height)}`;
+    const resolvedFilterId =
+      maskId || `sprite-filter-${Math.round(x)}-${Math.round(y)}-${Math.round(width)}-${Math.round(height)}`;
     return `
       <defs>
-        <mask id="${escapeHtml(resolvedMaskId)}" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
-          <image
-            href="${escapeHtml(href)}"
-            x="${x - width / 2}"
-            y="${y - height / 2}"
-            width="${width}"
-            height="${height}"
-            preserveAspectRatio="xMidYMid meet"
-          ></image>
-        </mask>
+        <filter
+          id="${escapeHtml(resolvedFilterId)}"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+          color-interpolation-filters="sRGB"
+        >
+          <feFlood flood-color="${escapeHtml(tintColor)}" result="tint"></feFlood>
+          <feComposite in="tint" in2="SourceAlpha" operator="in" result="tintedAlpha"></feComposite>
+        </filter>
       </defs>
-      <rect
+      <image
+        href="${escapeHtml(href)}"
         x="${x - width / 2}"
         y="${y - height / 2}"
         width="${width}"
         height="${height}"
-        fill="${escapeHtml(tintColor)}"
         opacity="${opacity}"
-        mask="url(#${escapeHtml(resolvedMaskId)})"
-      ></rect>
+        filter="url(#${escapeHtml(resolvedFilterId)})"
+        preserveAspectRatio="xMidYMid meet"
+        transform="${transform}"
+      ></image>
     `;
   }
 
@@ -1661,6 +2371,7 @@ function renderSpriteNode(spriteId, x, y, width, height, opacity, tintColor = ''
       height="${height}"
       opacity="${opacity}"
       preserveAspectRatio="xMidYMid meet"
+      transform="${transform}"
     ></image>
   `;
 }
@@ -1835,17 +2546,176 @@ function renderTrail(asset, instance, layer, progress) {
   return svg;
 }
 
+function renderParticlePrimitive(layer, particle, index) {
+  const size = Math.max(1, particle.size);
+  const renderer = normalizeParticleRenderer(layer.renderer);
+  const particleColor =
+    particle.color || (renderer === 'sprite' ? layer.tintColor ?? '' : layer.color ?? '#ffffff');
+
+  if (renderer === 'sprite') {
+    return renderSpriteNode(
+      layer.spriteId,
+      particle.x,
+      particle.y,
+      size,
+      size,
+      particle.alpha,
+      particleColor,
+      `particle-sprite-mask-${escapeHtml(layer.id)}-${index}`,
+      particle.rotationDeg,
+    );
+  }
+
+  if (renderer === 'ring') {
+    return `
+      <circle
+        cx="${particle.x}"
+        cy="${particle.y}"
+        r="${Math.max(0.5, size / 2)}"
+        fill="transparent"
+        stroke="${escapeHtml(particleColor)}"
+        stroke-width="${Math.max(1, size * 0.12)}"
+        opacity="${particle.alpha}"
+      ></circle>
+    `;
+  }
+
+  if (renderer === 'streak') {
+    const width = size;
+    const height = Math.max(1, size * 0.28);
+    return `
+      <rect
+        x="${particle.x - width / 2}"
+        y="${particle.y - height / 2}"
+        width="${width}"
+        height="${height}"
+        rx="${height / 2}"
+        ry="${height / 2}"
+        fill="${escapeHtml(particleColor)}"
+        opacity="${particle.alpha}"
+        transform="rotate(${particle.rotationDeg} ${particle.x} ${particle.y})"
+      ></rect>
+    `;
+  }
+
+  if (renderer === 'diamond') {
+    const halfWidth = Math.max(1, size * 0.42);
+    const halfHeight = Math.max(1, size / 2);
+    const angle = (particle.rotationDeg * Math.PI) / 180;
+    const rotatePoint = (offsetX, offsetY) => ({
+      x: offsetX * Math.cos(angle) - offsetY * Math.sin(angle),
+      y: offsetX * Math.sin(angle) + offsetY * Math.cos(angle),
+    });
+    const points = [
+      rotatePoint(0, -halfHeight),
+      rotatePoint(halfWidth, 0),
+      rotatePoint(0, halfHeight),
+      rotatePoint(-halfWidth, 0),
+    ]
+      .map((point) => `${particle.x + point.x},${particle.y + point.y}`)
+      .join(' ');
+
+    return `
+      <polygon
+        points="${points}"
+        fill="${escapeHtml(particleColor)}"
+        opacity="${particle.alpha}"
+      ></polygon>
+    `;
+  }
+
+  if (renderer === 'arc') {
+    const radius = Math.max(1, size / 2);
+    const sweepDeg = 130;
+    const startAngle = particle.rotationDeg - sweepDeg / 2;
+    const endAngle = startAngle + sweepDeg;
+    const toPoint = (angleDeg) => {
+      const angle = (angleDeg * Math.PI) / 180;
+      return {
+        x: particle.x + radius * Math.cos(angle),
+        y: particle.y + radius * Math.sin(angle),
+      };
+    };
+    const start = toPoint(startAngle);
+    const end = toPoint(endAngle);
+    return `
+      <path
+        d="M ${start.x} ${start.y} A ${radius} ${radius} 0 ${sweepDeg > 180 ? 1 : 0} 1 ${end.x} ${end.y}"
+        fill="transparent"
+        stroke="${escapeHtml(particleColor)}"
+        stroke-width="${Math.max(1, size * 0.1)}"
+        stroke-linecap="round"
+        opacity="${particle.alpha}"
+      ></path>
+    `;
+  }
+
+  if (renderer === 'starburst') {
+    const innerRadius = Math.max(0.5, size * 0.21);
+    const outerRadius = Math.max(innerRadius + 0.5, size / 2);
+    const pointCount = 6;
+    const rotation = (particle.rotationDeg * Math.PI) / 180;
+    const points = Array.from({ length: pointCount * 2 }, (_, pointIndex) => {
+      const pointRadius = pointIndex % 2 === 0 ? outerRadius : innerRadius;
+      const angle = rotation + (Math.PI * pointIndex) / pointCount;
+      return `${particle.x + pointRadius * Math.cos(angle)},${particle.y + pointRadius * Math.sin(angle)}`;
+    }).join(' ');
+    return `
+      <polygon
+        points="${points}"
+        fill="${escapeHtml(particleColor)}"
+        opacity="${particle.alpha}"
+      ></polygon>
+    `;
+  }
+
+  return `
+    <circle
+      cx="${particle.x}"
+      cy="${particle.y}"
+      r="${Math.max(0.5, size / 2)}"
+      fill="${escapeHtml(particleColor)}"
+      opacity="${particle.alpha}"
+    ></circle>
+  `;
+}
+
+function renderParticleEmitter(asset, instance, layer, progress) {
+  const particleCount = Math.max(1, Math.round(layer.maxParticles));
+  let svg = '';
+
+  for (let index = 0; index < particleCount; index += 1) {
+    const particle = sampleParticleEmitterState(asset, instance, layer, progress, index);
+
+    if (particle.alpha <= 0 || particle.size <= 0.1) {
+      continue;
+    }
+
+    svg += renderParticlePrimitive(layer, particle, index);
+  }
+
+  return svg;
+}
+
 function renderEffectShapes(asset, instance, progress) {
   return asset.layers
     .map((layer) => {
-      if (layer.type === 'orb') return renderOrb(asset, instance, layer, progress);
-      if (layer.type === 'ring') return renderRing(asset, instance, layer, progress);
-      if (layer.type === 'streak') return renderStreak(asset, instance, layer, progress);
-      if (layer.type === 'diamond') return renderDiamond(asset, instance, layer, progress);
-      if (layer.type === 'arc') return renderArc(asset, instance, layer, progress);
-      if (layer.type === 'starburst') return renderStarburst(asset, instance, layer, progress);
-      if (layer.type === 'sprite') return renderSpriteLayer(asset, instance, layer, progress);
-      return renderTrail(asset, instance, layer, progress);
+      const layerProgress =
+        layer.type === 'particleEmitter' ? progress : resolveLayerTimelineProgress(asset, layer, progress);
+
+      if (layerProgress == null) {
+        return '';
+      }
+
+      if (layer.type === 'orb') return renderOrb(asset, instance, layer, layerProgress);
+      if (layer.type === 'ring') return renderRing(asset, instance, layer, layerProgress);
+      if (layer.type === 'streak') return renderStreak(asset, instance, layer, layerProgress);
+      if (layer.type === 'diamond') return renderDiamond(asset, instance, layer, layerProgress);
+      if (layer.type === 'arc') return renderArc(asset, instance, layer, layerProgress);
+      if (layer.type === 'starburst') return renderStarburst(asset, instance, layer, layerProgress);
+      if (layer.type === 'sprite') return renderSpriteLayer(asset, instance, layer, layerProgress);
+      if (layer.type === 'particleEmitter') return renderParticleEmitter(asset, instance, layer, progress);
+      return renderTrail(asset, instance, layer, layerProgress);
     })
     .join('');
 }
@@ -2660,8 +3530,8 @@ function wireEvents() {
 }
 
 async function init() {
-  await loadSpriteManifest();
   await restoreLinkedRepoRootHandle();
+  await loadSpriteManifest();
   const restoredSessionSource = await restorePersistedSequenceSessionFromSources();
   await refreshEffectAssets({ rerender: false });
   ensureSelection();

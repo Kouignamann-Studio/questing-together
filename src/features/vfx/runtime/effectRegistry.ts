@@ -4,6 +4,7 @@ import fireballTravelData from '@/features/vfx/assets/effects/fireball-travel.js
 import fireballTravelLeftData from '@/features/vfx/assets/effects/fireball-travel_left.json';
 import frostboltImpactData from '@/features/vfx/assets/effects/frostbolt-impact.json';
 import frostboltTravelData from '@/features/vfx/assets/effects/frostbolt-travel.json';
+import starsImpactData from '@/features/vfx/assets/effects/stars-impact.json';
 import starsTravelData from '@/features/vfx/assets/effects/stars-travel.json';
 import type { EffectAsset } from '@/features/vfx/types/assets';
 
@@ -14,6 +15,7 @@ const effectAssets = [
   fireballTravelLeftData,
   frostboltImpactData,
   frostboltTravelData,
+  starsImpactData,
   starsTravelData,
 ] as EffectAsset[];
 

@@ -1,0 +1,41 @@
+{
+  "sequence": {
+    "id": "Seq_fireball_test",
+    "label": "Seq_fireball_test",
+    "cues": [
+      {
+        "id": "Stars Travel-cue-1",
+        "assetId": "Stars Travel",
+        "atMs": 0,
+        "anchor": "projectile",
+        "targetAnchor": "target"
+      },
+      {
+        "id": "stars-impact-cue-2",
+        "assetId": "stars-impact",
+        "atMs": 720,
+        "anchor": "target",
+        "targetAnchor": "target"
+      }
+    ]
+  },
+  "selectedCueId": "stars-impact-cue-2",
+  "pendingAssetId": "fireball-impact",
+  "fileName": "fireball-cast_02.json",
+  "previewDevice": {
+    "preset": "free",
+    "showSafeArea": true
+  },
+  "previewViewport": {
+    "zoom": 0.892857142857143,
+    "centerX": 412.33000339187174,
+    "centerY": 192.71983910614532
+  },
+  "viewerHeight": 396,
+  "instance": {
+    "x": 137.1161450752062,
+    "y": 329.2019465782123,
+    "targetX": 360.91756768105176,
+    "targetY": 129.60838659217885
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "Seq_fireball_test",
+  "label": "Seq_fireball_test",
+  "cues": [
+    {
+      "id": "Stars Travel-cue-1",
+      "assetId": "Stars Travel",
+      "atMs": 0,
+      "anchor": "projectile",
+      "targetAnchor": "target"
+    },
+    {
+      "id": "stars-impact-cue-2",
+      "assetId": "stars-impact",
+      "atMs": 720,
+      "anchor": "target",
+      "targetAnchor": "target"
+    }
+  ]
+}

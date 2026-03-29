@@ -18,7 +18,10 @@ function getMaxParticleLifetimeMs(asset: EffectAsset) {
     }
 
     const trackedLifetimeMs = getTrackMaxValue(layer.emitterTracks, 'particleLifetimeMs');
-    maxLifetimeMs = Math.max(maxLifetimeMs, trackedLifetimeMs ?? layer.particleLifetimeMs ?? 0);
+    maxLifetimeMs = Math.max(
+      maxLifetimeMs,
+      trackedLifetimeMs ?? layer.particleLifetimeMaxMs ?? layer.particleLifetimeMs ?? 0,
+    );
   }
 
   return maxLifetimeMs;
