@@ -39,16 +39,12 @@ const CardHandGrid = ({
   // Reroll: show first 4 cards, reroll swaps to remaining cards
   const [rerolled, setRerolled] = useState(false);
 
-  // Track initial hand size for reroll visibility (persists across card plays)
-  const initialHandSizeRef = useRef(combatState.hand.length);
-
   // Reset optimistic state when hand actually changes (new turn)
   const prevHandRef = useRef(JSON.stringify(combatState.hand));
   useEffect(() => {
     const serialized = JSON.stringify(combatState.hand);
     if (serialized !== prevHandRef.current) {
       prevHandRef.current = serialized;
-      initialHandSizeRef.current = combatState.hand.length;
       setLocalPlayedIndices([]);
       setRerolled(false);
       setAttuneActive(false);
@@ -158,15 +154,19 @@ const CardHandGrid = ({
 
       {/* Card hand: 2x2 grid of visible cards */}
       {(() => {
-        // Filter out played cards, then split into visible (first 4) and hidden (rest)
+        // Filter out played cards, then rotate view on reroll
         const availableCards = combatState.hand
           .map((instance, idx) => ({ instance, idx }))
           .filter(({ idx }) => !localPlayedIndices.includes(idx));
 
-        // If rerolled, show the "back" cards (indices 4+), otherwise show front 4
-        const visibleCards = rerolled
-          ? availableCards.slice(VISIBLE_HAND_SIZE)
-          : availableCards.slice(0, VISIBLE_HAND_SIZE);
+        // Reroll rotates the visible window by VISIBLE_HAND_SIZE
+        const rotated = rerolled
+          ? [
+              ...availableCards.slice(VISIBLE_HAND_SIZE),
+              ...availableCards.slice(0, VISIBLE_HAND_SIZE),
+            ]
+          : availableCards;
+        const visibleCards = rotated.slice(0, VISIBLE_HAND_SIZE);
 
         return (
           <Stack gap={8}>
@@ -208,17 +208,12 @@ const CardHandGrid = ({
 
       {/* Bottom row: Reroll + End Turn + Convergence */}
       <Stack direction="row" gap={8}>
-        {initialHandSizeRef.current > VISIBLE_HAND_SIZE ? (
-          <ActionButton
-            label={rerolled ? 'Back' : 'Reroll'}
-            icon="🔄"
-            subtitle={
-              rerolled ? 'Show first 4' : `${initialHandSizeRef.current - VISIBLE_HAND_SIZE} more`
-            }
-            onPress={() => setRerolled((prev) => !prev)}
-            disabled={disabled}
-          />
-        ) : null}
+        <ActionButton
+          label={`Reroll (${rerolled ? 0 : 1})`}
+          icon="🔄"
+          onPress={() => setRerolled(true)}
+          disabled={disabled || rerolled || combatState.energy <= 0}
+        />
         <ActionButton
           label="End Turn"
           icon="⏭️"
