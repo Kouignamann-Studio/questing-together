@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -76,6 +76,8 @@ const CombatScreen = () => {
         hpMax: ecs.hpMax,
         attack: ecs.strength,
         isDead: ecs.isDead,
+        templateId: ecs.templateId,
+        intentIndex: ecs.intentIndex,
       })),
     [roomConnection.enemyCombatStates],
   );
@@ -96,6 +98,15 @@ const CombatScreen = () => {
 
   const localCombatState =
     roomConnection.playerCombatStates.find((pcs) => pcs.playerId === localPlayerId) ?? null;
+
+  // Late joiner: init combat state if missing
+  const initAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!localCombatState && combatTurn && !initAttemptedRef.current) {
+      initAttemptedRef.current = true;
+      void roomConnection.combatInitTurn();
+    }
+  }, [localCombatState, combatTurn, roomConnection.combatInitTurn]);
 
   // Find selected enemy index (position-based for deckbuilder)
   const aliveEnemies = mappedEnemies.filter((e) => !e.isDead);

@@ -39,13 +39,20 @@ const CardHandGrid = ({
   // Reroll: show first 4 cards, reroll swaps to remaining cards
   const [rerolled, setRerolled] = useState(false);
 
-  // Reset optimistic state when hand changes (new turn)
-  const prevHandRef = useRef(combatState.hand);
+  // Track initial hand size for reroll visibility (persists across card plays)
+  const initialHandSizeRef = useRef(combatState.hand.length);
+
+  // Reset optimistic state when hand actually changes (new turn)
+  const prevHandRef = useRef(JSON.stringify(combatState.hand));
   useEffect(() => {
-    if (combatState.hand !== prevHandRef.current) {
-      prevHandRef.current = combatState.hand;
+    const serialized = JSON.stringify(combatState.hand);
+    if (serialized !== prevHandRef.current) {
+      prevHandRef.current = serialized;
+      initialHandSizeRef.current = combatState.hand.length;
       setLocalPlayedIndices([]);
       setRerolled(false);
+      setAttuneActive(false);
+      setAttuneTargetTrait(null);
     }
   }, [combatState.hand]);
 
@@ -201,12 +208,12 @@ const CardHandGrid = ({
 
       {/* Bottom row: Reroll + End Turn + Convergence */}
       <Stack direction="row" gap={8}>
-        {combatState.hand.length > VISIBLE_HAND_SIZE ? (
+        {initialHandSizeRef.current > VISIBLE_HAND_SIZE ? (
           <ActionButton
             label={rerolled ? 'Back' : 'Reroll'}
             icon="🔄"
             subtitle={
-              rerolled ? 'Show first 4' : `${combatState.hand.length - VISIBLE_HAND_SIZE} more`
+              rerolled ? 'Show first 4' : `${initialHandSizeRef.current - VISIBLE_HAND_SIZE} more`
             }
             onPress={() => setRerolled((prev) => !prev)}
             disabled={disabled}

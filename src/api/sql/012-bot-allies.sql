@@ -73,10 +73,10 @@ begin
   values (v_room_id, 'p1', v_user_id, p_role_id, v_trimmed_name, false);
 
   v_base_hp := case p_role_id
-    when 'warrior' then 60
-    when 'ranger' then 50
-    when 'sage' then 40
-    else 50
+    when 'warrior' then 300
+    when 'ranger' then 250
+    when 'sage' then 200
+    else 250
   end;
 
   insert into public.characters (room_id, player_id, name, level, gold, exp, hp, hp_max)

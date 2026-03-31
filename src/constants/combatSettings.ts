@@ -1,6 +1,6 @@
 export const COMBAT = {
   // Player
-  baseHp: 80,
+  baseHp: 250,
   baseEnergy: 3,
 
   // Deck

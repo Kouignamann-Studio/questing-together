@@ -149,11 +149,12 @@ const RewardScreen = ({ onDone }: RewardScreenProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: must only fire once on mount
   useEffect(() => {
     void roomConnection.combatGenerateRewards().then((result) => {
       if (result) setRewards(result as RewardData);
     });
-  }, [roomConnection.combatGenerateRewards]);
+  }, []);
 
   const handleSelect = useCallback((opt: RewardOption) => {
     const id = opt.cardId ?? opt.id ?? opt.name;

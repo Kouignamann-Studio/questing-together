@@ -127,6 +127,7 @@ type UseRoomConnectionResult = {
   ) => Promise<unknown>;
   combatUseConvergence: (targetEnemyIdx?: number | null) => Promise<unknown>;
   combatEndTurn: () => Promise<unknown>;
+  combatInitTurn: () => Promise<unknown>;
   combatEnemyPhase: () => Promise<unknown>;
   combatBotTurn: (botPlayerId: PlayerId) => Promise<unknown>;
   combatGenerateRewards: () => Promise<unknown>;
@@ -888,6 +889,23 @@ export function useRoomConnection(): UseRoomConnectionResult {
     onError: (error) => setRoomError(getErrorMessage(error, 'End turn failed')),
   });
 
+  const combatInitTurnMutation = useMutation({
+    mutationFn: async () => {
+      if (!room?.id) throw new Error('No room');
+      const screenId = currentScreen?.id;
+      if (!screenId) throw new Error('No current screen');
+      const { error } = await supabase.rpc('combat_init_turn', {
+        p_room_id: room.id,
+        p_screen_id: screenId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      if (room?.id) void qc.invalidateQueries({ queryKey: roomKeys.roomState(room.id) });
+    },
+    onError: (error) => setRoomError(getErrorMessage(error, 'Combat init failed')),
+  });
+
   const combatEnemyPhaseMutation = useMutation({
     mutationFn: async () => {
       if (!room?.id) throw new Error('No room');
@@ -1115,6 +1133,11 @@ export function useRoomConnection(): UseRoomConnectionResult {
     return combatEndTurnMutation.mutateAsync();
   }, [combatEndTurnMutation]);
 
+  const combatInitTurn = useCallback(async () => {
+    setRoomError(null);
+    return combatInitTurnMutation.mutateAsync();
+  }, [combatInitTurnMutation]);
+
   const combatEnemyPhase = useCallback(async () => {
     setRoomError(null);
     return combatEnemyPhaseMutation.mutateAsync();
@@ -1187,6 +1210,7 @@ export function useRoomConnection(): UseRoomConnectionResult {
       combatPlayCard,
       combatUseConvergence,
       combatEndTurn,
+      combatInitTurn,
       combatEnemyPhase,
       combatBotTurn,
       combatGenerateRewards,
@@ -1223,6 +1247,7 @@ export function useRoomConnection(): UseRoomConnectionResult {
       combatPlayCard,
       combatUseConvergence,
       combatEndTurn,
+      combatInitTurn,
       combatEnemyPhase,
       combatBotTurn,
       combatGenerateRewards,

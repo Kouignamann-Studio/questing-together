@@ -9,6 +9,7 @@ import { useGame } from '@/contexts/GameContext';
 import { useTranslation } from '@/contexts/I18nContext';
 import FloatingDamage from '@/features/combat/components/FloatingDamage';
 import useDyingEnemies from '@/features/combat/hooks/useDyingEnemies';
+import { getEnemyTemplate } from '@/features/gameConfig';
 
 const VISIBLE_COUNT = 3;
 const DEATH_ANIM_MS = 600;
@@ -29,6 +30,19 @@ type EnemyData = {
   hpMax: number;
   isDead: boolean;
   position: number;
+  templateId?: string;
+  intentIndex?: number;
+};
+
+const INTENT_DISPLAY: Record<number, { icon: string; label: string; color: string }> = {
+  0: { icon: '⚔️', label: 'Attack', color: colors.combatDamage },
+  1: { icon: '🛡️', label: 'Defend', color: '#5b9bd5' },
+  2: { icon: '💪', label: 'Buff', color: colors.combatAbilityBuff },
+  3: { icon: '💥', label: 'Heavy', color: colors.combatDamage },
+  4: { icon: '⚔️⚔️', label: 'Multi', color: colors.combatDamage },
+  5: { icon: '🩸', label: 'Debuff', color: '#b35b4a' },
+  6: { icon: '🔥', label: 'Charge', color: colors.combatAbilityBuff },
+  7: { icon: '✨', label: 'Special', color: colors.intentConfirmedBorder },
 };
 
 type EnemyListProps = {
@@ -212,6 +226,21 @@ const EnemyList = ({
                 <Typography variant="micro" style={{ color: colors.combatHealthValue }}>
                   {enemy.hp}/{enemy.hpMax}
                 </Typography>
+                {(() => {
+                  const template = enemy.templateId
+                    ? getEnemyTemplate(enemy.templateId)
+                    : undefined;
+                  const intentCode =
+                    template && enemy.intentIndex !== undefined
+                      ? template.intentPattern[enemy.intentIndex % template.intentPattern.length]
+                      : undefined;
+                  const intent = intentCode !== undefined ? INTENT_DISPLAY[intentCode] : undefined;
+                  return intent ? (
+                    <Typography variant="micro" style={{ color: intent.color, fontWeight: '700' }}>
+                      {intent.icon} {intent.label}
+                    </Typography>
+                  ) : null;
+                })()}
                 {isSelected
                   ? enemyFloats.map((f) => (
                       <FloatingDamage key={f.id} text={f.text} color={f.color} />

@@ -249,14 +249,17 @@ declare
   v_starter_cards jsonb;
   v_draw_result jsonb;
 begin
-  -- Don't re-init
-  if exists (select 1 from public.combat_turns where room_id = p_room_id and screen_id = p_screen_id) then
-    return;
-  end if;
+  -- Check if turn already exists (first init vs late joiner)
+  select id into v_turn_id
+  from public.combat_turns
+  where room_id = p_room_id and screen_id = p_screen_id
+  limit 1;
 
-  insert into public.combat_turns (room_id, screen_id, turn_number, phase)
-  values (p_room_id, p_screen_id, 1, 'player')
-  returning id into v_turn_id;
+  if v_turn_id is null then
+    insert into public.combat_turns (room_id, screen_id, turn_number, phase)
+    values (p_room_id, p_screen_id, 1, 'player')
+    returning id into v_turn_id;
+  end if;
 
   -- Build starter deck as JSONB array
   select jsonb_agg(
@@ -270,8 +273,10 @@ begin
     from public.room_players rp
     where rp.room_id = p_room_id
   loop
+    -- Create turn state if missing
     insert into public.player_turn_state (combat_turn_id, player_id, actions_remaining, has_ended_turn)
-    values (v_turn_id, v_player.player_id, 0, false);  -- actions_remaining unused, energy replaces it
+    values (v_turn_id, v_player.player_id, 0, false)
+    on conflict do nothing;
 
     -- Draw opening hand from starter deck
     v_draw_result := public._draw_hand(v_starter_cards, '[]'::jsonb, 5);
