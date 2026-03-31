@@ -329,7 +329,10 @@ const CombatScreen = () => {
     if (allEnemiesDead) {
       if (showRewards) {
         return (
-          <BottomSheet size="lg">
+          <BottomSheet
+            size="lg"
+            style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
+          >
             <RewardScreen
               onDone={() => {
                 setShowRewards(false);
@@ -340,7 +343,10 @@ const CombatScreen = () => {
         );
       }
       return (
-        <BottomSheet size="sm">
+        <BottomSheet
+          size="sm"
+          style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
+        >
           <Stack gap={12} align="center" style={{ paddingVertical: 8 }}>
             <StatusBadge icon="⚔️" title="Victory!" titleColor={colors.combatOutcome} />
             {isHost ? (
@@ -368,7 +374,10 @@ const CombatScreen = () => {
 
     if (hasEndedTurn) {
       return (
-        <BottomSheet size="sm">
+        <BottomSheet
+          size="sm"
+          style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
+        >
           <Stack align="center" style={{ paddingVertical: 16 }}>
             <Typography variant="caption" style={{ color: colors.combatWaiting }}>
               Waiting for other players...
@@ -380,7 +389,10 @@ const CombatScreen = () => {
 
     if (!localCombatState) {
       return (
-        <BottomSheet size="sm">
+        <BottomSheet
+          size="sm"
+          style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
+        >
           <Stack align="center" style={{ paddingVertical: 16 }}>
             <Typography variant="caption" style={{ color: colors.combatWaiting }}>
               Loading cards...
@@ -391,7 +403,10 @@ const CombatScreen = () => {
     }
 
     return (
-      <BottomSheet size="lg">
+      <BottomSheet
+        size="lg"
+        style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
+      >
         <CardHandGrid
           combatState={localCombatState}
           disabled={anim.isAnimating}

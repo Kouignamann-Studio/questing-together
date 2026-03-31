@@ -1,8 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Pressable } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -53,10 +54,39 @@ const CardView = ({
 
   const scale = useSharedValue(1);
   const brightness = useSharedValue(0);
+  const glowPulse = useSharedValue(0);
+
+  useEffect(() => {
+    if (isAmplified) {
+      glowPulse.value = withRepeat(
+        withSequence(withTiming(1, { duration: 800 }), withTiming(0, { duration: 800 })),
+        -1,
+        true,
+      );
+    } else {
+      glowPulse.value = 0;
+    }
+  }, [isAmplified, glowPulse]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     opacity: isDisabled ? 0.35 : 1 - brightness.value * 0.15,
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    position: 'absolute' as const,
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: traitColor,
+    opacity: glowPulse.value * 0.8,
+    shadowColor: traitColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: glowPulse.value,
+    shadowRadius: 8 + glowPulse.value * 4,
   }));
 
   const handlePress = useCallback(() => {
@@ -78,7 +108,8 @@ const CardView = ({
 
   return (
     <Pressable disabled={isDisabled} onPress={handlePress} style={{ flex: 1 }}>
-      <Animated.View style={animatedStyle}>
+      <Animated.View style={[animatedStyle, { position: 'relative' }]}>
+        {isAmplified ? <Animated.View style={glowStyle} pointerEvents="none" /> : null}
         <Stack
           direction="row"
           gap={6}
@@ -91,7 +122,7 @@ const CardView = ({
             borderColor: isAmplified ? traitColor : colors.tabBorder,
             borderLeftWidth: 3,
             borderLeftColor: traitColor,
-            backgroundColor: isAmplified ? `${traitColor}22` : colors.backgroundCombatCard,
+            backgroundColor: colors.backgroundCombatCard,
           }}
         >
           {/* Energy cost */}

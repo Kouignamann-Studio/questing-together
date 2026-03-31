@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { ActionButton, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { COMBAT } from '@/constants/combatSettings';
@@ -59,6 +67,27 @@ const CardHandGrid = ({
     (c) => c >= COMBAT.empowerThreshold,
   ).length;
   const canConverge = empoweredCount >= COMBAT.convergenceRequiredTraits;
+
+  // Convergence glow pulse
+  const convergenceGlow = useSharedValue(0);
+  useEffect(() => {
+    if (canConverge) {
+      convergenceGlow.value = withRepeat(
+        withSequence(withTiming(1, { duration: 600 }), withTiming(0.3, { duration: 600 })),
+        -1,
+        true,
+      );
+    } else {
+      convergenceGlow.value = 0;
+    }
+  }, [canConverge, convergenceGlow]);
+
+  const convergenceGlowStyle = useAnimatedStyle(() => ({
+    shadowColor: colors.intentConfirmedBorder,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: convergenceGlow.value,
+    shadowRadius: 12,
+  }));
 
   const handleAttunePress = useCallback(() => {
     if (attuneActive) {
@@ -206,7 +235,45 @@ const CardHandGrid = ({
         );
       })()}
 
-      {/* Bottom row: Reroll + End Turn + Convergence */}
+      {/* Convergence banner — ulti popup */}
+      {canConverge && identity ? (
+        <Pressable onPress={onConvergence} disabled={disabled}>
+          <Animated.View
+            style={[
+              convergenceGlowStyle,
+              {
+                padding: 12,
+                borderRadius: 10,
+                borderWidth: 2,
+                borderColor: colors.intentConfirmedBorder,
+                backgroundColor: `${colors.intentConfirmedBorder}20`,
+                alignItems: 'center',
+                gap: 2,
+              },
+            ]}
+          >
+            <Typography
+              variant="caption"
+              style={{
+                color: colors.intentConfirmedBorder,
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: 2,
+              }}
+            >
+              ⚡ {identity.convergenceActionName} ⚡
+            </Typography>
+            <Typography variant="micro" style={{ color: colors.textSecondary }}>
+              {empoweredCount} traits empowered — FREE ACTION
+            </Typography>
+          </Animated.View>
+        </Pressable>
+      ) : null}
+
+      {/* Divider */}
+      <View style={{ height: 1, backgroundColor: colors.tabBorder, opacity: 0.4 }} />
+
+      {/* Bottom row: Reroll + End Turn */}
       <Stack direction="row" gap={8}>
         <ActionButton
           label={`Reroll (${rerolled ? 0 : 1})`}
@@ -221,15 +288,6 @@ const CardHandGrid = ({
           onPress={onEndTurn}
           disabled={disabled}
         />
-        {canConverge && identity ? (
-          <ActionButton
-            label={identity.convergenceActionName}
-            icon="⚡"
-            subtitle={`${empoweredCount} traits`}
-            onPress={onConvergence}
-            disabled={disabled}
-          />
-        ) : null}
       </Stack>
     </Stack>
   );
