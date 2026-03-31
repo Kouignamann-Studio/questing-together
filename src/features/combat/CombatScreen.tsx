@@ -329,17 +329,12 @@ const CombatScreen = () => {
     if (allEnemiesDead) {
       if (showRewards) {
         return (
-          <BottomSheet
-            size="lg"
-            style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
-          >
-            <RewardScreen
-              onDone={() => {
-                setShowRewards(false);
-                void roomConnection.advanceScreen();
-              }}
-            />
-          </BottomSheet>
+          <RewardScreen
+            onDone={() => {
+              setShowRewards(false);
+              void roomConnection.advanceScreen();
+            }}
+          />
         );
       }
       return (
@@ -353,7 +348,7 @@ const CombatScreen = () => {
               <Button
                 size="md"
                 onPress={() => setShowRewards(true)}
-                label="Claim Rewards"
+                label={t('combat.claimRewards')}
                 disabled={roomConnection.isBusy}
               />
             ) : (
@@ -380,7 +375,7 @@ const CombatScreen = () => {
         >
           <Stack align="center" style={{ paddingVertical: 16 }}>
             <Typography variant="caption" style={{ color: colors.combatWaiting }}>
-              Waiting for other players...
+              {t('combat.waitingPlayers')}
             </Typography>
           </Stack>
         </BottomSheet>
@@ -395,7 +390,7 @@ const CombatScreen = () => {
         >
           <Stack align="center" style={{ paddingVertical: 16 }}>
             <Typography variant="caption" style={{ color: colors.combatWaiting }}>
-              Loading cards...
+              {t('combat.loadingCards')}
             </Typography>
           </Stack>
         </BottomSheet>

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
-import { Button, Stack, Typography } from '@/components';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomSheet, Button, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { useGame } from '@/contexts/GameContext';
+import { useTranslation } from '@/contexts/I18nContext';
 import { TRAIT_MAP } from '@/features/gameConfig';
 
 type RewardOption = {
@@ -40,6 +42,8 @@ const RewardCard = ({
 }) => {
   const traitMeta = option.trait ? TRAIT_MAP[option.trait] : null;
   const traitColor = traitMeta?.color ?? colors.tabBorder;
+  const descText =
+    option.type === 'upgrade_card' ? (option.upgradeDescription ?? '') : (option.description ?? '');
 
   return (
     <Pressable onPress={onPress}>
@@ -61,7 +65,7 @@ const RewardCard = ({
           ) : traitMeta ? (
             <Typography variant="body">{traitMeta.icon}</Typography>
           ) : null}
-          <Stack flex={1} gap={2}>
+          <Stack flex={1} gap={descText ? 2 : 0}>
             <Stack direction="row" gap={4} align="center">
               <Typography
                 variant="captionSm"
@@ -97,11 +101,11 @@ const RewardCard = ({
                 </Typography>
               ) : null}
             </Stack>
-            <Typography variant="fine" style={{ color: colors.textSecondary, fontSize: 9 }}>
-              {option.type === 'upgrade_card'
-                ? (option.upgradeDescription ?? '')
-                : (option.description ?? '')}
-            </Typography>
+            {descText ? (
+              <Typography variant="fine" style={{ color: colors.textSecondary, fontSize: 9 }}>
+                {descText}
+              </Typography>
+            ) : null}
           </Stack>
         </Stack>
       </Stack>
@@ -143,7 +147,9 @@ const RewardSection = ({
 );
 
 const RewardScreen = ({ onDone }: RewardScreenProps) => {
+  const insets = useSafeAreaInsets();
   const { roomConnection } = useGame();
+  const { t } = useTranslation();
   const [rewards, setRewards] = useState<RewardData | null>(null);
   const [selectedReward, setSelectedReward] = useState<RewardOption | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -175,56 +181,97 @@ const RewardScreen = ({ onDone }: RewardScreenProps) => {
     return (
       <Stack flex={1} align="center" justify="center" style={{ padding: 24 }}>
         <Typography variant="caption" style={{ color: colors.combatWaiting }}>
-          Generating rewards...
+          {t('combat.generating')}
         </Typography>
       </Stack>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        padding: 16,
-        gap: 16,
+    <Stack
+      flex={1}
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: colors.backgroundDark,
+        zIndex: 10,
       }}
     >
-      <Stack align="center" gap={4}>
-        <Typography variant="h4" style={{ color: colors.combatOutcome }}>
-          Victory!
-        </Typography>
+      {/* Fixed header */}
+      <Stack
+        align="center"
+        gap={6}
+        style={{
+          paddingTop: insets.top + 16,
+          paddingBottom: 16,
+          backgroundColor: `${colors.intentConfirmedBorder}12`,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.tabBorder,
+        }}
+      >
+        <Stack direction="row" gap={10} align="center">
+          <Typography variant="body" style={{ color: colors.textSecondary }}>
+            ⚔️
+          </Typography>
+          <Typography
+            variant="h3"
+            style={{ color: colors.combatOutcome, fontWeight: '800', letterSpacing: 1 }}
+          >
+            {t('combat.victory')}
+          </Typography>
+          <Typography variant="body" style={{ color: colors.textSecondary }}>
+            ⚔️
+          </Typography>
+        </Stack>
         <Typography variant="caption" style={{ color: colors.textSecondary }}>
-          Choose a reward
+          {t('combat.chooseReward')}
         </Typography>
       </Stack>
 
-      <RewardSection
-        title="Add a card"
-        options={rewards.cardChoices}
-        selectedId={selectedId}
-        onSelect={handleSelect}
-      />
+      {/* Scrollable rewards */}
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 100 + insets.bottom,
+          gap: 16,
+        }}
+        style={{ flex: 1 }}
+      >
+        <RewardSection
+          title={t('combat.addCard')}
+          options={rewards.cardChoices}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+        />
 
-      <RewardSection
-        title="Upgrade a card"
-        options={rewards.upgradeChoices}
-        selectedId={selectedId}
-        onSelect={handleSelect}
-      />
+        <RewardSection
+          title={t('combat.upgradeCard')}
+          options={rewards.upgradeChoices}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+        />
 
-      <RewardSection
-        title="Bonus"
-        options={rewards.bonusChoices}
-        selectedId={selectedId}
-        onSelect={handleSelect}
-      />
+        <RewardSection
+          title={t('combat.bonus')}
+          options={rewards.bonusChoices}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+        />
+      </ScrollView>
 
-      <Button
-        size="md"
-        label={applying ? 'Applying...' : 'Confirm'}
-        onPress={() => void handleConfirm()}
-        disabled={!selectedReward || applying}
-      />
-    </ScrollView>
+      {/* Fixed bottom confirm */}
+      <BottomSheet
+        size="sm"
+        style={{ backgroundColor: colors.backgroundDark, borderColor: colors.tabBorder }}
+      >
+        <Button
+          size="md"
+          label={applying ? t('combat.applying') : t('combat.confirm')}
+          onPress={() => void handleConfirm()}
+          disabled={!selectedReward || applying}
+        />
+      </BottomSheet>
+    </Stack>
   );
 };
 

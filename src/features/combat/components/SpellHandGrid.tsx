@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { ActionButton, Stack, Typography } from '@/components';
 import { colors } from '@/constants/colors';
 import { COMBAT } from '@/constants/combatSettings';
+import { useTranslation } from '@/contexts/I18nContext';
 import SchoolChargeBar from '@/features/combat/components/SchoolChargeBar';
 import CardView from '@/features/combat/components/SpellCard';
 import type { Trait } from '@/features/gameConfig';
@@ -35,6 +36,7 @@ const CardHandGrid = ({
   onReroll,
   selectedEnemyIdx,
 }: CardHandGridProps) => {
+  const { t } = useTranslation();
   const [attuneActive, setAttuneActive] = useState(false);
   const [attuneTargetTrait, setAttuneTargetTrait] = useState<string | null>(null);
   // Optimistic tracking
@@ -42,18 +44,25 @@ const CardHandGrid = ({
   // Reroll: show first 4 cards, reroll swaps to remaining cards
   const [rerolled, setRerolled] = useState(false);
 
-  // Reset optimistic state when hand actually changes (new turn)
+  // Reset optimistic state when hand changes
   const prevHandRef = useRef(JSON.stringify(combatState.hand));
+  const prevEnergyRef = useRef(combatState.energy);
   useEffect(() => {
     const serialized = JSON.stringify(combatState.hand);
+    const isNewTurn =
+      combatState.energy === combatState.maxEnergy && prevEnergyRef.current !== combatState.energy;
+    prevEnergyRef.current = combatState.energy;
     if (serialized !== prevHandRef.current) {
       prevHandRef.current = serialized;
       setLocalPlayedIndices([]);
-      setRerolled(false);
       setAttuneActive(false);
       setAttuneTargetTrait(null);
+      // Only reset reroll on new turn, not on reroll response
+      if (isNewTurn) {
+        setRerolled(false);
+      }
     }
-  }, [combatState.hand]);
+  }, [combatState.hand, combatState.energy, combatState.maxEnergy]);
 
   const identity = getIdentityById(combatState.identityId);
 
@@ -211,7 +220,7 @@ const CardHandGrid = ({
               ⚡ {identity.convergenceActionName} ⚡
             </Typography>
             <Typography variant="micro" style={{ color: colors.textSecondary }}>
-              {empoweredCount} traits empowered — FREE ACTION
+              {t('combat.traitsEmpowered', { count: empoweredCount })} — {t('combat.freeAction')}
             </Typography>
           </View>
         </Pressable>
@@ -223,7 +232,7 @@ const CardHandGrid = ({
       {/* Bottom row: Reroll + End Turn */}
       <Stack direction="row" gap={8}>
         <ActionButton
-          label={`Reroll (${rerolled ? 0 : 1})`}
+          label={`${t('combat.reroll')} (${rerolled ? 0 : 1})`}
           icon="🔄"
           onPress={() => {
             setRerolled(true);
@@ -232,7 +241,12 @@ const CardHandGrid = ({
           }}
           disabled={disabled || rerolled}
         />
-        <ActionButton label="End Turn" icon="⏭️" onPress={onEndTurn} disabled={disabled} />
+        <ActionButton
+          label={t('combat.endTurn')}
+          icon="⏭️"
+          onPress={onEndTurn}
+          disabled={disabled}
+        />
       </Stack>
     </Stack>
   );
