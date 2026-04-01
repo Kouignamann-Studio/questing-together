@@ -88,6 +88,7 @@ const VfxPreviewScreen = ({
   const router = useRouter();
   const stageRef = useRef<View>(null);
   const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const instancesRef = useRef<EffectInstance[]>([]);
   const stageBoundsRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const effectOptions = useMemo(
     () =>
@@ -123,6 +124,10 @@ const VfxPreviewScreen = ({
   });
 
   const clearTimers = useCallback(() => {
+    if (timeoutIdsRef.current.length === 0) {
+      return;
+    }
+
     for (const timeoutId of timeoutIdsRef.current) {
       clearTimeout(timeoutId);
     }
@@ -131,10 +136,22 @@ const VfxPreviewScreen = ({
 
   const resetPreviewPlayback = useCallback(() => {
     clearTimers();
-    setInstances([]);
+    setInstances((current) => (current.length === 0 ? current : []));
   }, [clearTimers]);
 
+  const resetPreviewPlaybackIfActive = useCallback(() => {
+    if (timeoutIdsRef.current.length === 0 && instancesRef.current.length === 0) {
+      return;
+    }
+
+    resetPreviewPlayback();
+  }, [resetPreviewPlayback]);
+
   useEffect(() => clearTimers, [clearTimers]);
+
+  useEffect(() => {
+    instancesRef.current = instances;
+  }, [instances]);
 
   const refreshStageBounds = useCallback((onMeasured?: () => void) => {
     stageRef.current?.measureInWindow((x, y, width, height) => {
@@ -210,7 +227,10 @@ const VfxPreviewScreen = ({
   }, []);
 
   const queueLocalTimeout = useCallback((callback: () => void, delayMs: number) => {
-    const timeoutId = setTimeout(callback, delayMs);
+    const timeoutId = setTimeout(() => {
+      timeoutIdsRef.current = timeoutIdsRef.current.filter((candidate) => candidate !== timeoutId);
+      callback();
+    }, delayMs);
     timeoutIdsRef.current.push(timeoutId);
   }, []);
 
@@ -265,6 +285,7 @@ const VfxPreviewScreen = ({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (event) => {
+          resetPreviewPlaybackIfActive();
           refreshStageBounds(() => {
             updateAnchorFromPage('caster', event.nativeEvent.pageX, event.nativeEvent.pageY);
           });
@@ -273,7 +294,7 @@ const VfxPreviewScreen = ({
           updateAnchorFromPage('caster', event.nativeEvent.pageX, event.nativeEvent.pageY);
         },
       }),
-    [refreshStageBounds, updateAnchorFromPage],
+    [refreshStageBounds, resetPreviewPlaybackIfActive, updateAnchorFromPage],
   );
 
   const targetPanResponder = useMemo(
@@ -282,6 +303,7 @@ const VfxPreviewScreen = ({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (event) => {
+          resetPreviewPlaybackIfActive();
           refreshStageBounds(() => {
             updateAnchorFromPage('target', event.nativeEvent.pageX, event.nativeEvent.pageY);
           });
@@ -290,7 +312,7 @@ const VfxPreviewScreen = ({
           updateAnchorFromPage('target', event.nativeEvent.pageX, event.nativeEvent.pageY);
         },
       }),
-    [refreshStageBounds, updateAnchorFromPage],
+    [refreshStageBounds, resetPreviewPlaybackIfActive, updateAnchorFromPage],
   );
 
   const selectedEffect = useMemo(

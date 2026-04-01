@@ -65,6 +65,32 @@ type SharedParticleMetrics = {
   color: SharedValue<string>;
 };
 
+type ResolvedParticleStaticState = {
+  active: boolean;
+  defaultX: number;
+  defaultY: number;
+  hiddenRotationDeg: number;
+  birthMs: number;
+  lifetimeMs: number;
+  originX: number;
+  originY: number;
+  velocityX: number;
+  velocityY: number;
+  gravityX: number;
+  gravityY: number;
+  drag: number;
+  startSize: number;
+  startAlpha: number;
+  endAlpha: number;
+  hasScaleTrack: boolean;
+  hasAlphaTrack: boolean;
+  legacyEndSize: number;
+  baseRotationDeg: number;
+  rotationOverLifetimeDeg: number;
+  spinDeg: number;
+  color: string;
+};
+
 function resolveSkiaDataSource(spriteId: string) {
   const source = getVfxSpriteSource(spriteId);
 
@@ -436,16 +462,36 @@ function resolveParticleBirthProgress(
     : continuousStart + (continuousIndex / continuousCount) * (1 - continuousStart);
 }
 
-function sampleParticleState(
+function resolveParticleNodeCount(
+  layer: ParticleEmitterLayer,
+  asset: EffectAsset,
+  instance: EffectInstance,
+) {
+  const shouldLoop = instance.loopOverride ?? asset.loop ?? false;
+  const maxParticles = Math.max(0, Math.round(layer.maxParticles));
+
+  if (shouldLoop) {
+    return maxParticles;
+  }
+
+  const effectDurationMs = resolveEffectDurationMs(asset, instance);
+  const burstCount = Math.min(maxParticles, Math.max(0, Math.round(layer.burstCount ?? 0)));
+  const durationSeconds = effectDurationMs / 1000;
+  const continuousCapacity = Math.max(0, maxParticles - burstCount);
+  const continuousCount =
+    layer.emissionRate > 0
+      ? Math.min(continuousCapacity, Math.max(1, Math.ceil(durationSeconds * layer.emissionRate)))
+      : 0;
+
+  return burstCount + continuousCount;
+}
+
+function resolveParticleStaticState(
   asset: EffectAsset,
   instance: EffectInstance,
   layer: ParticleEmitterLayer,
-  progress: number,
-  elapsedMs: number,
   index: number,
-) {
-  'worklet';
-
+): ResolvedParticleStaticState {
   const effectDurationMs = resolveEffectDurationMs(asset, instance);
   const birthProgress = resolveParticleBirthProgress(layer, effectDurationMs, index);
   const defaultRotationDeg = getDefaultParticleRotationDeg(layer.renderer);
@@ -453,11 +499,28 @@ function sampleParticleState(
 
   if (birthProgress == null) {
     return {
-      x: instance.x,
-      y: instance.y,
-      size: 0,
-      alpha: 0,
-      rotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      active: false,
+      defaultX: instance.x,
+      defaultY: instance.y,
+      hiddenRotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      birthMs: 0,
+      lifetimeMs: 1,
+      originX: instance.x,
+      originY: instance.y,
+      velocityX: 0,
+      velocityY: 0,
+      gravityX: 0,
+      gravityY: 0,
+      drag: 0,
+      startSize: 0,
+      startAlpha: 0,
+      endAlpha: 0,
+      hasScaleTrack: hasDynamicTrack(layer.particleTracks, 'scale'),
+      hasAlphaTrack: hasDynamicTrack(layer.particleTracks, 'alpha'),
+      legacyEndSize: 0,
+      baseRotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+      rotationOverLifetimeDeg: 0,
+      spinDeg: 0,
       color: defaultColor,
     };
   }
@@ -480,20 +543,6 @@ function sampleParticleState(
     ),
   );
   const birthMs = birthProgress * effectDurationMs;
-  const ageMs = elapsedMs - birthMs;
-
-  if (ageMs < 0 || ageMs > lifetimeMs) {
-    return {
-      x: instance.x,
-      y: instance.y,
-      size: 0,
-      alpha: 0,
-      rotationDeg: layer.rotationDeg ?? defaultRotationDeg,
-    };
-  }
-
-  const lifeProgress = Math.max(0, Math.min(1, ageMs / lifetimeMs));
-  const ageSeconds = ageMs / 1000;
   const origin = sampleMotionPosition(asset, instance, birthProgress);
   const emitterOffset = sampleEmitterShapeOffset(layer, index * 47.19 + birthProgress * 683.5);
   const originX = origin.x + sampleLayerTrack(layer, 'x', birthProgress, 0) + emitterOffset.x;
@@ -559,15 +608,12 @@ function sampleParticleState(
   );
   const angleRad =
     ((directionDeg + randomSigned(index * 83.17 + 11.9) * spreadDeg * 0.5) * Math.PI) / 180;
-  const travelTime = drag > 0 ? (1 - Math.exp(-drag * ageSeconds)) / drag : ageSeconds;
   const velocityX = hasVelocityOverride
     ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityX', birthProgress, layer.velocityX ?? 0)
     : Math.cos(angleRad) * speed;
   const velocityY = hasVelocityOverride
     ? sampleDynamicTrackValue(layer.emitterTracks, 'velocityY', birthProgress, layer.velocityY ?? 0)
     : Math.sin(angleRad) * speed;
-  const offsetX = sampleDynamicTrackValue(layer.particleTracks, 'x', lifeProgress, 0);
-  const offsetY = sampleDynamicTrackValue(layer.particleTracks, 'y', lifeProgress, 0);
   const startSizeMin = sampleDynamicTrackValue(
     layer.emitterTracks,
     'startSize',
@@ -599,45 +645,128 @@ function sampleParticleState(
     birthProgress,
     layer.endSize ?? startSize,
   );
+  const baseRotationDeg = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'rotationDeg',
+    birthProgress,
+    layer.rotationDeg ?? defaultRotationDeg,
+  );
+  const rotationOverLifetimeDeg = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'rotationOverLifetimeDeg',
+    birthProgress,
+    layer.rotationOverLifetimeDeg ?? 0,
+  );
+  const spinDeg = sampleDynamicTrackValue(
+    layer.emitterTracks,
+    'spinDeg',
+    birthProgress,
+    layer.spinDeg ?? 0,
+  );
+  const color = sampleParticleRenderColor(layer, index * 59.81 + birthProgress * 443.2);
+
+  return {
+    active: true,
+    defaultX: instance.x,
+    defaultY: instance.y,
+    hiddenRotationDeg: layer.rotationDeg ?? defaultRotationDeg,
+    birthMs,
+    lifetimeMs,
+    originX,
+    originY,
+    velocityX,
+    velocityY,
+    gravityX,
+    gravityY,
+    drag,
+    startSize,
+    startAlpha,
+    endAlpha,
+    hasScaleTrack,
+    hasAlphaTrack,
+    legacyEndSize,
+    baseRotationDeg,
+    rotationOverLifetimeDeg,
+    spinDeg,
+    color,
+  };
+}
+
+function sampleResolvedParticleState(
+  layer: ParticleEmitterLayer,
+  progress: number,
+  elapsedMs: number,
+  staticState: ResolvedParticleStaticState,
+) {
+  'worklet';
+
+  if (!staticState.active) {
+    return {
+      x: staticState.defaultX,
+      y: staticState.defaultY,
+      size: 0,
+      alpha: 0,
+      rotationDeg: staticState.hiddenRotationDeg,
+      color: staticState.color,
+    };
+  }
+
+  const ageMs = elapsedMs - staticState.birthMs;
+
+  if (ageMs < 0 || ageMs > staticState.lifetimeMs) {
+    return {
+      x: staticState.defaultX,
+      y: staticState.defaultY,
+      size: 0,
+      alpha: 0,
+      rotationDeg: staticState.hiddenRotationDeg,
+      color: staticState.color,
+    };
+  }
+
+  const lifeProgress = Math.max(0, Math.min(1, ageMs / staticState.lifetimeMs));
+  const ageSeconds = ageMs / 1000;
+  const travelTime =
+    staticState.drag > 0
+      ? (1 - Math.exp(-staticState.drag * ageSeconds)) / staticState.drag
+      : ageSeconds;
+  const offsetX = sampleDynamicTrackValue(layer.particleTracks, 'x', lifeProgress, 0);
+  const offsetY = sampleDynamicTrackValue(layer.particleTracks, 'y', lifeProgress, 0);
   const size = Math.max(
     0.5,
-    hasScaleTrack
-      ? startSize * sampleDynamicTrackValue(layer.particleTracks, 'scale', lifeProgress, 1)
-      : startSize + (legacyEndSize - startSize) * lifeProgress,
+    staticState.hasScaleTrack
+      ? staticState.startSize *
+          sampleDynamicTrackValue(layer.particleTracks, 'scale', lifeProgress, 1)
+      : staticState.startSize + (staticState.legacyEndSize - staticState.startSize) * lifeProgress,
   );
   const alpha = Math.max(
     0,
     sampleLayerTrack(layer, 'alpha', progress, 1) *
-      (hasAlphaTrack
+      (staticState.hasAlphaTrack
         ? sampleDynamicTrackValue(layer.particleTracks, 'alpha', lifeProgress, 1)
-        : startAlpha + (endAlpha - startAlpha) * lifeProgress),
+        : staticState.startAlpha + (staticState.endAlpha - staticState.startAlpha) * lifeProgress),
   );
   const rotationDeg =
-    sampleDynamicTrackValue(
-      layer.emitterTracks,
-      'rotationDeg',
-      birthProgress,
-      layer.rotationDeg ?? defaultRotationDeg,
-    ) +
-    sampleDynamicTrackValue(
-      layer.emitterTracks,
-      'rotationOverLifetimeDeg',
-      birthProgress,
-      layer.rotationOverLifetimeDeg ?? 0,
-    ) *
-      lifeProgress +
-    sampleDynamicTrackValue(layer.emitterTracks, 'spinDeg', birthProgress, layer.spinDeg ?? 0) *
-      ageSeconds +
+    staticState.baseRotationDeg +
+    staticState.rotationOverLifetimeDeg * lifeProgress +
+    staticState.spinDeg * ageSeconds +
     sampleDynamicTrackValue(layer.particleTracks, 'rotationDeg', lifeProgress, 0);
-  const color = sampleParticleRenderColor(layer, index * 59.81 + birthProgress * 443.2);
 
   return {
-    x: originX + velocityX * travelTime + 0.5 * gravityX * ageSeconds * ageSeconds + offsetX,
-    y: originY + velocityY * travelTime + 0.5 * gravityY * ageSeconds * ageSeconds + offsetY,
+    x:
+      staticState.originX +
+      staticState.velocityX * travelTime +
+      0.5 * staticState.gravityX * ageSeconds * ageSeconds +
+      offsetX,
+    y:
+      staticState.originY +
+      staticState.velocityY * travelTime +
+      0.5 * staticState.gravityY * ageSeconds * ageSeconds +
+      offsetY,
     size,
     alpha,
     rotationDeg,
-    color,
+    color: staticState.color,
   };
 }
 
@@ -679,8 +808,12 @@ function useParticleMetrics(
   elapsedMs: SharedValue<number>,
   index: number,
 ): SharedParticleMetrics {
+  const staticState = useMemo(
+    () => resolveParticleStaticState(asset, instance, layer, index),
+    [asset, index, instance, layer],
+  );
   const state = useDerivedValue(() =>
-    sampleParticleState(asset, instance, layer, progress.value, elapsedMs.value, index),
+    sampleResolvedParticleState(layer, progress.value, elapsedMs.value, staticState),
   );
 
   const x = useDerivedValue(() => state.value.x);
@@ -1380,7 +1513,14 @@ const ParticleEmitterPrimitiveSkia = ({
   elapsedMs: SharedValue<number>;
   spriteImageCache?: Partial<Record<string, SkImage>>;
 }) => {
-  const particleCount = Math.max(1, Math.round(layer.maxParticles));
+  const shouldLoop = instance.loopOverride ?? asset.loop ?? false;
+  const particleCount = shouldLoop
+    ? Math.max(0, Math.round(layer.maxParticles))
+    : resolveParticleNodeCount(layer, asset, instance);
+
+  if (particleCount <= 0) {
+    return null;
+  }
 
   return (
     <>

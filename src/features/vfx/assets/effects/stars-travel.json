@@ -93,7 +93,7 @@
       "type": "particleEmitter",
       "renderer": "sprite",
       "color": "#fff1c9",
-      "maxParticles": 18,
+      "maxParticles": 8,
       "particleLifetimeMs": 1200,
       "tracks": {
         "alpha": [
@@ -190,7 +190,7 @@
       "type": "particleEmitter",
       "renderer": "sprite",
       "color": "#ff3300",
-      "maxParticles": 64,
+      "maxParticles": 32,
       "emissionRate": 32,
       "particleLifetimeMs": 720,
       "speed": 16,
