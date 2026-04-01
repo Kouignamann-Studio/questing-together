@@ -1,6 +1,6 @@
 {
-  "id": "Ice-impact",
-  "label": "Ice-impact",
+  "id": "IceImpact",
+  "label": "IceImpact",
   "durationMs": 1600,
   "motion": {
     "mode": "fixed",

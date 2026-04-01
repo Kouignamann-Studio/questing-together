@@ -1,6 +1,6 @@
 {
-  "id": "fireball-impact",
-  "label": "Fireball Impact",
+  "id": "GreenTestImpact",
+  "label": "GreenTestImpact",
   "durationMs": 540,
   "motion": {
     "mode": "fixed"

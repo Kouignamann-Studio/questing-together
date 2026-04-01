@@ -1,52 +1,76 @@
 {
+  "savedAt": 1775077434937,
   "asset": {
-    "id": "stars-impact",
-    "label": "stars-impact",
-    "durationMs": 512,
+    "id": "IceImpact",
+    "label": "IceImpact",
+    "durationMs": 1600,
     "motion": {
-      "mode": "fixed"
+      "mode": "fixed",
+      "tracks": {}
     },
     "layers": [
       {
-        "id": "particleEmitter-1",
+        "id": "Sparks",
         "type": "particleEmitter",
-        "renderer": "orb",
-        "color": "#616161",
-        "maxParticles": 36,
+        "renderer": "diamond",
+        "color": "#a3e3ff",
+        "color2": "#2ecbff",
+        "maxParticles": 24,
         "emissionRate": 0,
-        "particleLifetimeMs": 5,
-        "speed": 1,
-        "spreadDeg": 45,
-        "startSize": 12,
-        "tracks": {
-          "alpha": [
-            {
-              "at": 0,
-              "value": 1
-            }
-          ],
-          "x": [
-            {
-              "at": 0,
-              "value": 0
-            }
-          ],
-          "y": [
-            {
-              "at": 0,
-              "value": 0
-            }
-          ]
-        },
+        "particleLifetimeMs": 120,
+        "emitterShape": "point",
+        "emitterRadius": 32,
+        "emitterWidth": 120,
+        "emitterHeight": 120,
+        "tracks": {},
         "particleTracks": {
           "scale": [
             {
               "at": 0,
-              "value": 0
+              "value": 1
             },
             {
               "at": 1,
+              "value": 0
+            }
+          ],
+          "alpha": [
+            {
+              "at": 0,
               "value": 1
+            }
+          ]
+        },
+        "spriteId": "t-vfx-particle-default",
+        "speedMax": 300,
+        "particleLifetimeMaxMs": 320,
+        "startSize": 1,
+        "burstCount": 24,
+        "speed": 100,
+        "tintColor": "#b8f1ff",
+        "tintColor2": "#65cefb",
+        "spreadDeg": 45,
+        "emitterTracks": {},
+        "startSizeMax": 16,
+        "rotationDeg": 0,
+        "rotationOverLifetimeDeg": 90
+      },
+      {
+        "id": "Core",
+        "type": "sprite",
+        "spriteId": "t-vfx-particle-default",
+        "width": 64,
+        "height": 64,
+        "tintColor": "#00bbfa",
+        "tracks": {
+          "scale": [
+            {
+              "at": 0,
+              "value": 1
+            },
+            {
+              "at": 1,
+              "value": 0
             }
           ],
           "alpha": [
@@ -56,76 +80,81 @@
             },
             {
               "at": 1,
+              "value": 1
+            }
+          ],
+          "glow": [
+            {
+              "at": 0,
               "value": 0
+            },
+            {
+              "at": 1,
+              "value": 1
             }
           ]
         },
-        "spriteId": "demo-core",
-        "burstCount": 28,
-        "particleLifetimeMaxMs": 512,
-        "speedMax": 120,
-        "startSizeMax": 18,
-        "rotationDeg": 0,
-        "directionDeg": 0
+        "layerLifetimeMs": 320
       }
     ],
-    "loop": true
+    "loop": false
   },
   "instance": {
-    "x": 335.81651785714286,
-    "y": 269.2770729129806,
-    "targetX": 560,
-    "targetY": 120
+    "x": 337.97307081942074,
+    "y": 254.5592246505982,
+    "targetX": 340.08618614280897,
+    "targetY": 70.57021911982434
   },
   "recentFiles": [
     {
-      "id": "recent-file:stars-impact-json",
-      "name": "Stars Impact.json",
-      "lastOpenedAt": 1774786951686
+      "id": "recent-file:iceimpact-json",
+      "name": "IceImpact.json",
+      "lastOpenedAt": 1775077218554
     }
   ],
   "pendingLayerType": "particleEmitter",
   "layoutSizes": {
     "previewPanelWidth": 780,
-    "layersPanelWidth": 420
+    "layersPanelWidth": 421.52734375
   },
-  "selectedLayerId": "particleEmitter-1",
+  "selectedLayerId": "Sparks",
   "selectedLayerTrack": "alpha",
   "curveStates": {},
   "curveEditorModes": {},
   "previewBackground": {
-    "preset": "ember",
+    "preset": "custom",
     "top": "#1c1214",
     "bottom": "#0d0b10",
-    "glow": "#df945c",
+    "glow": "#625850",
     "grid": "rgba(255, 227, 187, 0.08)",
     "ground": "rgba(255, 235, 211, 0.08)"
   },
   "previewDevice": {
-    "preset": "free",
+    "preset": "phoneTall",
     "showSafeArea": true
   },
+  "previewAnchorsVisible": false,
   "previewViewport": {
-    "zoom": 1.4049280000000004,
-    "centerX": 352.0839657974466,
-    "centerY": 213.8591662841304
+    "zoom": 2.2106814074060814,
+    "centerX": 362.09966800704694,
+    "centerY": 192.66004466601376
   },
   "previewPlaybackMode": "single",
-  "previewSequenceId": "fireball-cast",
+  "previewSequenceId": "fireball-travel-sequence",
   "previewSequence": {
     "id": "fireball-travel-sequence",
     "label": "Fireball Travel Sequence",
     "cues": [
       {
         "id": "fireball-travel-cue-1",
-        "assetId": "fireball-travel",
+        "assetId": "GreenTestTravel",
         "atMs": 0,
         "anchor": "caster",
         "targetAnchor": "target"
       }
     ]
   },
-  "pendingSequenceAssetId": "fireball-travel",
+  "pendingSequenceAssetId": "GreenTestTravel",
   "selectedSequenceCueId": "fireball-travel-cue-1",
   "sequenceFileName": "fireball-travel-sequence.json",
   "collapsedPanels": {
@@ -133,12 +162,12 @@
     "assetSequence": false,
     "assetMotion": true,
     "layersStack": false,
-    "layerProperties": true,
-    "layerCurves": true,
+    "layerProperties": false,
+    "layerCurves": false,
     "jsonPanel": true,
     "particleCurves": true
   },
-  "fileName": "Stars Impact.json",
-  "jsonDraft": "{\n  \"id\": \"stars-impact\",\n  \"label\": \"stars-impact\",\n  \"durationMs\": 512,\n  \"motion\": {\n    \"mode\": \"fixed\"\n  },\n  \"layers\": [\n    {\n      \"id\": \"particleEmitter-1\",\n      \"type\": \"particleEmitter\",\n      \"renderer\": \"orb\",\n      \"color\": \"#616161\",\n      \"maxParticles\": 36,\n      \"emissionRate\": 0,\n      \"particleLifetimeMs\": 5,\n      \"speed\": 1,\n      \"spreadDeg\": 45,\n      \"startSize\": 12,\n      \"tracks\": {\n        \"alpha\": [\n          {\n            \"at\": 0,\n            \"value\": 1\n          }\n        ],\n        \"x\": [\n          {\n            \"at\": 0,\n            \"value\": 0\n          }\n        ],\n        \"y\": [\n          {\n            \"at\": 0,\n            \"value\": 0\n          }\n        ]\n      },\n      \"particleTracks\": {\n        \"scale\": [\n          {\n            \"at\": 0,\n            \"value\": 0\n          },\n          {\n            \"at\": 1,\n            \"value\": 1\n          }\n        ],\n        \"alpha\": [\n          {\n            \"at\": 0,\n            \"value\": 1\n          },\n          {\n            \"at\": 1,\n            \"value\": 0\n          }\n        ]\n      },\n      \"spriteId\": \"demo-core\",\n      \"burstCount\": 28,\n      \"particleLifetimeMaxMs\": 512,\n      \"speedMax\": 120,\n      \"startSizeMax\": 18,\n      \"rotationDeg\": 0,\n      \"directionDeg\": 0\n    }\n  ],\n  \"loop\": true\n}\n",
+  "fileName": "IceImpact.json",
+  "jsonDraft": "{\n  \"id\": \"IceImpact\",\n  \"label\": \"IceImpact\",\n  \"durationMs\": 1600,\n  \"motion\": {\n    \"mode\": \"fixed\",\n    \"tracks\": {}\n  },\n  \"layers\": [\n    {\n      \"id\": \"Sparks\",\n      \"type\": \"particleEmitter\",\n      \"renderer\": \"diamond\",\n      \"color\": \"#a3e3ff\",\n      \"color2\": \"#2ecbff\",\n      \"maxParticles\": 24,\n      \"emissionRate\": 0,\n      \"particleLifetimeMs\": 120,\n      \"emitterShape\": \"point\",\n      \"emitterRadius\": 32,\n      \"emitterWidth\": 120,\n      \"emitterHeight\": 120,\n      \"tracks\": {},\n      \"particleTracks\": {\n        \"scale\": [\n          {\n            \"at\": 0,\n            \"value\": 1\n          },\n          {\n            \"at\": 1,\n            \"value\": 0\n          }\n        ],\n        \"alpha\": [\n          {\n            \"at\": 0,\n            \"value\": 1\n          }\n        ]\n      },\n      \"spriteId\": \"t-vfx-particle-default\",\n      \"speedMax\": 300,\n      \"particleLifetimeMaxMs\": 320,\n      \"startSize\": 1,\n      \"burstCount\": 24,\n      \"speed\": 100,\n      \"tintColor\": \"#b8f1ff\",\n      \"tintColor2\": \"#65cefb\",\n      \"spreadDeg\": 45,\n      \"emitterTracks\": {},\n      \"startSizeMax\": 16,\n      \"rotationDeg\": 0,\n      \"rotationOverLifetimeDeg\": 90\n    },\n    {\n      \"id\": \"Core\",\n      \"type\": \"sprite\",\n      \"spriteId\": \"t-vfx-particle-default\",\n      \"width\": 64,\n      \"height\": 64,\n      \"tintColor\": \"#00bbfa\",\n      \"tracks\": {\n        \"scale\": [\n          {\n            \"at\": 0,\n            \"value\": 1\n          },\n          {\n            \"at\": 1,\n            \"value\": 0\n          }\n        ],\n        \"alpha\": [\n          {\n            \"at\": 0,\n            \"value\": 1\n          },\n          {\n            \"at\": 1,\n            \"value\": 1\n          }\n        ],\n        \"glow\": [\n          {\n            \"at\": 0,\n            \"value\": 0\n          },\n          {\n            \"at\": 1,\n            \"value\": 1\n          }\n        ]\n      },\n      \"layerLifetimeMs\": 320\n    }\n  ],\n  \"loop\": false\n}\n",
   "jsonDirty": false
 }

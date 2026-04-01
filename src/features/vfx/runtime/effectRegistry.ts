@@ -1,26 +1,20 @@
-import fireballImpactData from '@/features/vfx/assets/effects/fireball-impact.json';
-import fireballMuzzleData from '@/features/vfx/assets/effects/fireball-muzzle.json';
-import fireballTravelData from '@/features/vfx/assets/effects/fireball-travel.json';
-import fireballTravelLeftData from '@/features/vfx/assets/effects/fireball-travel_left.json';
-import frostboltImpactData from '@/features/vfx/assets/effects/frostbolt-impact.json';
-import frostboltTravelData from '@/features/vfx/assets/effects/frostbolt-travel.json';
-import iceShardTravelData from '@/features/vfx/assets/effects/Ice Shard-travel.json';
-import iceImpactData from '@/features/vfx/assets/effects/Ice-impact.json';
-import starsImpactData from '@/features/vfx/assets/effects/stars-impact.json';
-import starsTravelData from '@/features/vfx/assets/effects/stars-travel.json';
+import fireballimpactData from '@/features/vfx/assets/effects/FireballImpact.json';
+import fireballtravelData from '@/features/vfx/assets/effects/FireballTravel.json';
+import greentestimpactData from '@/features/vfx/assets/effects/GreenTestImpact.json';
+import greentestmuzzleData from '@/features/vfx/assets/effects/GreenTestMuzzle.json';
+import greentesttravelData from '@/features/vfx/assets/effects/GreenTestTravel.json';
+import iceimpactData from '@/features/vfx/assets/effects/IceImpact.json';
+import iceshardtravelData from '@/features/vfx/assets/effects/IceShardTravel.json';
 import type { EffectAsset } from '@/features/vfx/types/assets';
 
 const effectAssets = [
-  iceImpactData,
-  iceShardTravelData,
-  fireballImpactData,
-  fireballMuzzleData,
-  fireballTravelData,
-  fireballTravelLeftData,
-  frostboltImpactData,
-  frostboltTravelData,
-  starsImpactData,
-  starsTravelData,
+  fireballimpactData,
+  fireballtravelData,
+  greentestimpactData,
+  greentestmuzzleData,
+  greentesttravelData,
+  iceimpactData,
+  iceshardtravelData,
 ] as EffectAsset[];
 
 const effectAssetById = new Map(effectAssets.map((asset) => [asset.id, asset]));

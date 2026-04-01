@@ -1,6 +1,6 @@
 {
-  "id": "fireball-muzzle",
-  "label": "Fireball Muzzle",
+  "id": "GreenTestMuzzle",
+  "label": "GreenTestMuzzle",
   "durationMs": 260,
   "motion": {
     "mode": "fixed"

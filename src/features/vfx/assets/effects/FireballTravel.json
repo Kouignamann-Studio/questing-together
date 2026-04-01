@@ -1,6 +1,6 @@
 {
-  "id": "Stars Travel",
-  "label": "Stars Travel",
+  "id": "FireballTravel",
+  "label": "FireballTravel",
   "durationMs": 720,
   "motion": {
     "mode": "line",

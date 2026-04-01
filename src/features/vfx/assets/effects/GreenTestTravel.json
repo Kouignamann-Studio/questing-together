@@ -1,6 +1,6 @@
 {
-  "id": "fireball-travel",
-  "label": "Fireball Travel",
+  "id": "GreenTestTravel",
+  "label": "GreenTestTravel",
   "durationMs": 1320,
   "motion": {
     "mode": "path",
@@ -212,5 +212,6 @@
         ]
       }
     }
-  ]
+  ],
+  "loop": false
 }

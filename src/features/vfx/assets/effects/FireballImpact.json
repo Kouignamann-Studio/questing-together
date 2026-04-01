@@ -1,6 +1,6 @@
 {
-  "id": "stars-impact",
-  "label": "stars-impact",
+  "id": "FireballImpact",
+  "label": "FireballImpact",
   "durationMs": 1600,
   "motion": {
     "mode": "fixed",

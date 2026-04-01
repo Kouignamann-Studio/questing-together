@@ -4,14 +4,14 @@
   "cues": [
     {
       "id": "Ice Shard Travel-cue-1",
-      "assetId": "Ice Shard Travel",
+      "assetId": "IceShardTravel",
       "atMs": 0,
       "anchor": "projectile",
       "targetAnchor": "target"
     },
     {
       "id": "Ice-impact-cue-2",
-      "assetId": "Ice-impact",
+      "assetId": "IceImpact",
       "atMs": 330,
       "anchor": "target",
       "targetAnchor": "target"

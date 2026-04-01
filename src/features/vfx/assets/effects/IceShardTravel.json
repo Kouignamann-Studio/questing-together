@@ -1,6 +1,6 @@
 {
-  "id": "Ice Shard Travel",
-  "label": "Ice Shard Travel",
+  "id": "IceShardTravel",
+  "label": "IceShardTravel",
   "durationMs": 360,
   "motion": {
     "mode": "line",

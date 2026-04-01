@@ -306,6 +306,8 @@ const ui = {
   restartPlaybackButton: document.getElementById('restartPlaybackButton'),
   resetTemplateButton: document.getElementById('resetTemplateButton'),
   applyJsonButton: document.getElementById('applyJsonButton'),
+  effectCollectionModal: document.getElementById('effectCollectionModal'),
+  effectCollectionModalBody: document.getElementById('effectCollectionModalBody'),
   fallbackFileInput: document.getElementById('fallbackFileInput'),
 };
 
@@ -1219,7 +1221,7 @@ function buildSpriteRegistrySource(entries) {
     })
     .join('\n');
 
-  return `import type { ImageSourcePropType } from 'react-native';\n${imports}\n\nexport type VfxSpriteDefinition = {\n  id: string;\n  label: string;\n  source: ImageSourcePropType;\n  editorSrc: string;\n};\n\nconst vfxSprites: VfxSpriteDefinition[] = [\n${spriteObjects}\n];\n\nconst vfxSpriteById = new Map(vfxSprites.map((sprite) => [sprite.id, sprite]));\n\nexport function getVfxSprite(spriteId: string) {\n  return vfxSpriteById.get(spriteId) ?? null;\n}\n\nexport function getVfxSpriteSource(spriteId: string) {\n  return getVfxSprite(spriteId)?.source ?? null;\n}\n\nexport function listVfxSprites() {\n  return vfxSprites.map(({ id, label, editorSrc }) => ({ id, label, editorSrc }));\n}\n`;
+  return `${imports}\nimport type { ImageSourcePropType } from 'react-native';\n\nexport type VfxSpriteDefinition = {\n  id: string;\n  label: string;\n  source: ImageSourcePropType;\n  editorSrc: string;\n};\n\nconst vfxSprites: VfxSpriteDefinition[] = [\n${spriteObjects}\n];\n\nconst vfxSpriteById = new Map(vfxSprites.map((sprite) => [sprite.id, sprite]));\n\nexport function getVfxSprite(spriteId: string) {\n  return vfxSpriteById.get(spriteId) ?? null;\n}\n\nexport function getVfxSpriteSource(spriteId: string) {\n  return getVfxSprite(spriteId)?.source ?? null;\n}\n\nexport function listVfxSprites() {\n  return vfxSprites.map(({ id, label, editorSrc }) => ({ id, label, editorSrc }));\n}\n`;
 }
 
 async function discoverRepoEffectEntries(rootHandle) {
@@ -1243,6 +1245,28 @@ async function discoverRepoEffectEntries(rootHandle) {
   return entries.sort((left, right) => left.id.localeCompare(right.id));
 }
 
+async function discoverRepoEffectCollectionEntries(rootHandle) {
+  const effectsDirHandle = await getDirectoryHandle(rootHandle, REPO_EFFECTS_SEGMENTS);
+  const entries = [];
+
+  for await (const handle of effectsDirHandle.values()) {
+    if (handle.kind !== 'file' || !handle.name.endsWith('.json')) {
+      continue;
+    }
+
+    const file = await handle.getFile();
+    const asset = normalizeAsset(JSON.parse(await file.text()));
+    entries.push({
+      id: asset.id,
+      label: asset.label ?? titleCaseFromId(asset.id),
+      filename: handle.name,
+      asset,
+    });
+  }
+
+  return entries.sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id));
+}
+
 async function discoverRepoSequenceEntries(rootHandle) {
   const sequencesDirHandle = await getDirectoryHandle(rootHandle, REPO_SEQUENCES_SEGMENTS);
   const entries = [];
@@ -1264,6 +1288,41 @@ async function discoverRepoSequenceEntries(rootHandle) {
   return entries.sort((left, right) => left.id.localeCompare(right.id));
 }
 
+async function discoverEffectReferenceMap(rootHandle) {
+  const sequencesDirHandle = await getDirectoryHandle(rootHandle, REPO_SEQUENCES_SEGMENTS);
+  const referencesByAssetId = {};
+
+  for await (const handle of sequencesDirHandle.values()) {
+    if (handle.kind !== 'file' || !handle.name.endsWith('.json')) {
+      continue;
+    }
+
+    const file = await handle.getFile();
+    const sequence = normalizeSequence(JSON.parse(await file.text()));
+    const cueCountByAssetId = new Map();
+
+    for (const cue of sequence.cues) {
+      cueCountByAssetId.set(cue.assetId, (cueCountByAssetId.get(cue.assetId) ?? 0) + 1);
+    }
+
+    for (const [assetId, cueCount] of cueCountByAssetId.entries()) {
+      referencesByAssetId[assetId] ??= [];
+      referencesByAssetId[assetId].push({
+        sequenceId: sequence.id,
+        label: sequence.label ?? titleCaseFromId(sequence.id),
+        filename: handle.name,
+        cueCount,
+      });
+    }
+  }
+
+  for (const references of Object.values(referencesByAssetId)) {
+    references.sort((left, right) => left.label.localeCompare(right.label) || left.sequenceId.localeCompare(right.sequenceId));
+  }
+
+  return referencesByAssetId;
+}
+
 function buildEffectRegistrySource(entries) {
   const usedNames = new Set();
   const imports = entries
@@ -1274,9 +1333,9 @@ function buildEffectRegistrySource(entries) {
     })
     .join('\n');
 
-  const assetNames = entries.map((entry) => `  ${entry.importName},`).join('\n');
+  const assetNames = entries.map((entry) => entry.importName).join(', ');
 
-  return `import type { EffectAsset } from '@/features/vfx/types/assets';\n${imports}\n\nconst effectAssets = [\n${assetNames}\n] as EffectAsset[];\n\nconst effectAssetById = new Map(effectAssets.map((asset) => [asset.id, asset]));\n\nexport function getEffectAsset(assetId: string) {\n  return effectAssetById.get(assetId) ?? null;\n}\n\nexport function listEffectAssets() {\n  return effectAssets;\n}\n`;
+  return `${imports}\nimport type { EffectAsset } from '@/features/vfx/types/assets';\n\nconst effectAssets = [${assetNames}] as EffectAsset[];\n\nconst effectAssetById = new Map(effectAssets.map((asset) => [asset.id, asset]));\n\nexport function getEffectAsset(assetId: string) {\n  return effectAssetById.get(assetId) ?? null;\n}\n\nexport function listEffectAssets() {\n  return effectAssets;\n}\n`;
 }
 
 function buildSequenceRegistrySource(entries) {
@@ -1289,9 +1348,9 @@ function buildSequenceRegistrySource(entries) {
     })
     .join('\n');
 
-  const sequenceNames = entries.map((entry) => `  ${entry.importName},`).join('\n');
+  const sequenceNames = entries.map((entry) => entry.importName).join(', ');
 
-  return `import type { EffectSequence } from '@/features/vfx/types/sequences';\n${imports}\n\nconst effectSequences = [\n${sequenceNames}\n] as EffectSequence[];\n\nconst effectSequenceById = new Map(effectSequences.map((sequence) => [sequence.id, sequence]));\n\nexport function getEffectSequence(sequenceId: string) {\n  return effectSequenceById.get(sequenceId) ?? null;\n}\n\nexport function listEffectSequences() {\n  return effectSequences;\n}\n`;
+  return `${imports}\nimport type { EffectSequence } from '@/features/vfx/types/sequences';\n\nconst effectSequences = [${sequenceNames}] as EffectSequence[];\n\nconst effectSequenceById = new Map(effectSequences.map((sequence) => [sequence.id, sequence]));\n\nexport function getEffectSequence(sequenceId: string) {\n  return effectSequenceById.get(sequenceId) ?? null;\n}\n\nexport function listEffectSequences() {\n  return effectSequences;\n}\n`;
 }
 
 async function regenerateEffectRegistry(rootHandle) {
@@ -2187,6 +2246,19 @@ const state = {
   activeSequenceCueDrag: null,
   previewSpritesReady: true,
   previewSpriteLoadKey: '',
+  effectCollectionModalOpen: false,
+  effectCollectionEntries: [],
+  effectCollectionReferences: {},
+  selectedEffectCollectionFileName: '',
+  effectCollectionStatus: '',
+  effectCollectionStatusType: 'info',
+  effectCollectionBusy: false,
+  effectCollectionRenameId: '',
+  effectCollectionRenameLabel: '',
+  effectCollectionRenameFileName: '',
+  effectCollectionDuplicateId: '',
+  effectCollectionDuplicateLabel: '',
+  effectCollectionDuplicateFileName: '',
 };
 
 let eventsWired = false;
@@ -2934,6 +3006,49 @@ async function refreshSequenceRegistryAfterSave(sequenceId) {
   }
 }
 
+async function refreshEffectCollectionModalData({ selectedFileName = state.selectedEffectCollectionFileName } = {}) {
+  state.effectCollectionBusy = true;
+  renderEffectCollectionModal();
+
+  const repoRootHandle = await resolveRepoRootHandleForRegistryRefresh();
+  if (!repoRootHandle) {
+    state.effectCollectionEntries = [];
+    state.effectCollectionReferences = {};
+    state.selectedEffectCollectionFileName = '';
+    primeEffectCollectionDrafts(null);
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus('Link the repo root to manage saved VFX effect files.', 'info');
+    return false;
+  }
+
+  try {
+    const [entries, references] = await Promise.all([
+      discoverRepoEffectCollectionEntries(repoRootHandle),
+      discoverEffectReferenceMap(repoRootHandle),
+    ]);
+
+    state.effectCollectionEntries = entries;
+    state.effectCollectionReferences = references;
+    state.selectedEffectCollectionFileName =
+      entries.some((entry) => entry.filename === selectedFileName)
+        ? selectedFileName
+        : entries[0]?.filename ?? '';
+    primeEffectCollectionDrafts(getSelectedEffectCollectionEntry());
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(
+      entries.length
+        ? 'Collection loaded. Rename updates saved sequence references automatically when needed.'
+        : 'No saved effects were found in the repo effects folder.',
+      'info',
+    );
+    return true;
+  } catch (error) {
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(`Could not load the effect collection: ${error.message}`, 'error');
+    return false;
+  }
+}
+
 async function linkRepoRoot() {
   try {
     if (!('showDirectoryPicker' in window)) {
@@ -2958,6 +3073,102 @@ async function linkRepoRoot() {
     if (error?.name === 'AbortError') return;
     setSaveStatus(`Could not link repo root: ${error.message}`, 'error');
   }
+}
+
+async function forgetRecentFileByName(fileName) {
+  if (!fileName) {
+    return;
+  }
+
+  const key = getRecentFileKey(fileName);
+  state.recentFiles = state.recentFiles.filter((item) => item.id !== key);
+  try {
+    await deleteStoredHandle(key);
+  } catch (error) {
+    console.warn('Could not clear the stored recent file handle.', error);
+  }
+  renderToolbarMenus();
+  schedulePersistEditorSession();
+}
+
+function replaceAssetIdInSequence(sequence, previousAssetId, nextAssetId) {
+  if (!sequence || previousAssetId === nextAssetId) {
+    return null;
+  }
+
+  let changed = false;
+  const nextSequence = cloneData(sequence);
+
+  nextSequence.cues = nextSequence.cues.map((cue) => {
+    if (cue.assetId !== previousAssetId) {
+      return cue;
+    }
+
+    changed = true;
+    return {
+      ...cue,
+      assetId: nextAssetId,
+    };
+  });
+
+  return changed ? normalizeSequence(nextSequence) : null;
+}
+
+function updateInMemorySequenceAssetReferences(previousAssetId, nextAssetId) {
+  const nextPreviewSequence = replaceAssetIdInSequence(
+    state.previewSequence,
+    previousAssetId,
+    nextAssetId,
+  );
+  if (nextPreviewSequence) {
+    state.previewSequence = nextPreviewSequence;
+    state.previewSequenceId = nextPreviewSequence.id;
+  }
+
+  for (const [sequenceId, sequence] of Object.entries(sequenceLibrary)) {
+    const nextSequence = replaceAssetIdInSequence(sequence, previousAssetId, nextAssetId);
+    if (nextSequence) {
+      sequenceLibrary[sequenceId] = cloneData(nextSequence);
+    }
+  }
+
+  if (state.pendingSequenceAssetId === previousAssetId) {
+    state.pendingSequenceAssetId = nextAssetId;
+  }
+
+  ensureSequenceSelection();
+}
+
+async function rewriteSequenceAssetReferences(rootHandle, previousAssetId, nextAssetId) {
+  if (!previousAssetId || !nextAssetId || previousAssetId === nextAssetId) {
+    return [];
+  }
+
+  const sequencesDirHandle = await getDirectoryHandle(rootHandle, REPO_SEQUENCES_SEGMENTS);
+  const updatedSequences = [];
+
+  for await (const handle of sequencesDirHandle.values()) {
+    if (handle.kind !== 'file' || !handle.name.endsWith('.json')) {
+      continue;
+    }
+
+    const file = await handle.getFile();
+    const sequence = normalizeSequence(JSON.parse(await file.text()));
+    const nextSequence = replaceAssetIdInSequence(sequence, previousAssetId, nextAssetId);
+    if (!nextSequence) {
+      continue;
+    }
+
+    await writeTextFile(sequencesDirHandle, handle.name, stringifySequence(nextSequence));
+    updatedSequences.push({
+      id: nextSequence.id,
+      label: nextSequence.label,
+      filename: handle.name,
+    });
+  }
+
+  updateInMemorySequenceAssetReferences(previousAssetId, nextAssetId);
+  return updatedSequences;
 }
 
 function isPanelCollapsed(panelKey) {
@@ -3581,10 +3792,338 @@ function setSaveStatus(message, type = 'info') {
     type === 'error' ? 'error-text' : type === 'success' ? 'success-text' : '';
 }
 
+function setEffectCollectionStatus(message, type = 'info') {
+  state.effectCollectionStatus = message;
+  state.effectCollectionStatusType = type;
+
+  if (state.effectCollectionModalOpen) {
+    renderEffectCollectionModal();
+  }
+}
+
 function setJsonStatus(message, type = 'info') {
   ui.jsonStatusLabel.textContent = message;
   ui.jsonStatusLabel.className =
     type === 'error' ? 'error-text' : type === 'success' ? 'success-text' : '';
+}
+
+function normalizeEffectCollectionId(value) {
+  return String(value ?? '').trim();
+}
+
+function isValidEffectCollectionId(value) {
+  return /^[A-Za-z0-9][A-Za-z0-9-_]*$/.test(value);
+}
+
+function sanitizeJsonFileStem(value) {
+  return (
+    String(value ?? '')
+      .trim()
+      .replace(/\.json$/i, '')
+      .replace(/[<>:"/\\|?*\x00-\x1f]+/g, '-')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'effect'
+  );
+}
+
+function buildEffectJsonFileName(value) {
+  return `${sanitizeJsonFileStem(value)}.json`;
+}
+
+function getSelectedEffectCollectionEntry() {
+  return (
+    state.effectCollectionEntries.find((entry) => entry.filename === state.selectedEffectCollectionFileName) ??
+    state.effectCollectionEntries[0] ??
+    null
+  );
+}
+
+function getEffectCollectionReferences(assetId) {
+  return state.effectCollectionReferences[assetId] ?? [];
+}
+
+function isEffectUsedByCurrentPreviewSequence(assetId) {
+  return Boolean(state.previewSequence?.cues.some((cue) => cue.assetId === assetId));
+}
+
+function primeEffectCollectionDrafts(entry) {
+  if (!entry) {
+    state.effectCollectionRenameId = '';
+    state.effectCollectionRenameLabel = '';
+    state.effectCollectionRenameFileName = '';
+    state.effectCollectionDuplicateId = '';
+    state.effectCollectionDuplicateLabel = '';
+    state.effectCollectionDuplicateFileName = '';
+    return;
+  }
+
+  state.effectCollectionRenameId = entry.id;
+  state.effectCollectionRenameLabel = entry.label;
+  state.effectCollectionRenameFileName = entry.filename;
+  state.effectCollectionDuplicateId = `${entry.id}-copy`;
+  state.effectCollectionDuplicateLabel = `${entry.label} Copy`;
+  state.effectCollectionDuplicateFileName = buildEffectJsonFileName(`${entry.id}-copy`);
+}
+
+function renderEffectCollectionReferences(assetId) {
+  const references = getEffectCollectionReferences(assetId);
+
+  if (!references.length) {
+    return '<p class="empty-note">No saved sequences reference this effect.</p>';
+  }
+
+  return `
+    <div class="effect-collection-usage-list">
+      ${references
+        .map(
+          (reference) => `
+        <div class="effect-collection-usage-item">
+          <strong>${escapeHtml(reference.label)}</strong>
+          <span>${escapeHtml(reference.filename)} · ${reference.cueCount} cue${reference.cueCount === 1 ? '' : 's'}</span>
+        </div>
+      `,
+        )
+        .join('')}
+    </div>
+  `;
+}
+
+function renderEffectCollectionModal() {
+  if (!ui.effectCollectionModal || !ui.effectCollectionModalBody) {
+    return;
+  }
+
+  ui.effectCollectionModal.hidden = !state.effectCollectionModalOpen;
+
+  if (!state.effectCollectionModalOpen) {
+    ui.effectCollectionModalBody.innerHTML = '';
+    return;
+  }
+
+  const selectedEntry = getSelectedEffectCollectionEntry();
+  const references = selectedEntry ? getEffectCollectionReferences(selectedEntry.id) : [];
+  const deleteBlockedByPreview = selectedEntry ? isEffectUsedByCurrentPreviewSequence(selectedEntry.id) : false;
+  const deleteDisabled = !selectedEntry || references.length > 0 || deleteBlockedByPreview || state.effectCollectionBusy;
+  const statusClass =
+    state.effectCollectionStatusType === 'error'
+      ? 'error-text'
+      : state.effectCollectionStatusType === 'success'
+        ? 'success-text'
+        : '';
+
+  if (!state.repoRootHandle) {
+    ui.effectCollectionModalBody.innerHTML = `
+      <div class="effect-collection-shell">
+        <div class="effect-collection-toolbar">
+          <p class="panel-note">Link the repo root to manage saved effect files and regenerate registries safely.</p>
+          <div class="button-row">
+            <button class="action-button action-button-secondary" type="button" data-collection-action="link-repo-root">Link Repo Root</button>
+          </div>
+        </div>
+        <section class="subpanel effect-collection-empty">
+          <p class="empty-note">The collection manager only works on saved effect files inside <code>src/features/vfx/assets/effects</code>.</p>
+        </section>
+        <div class="status-row ${statusClass}">
+          <span>${escapeHtml(state.effectCollectionStatus || 'Repo root is not linked yet.')}</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  ui.effectCollectionModalBody.innerHTML = `
+    <div class="effect-collection-shell">
+      <div class="effect-collection-toolbar">
+        <p class="panel-note">
+          Rename updates saved sequence cue references when an effect ID changes. Delete is blocked while saved sequences still use the effect.
+        </p>
+        <div class="button-row">
+          <button class="chip-button" type="button" data-collection-action="refresh" ${state.effectCollectionBusy ? 'disabled' : ''}>Refresh</button>
+          <button class="chip-button" type="button" data-collection-action="link-repo-root" ${state.effectCollectionBusy ? 'disabled' : ''}>Relink Repo Root</button>
+        </div>
+      </div>
+
+      <div class="effect-collection-grid">
+        <section class="subpanel effect-collection-list-panel">
+          <div class="subpanel-heading">
+            <div class="subpanel-copy">
+              <p class="panel-kicker">Effects</p>
+              <h3>Saved Collection</h3>
+            </div>
+            <span class="section-note">${state.effectCollectionEntries.length} file${state.effectCollectionEntries.length === 1 ? '' : 's'}</span>
+          </div>
+          ${
+            state.effectCollectionEntries.length
+              ? `
+            <div class="effect-collection-list">
+              ${state.effectCollectionEntries
+                .map(
+                  (entry) => `
+                <button
+                  class="effect-collection-item ${entry.filename === state.selectedEffectCollectionFileName ? 'is-selected' : ''}"
+                  type="button"
+                  data-collection-action="select-entry"
+                  data-collection-file-name="${escapeHtml(entry.filename)}"
+                >
+                  <strong>${escapeHtml(entry.label)}</strong>
+                  <span>${escapeHtml(entry.id)}</span>
+                  <span>${escapeHtml(entry.filename)}</span>
+                </button>
+              `,
+                )
+                .join('')}
+            </div>
+          `
+              : '<p class="empty-note">No saved effects were found in the repo effects folder.</p>'
+          }
+        </section>
+
+        <section class="effect-collection-detail-panel">
+          ${
+            selectedEntry
+              ? `
+            <div class="effect-collection-detail">
+              <section class="subpanel">
+                <div class="subpanel-heading">
+                  <div class="subpanel-copy">
+                    <p class="panel-kicker">Selected Effect</p>
+                    <h3>${escapeHtml(selectedEntry.label)}</h3>
+                  </div>
+                </div>
+                <div class="field-grid two-up">
+                  <label class="field">
+                    <span class="field-label">Effect ID</span>
+                    <input class="field-input" type="text" value="${escapeHtml(selectedEntry.id)}" disabled />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">File Name</span>
+                    <input class="field-input" type="text" value="${escapeHtml(selectedEntry.filename)}" disabled />
+                  </label>
+                </div>
+                <p class="section-note">Loaded layer count: ${selectedEntry.asset.layers.length}. Runtime duration: ${Math.max(1, Number(selectedEntry.asset.durationMs) || 1)} ms.</p>
+              </section>
+
+              <section class="subpanel">
+                <div class="subpanel-heading">
+                  <div class="subpanel-copy">
+                    <p class="panel-kicker">Sequence Usage</p>
+                    <h3>${references.length ? 'Referenced by saved sequences' : 'No saved sequence references'}</h3>
+                  </div>
+                </div>
+                ${renderEffectCollectionReferences(selectedEntry.id)}
+                ${
+                  deleteBlockedByPreview
+                    ? '<p class="section-note">The active preview sequence also references this effect right now.</p>'
+                    : ''
+                }
+              </section>
+
+              <section class="subpanel">
+                <div class="subpanel-heading">
+                  <div class="subpanel-copy">
+                    <p class="panel-kicker">Rename</p>
+                    <h3>Update ID, label, or filename</h3>
+                    <div class="subpanel-note">
+                      <p class="section-note">If you change the effect ID, saved sequence cues are rewritten to the new ID automatically.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="field-grid">
+                  <label class="field">
+                    <span class="field-label">New Effect ID</span>
+                    <input class="field-input" type="text" value="${escapeHtml(state.effectCollectionRenameId)}" data-collection-field="renameId" />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">New Label</span>
+                    <input class="field-input" type="text" value="${escapeHtml(state.effectCollectionRenameLabel)}" data-collection-field="renameLabel" />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">New File Name</span>
+                    <input class="field-input" type="text" value="${escapeHtml(state.effectCollectionRenameFileName)}" data-collection-field="renameFileName" placeholder="effect-name.json" />
+                  </label>
+                </div>
+                <div class="button-row">
+                  <button class="action-button action-button-secondary" type="button" data-collection-action="rename-entry" ${state.effectCollectionBusy ? 'disabled' : ''}>Rename Effect</button>
+                </div>
+              </section>
+
+              <section class="subpanel">
+                <div class="subpanel-heading">
+                  <div class="subpanel-copy">
+                    <p class="panel-kicker">Duplicate</p>
+                    <h3>Create a new effect file and ID</h3>
+                  </div>
+                </div>
+                <div class="field-grid">
+                  <label class="field">
+                    <span class="field-label">New Effect ID</span>
+                    <input class="field-input" type="text" value="${escapeHtml(state.effectCollectionDuplicateId)}" data-collection-field="duplicateId" />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">New Label</span>
+                    <input class="field-input" type="text" value="${escapeHtml(state.effectCollectionDuplicateLabel)}" data-collection-field="duplicateLabel" />
+                  </label>
+                  <label class="field">
+                    <span class="field-label">New File Name</span>
+                    <input class="field-input" type="text" value="${escapeHtml(state.effectCollectionDuplicateFileName)}" data-collection-field="duplicateFileName" placeholder="effect-copy.json" />
+                  </label>
+                </div>
+                <div class="button-row">
+                  <button class="action-button action-button-secondary" type="button" data-collection-action="duplicate-entry" ${state.effectCollectionBusy ? 'disabled' : ''}>Duplicate Effect</button>
+                </div>
+              </section>
+
+              <section class="subpanel">
+                <div class="subpanel-heading">
+                  <div class="subpanel-copy">
+                    <p class="panel-kicker">Delete</p>
+                    <h3>Remove the saved effect file</h3>
+                  </div>
+                </div>
+                <p class="section-note">
+                  ${
+                    references.length
+                      ? 'Delete is disabled while saved sequences still reference this effect.'
+                      : deleteBlockedByPreview
+                        ? 'Delete is disabled while the active preview sequence still references this effect.'
+                        : 'This removes the file from the repo effects folder and refreshes effectRegistry.ts.'
+                  }
+                </p>
+                <div class="button-row">
+                  <button class="action-button action-button-danger" type="button" data-collection-action="delete-entry" ${deleteDisabled ? 'disabled' : ''}>Delete Effect</button>
+                </div>
+              </section>
+            </div>
+          `
+              : `
+            <section class="subpanel effect-collection-empty">
+              <p class="empty-note">Choose a saved effect on the left to rename, duplicate, or delete it.</p>
+            </section>
+          `
+          }
+        </section>
+      </div>
+
+      <div class="status-row ${statusClass}">
+        <span>${escapeHtml(state.effectCollectionStatus || (state.effectCollectionBusy ? 'Working…' : 'Ready.'))}</span>
+      </div>
+    </div>
+  `;
+}
+
+function openEffectCollectionModal() {
+  state.effectCollectionModalOpen = true;
+  state.effectCollectionBusy = true;
+  setEffectCollectionStatus('Loading saved effects…');
+  renderEffectCollectionModal();
+  void refreshEffectCollectionModalData();
+}
+
+function closeEffectCollectionModal() {
+  state.effectCollectionModalOpen = false;
+  state.effectCollectionBusy = false;
+  renderEffectCollectionModal();
 }
 
 function syncJsonFromAsset() {
@@ -6283,6 +6822,7 @@ function renderToolbarMenus() {
         <p class="menu-section-title">Workspace</p>
         <div class="menu-button-stack">
           <button class="menu-action" type="button" data-toolbar-action="link-repo-root">${repoLinked ? 'Relink Repo Root' : 'Link Repo Root for Autosave'}</button>
+          <button class="menu-action" type="button" data-toolbar-action="manage-effect-collection">Manage VFX Collection</button>
           <button class="menu-action" type="button" data-toolbar-action="import-sprite">Import Sprite</button>
           <button class="menu-action" type="button" data-toolbar-action="open-sequence-composer">Open Sequence Composer</button>
           <button class="menu-action" type="button" data-toolbar-action="toggle-json-panel">${jsonHidden ? 'Show JSON Debug Panel' : 'Hide JSON Debug Panel'}</button>
@@ -7326,6 +7866,215 @@ function updateSequenceField(field, rawValue) {
   commitSequence(nextSequence);
 }
 
+function validateEffectCollectionDraft({ entry, mode }) {
+  const nextId = normalizeEffectCollectionId(
+    mode === 'rename' ? state.effectCollectionRenameId : state.effectCollectionDuplicateId,
+  );
+  const nextLabel = String(
+    mode === 'rename' ? state.effectCollectionRenameLabel : state.effectCollectionDuplicateLabel,
+  ).trim();
+  const nextFileName = buildEffectJsonFileName(
+    mode === 'rename' ? state.effectCollectionRenameFileName : state.effectCollectionDuplicateFileName,
+  );
+  const fileNameTaken = state.effectCollectionEntries.some(
+    (item) => item.filename === nextFileName && (mode !== 'rename' || item.filename !== entry.filename),
+  );
+  const idTaken = state.effectCollectionEntries.some(
+    (item) => item.id === nextId && (mode !== 'rename' || item.filename !== entry.filename),
+  );
+
+  if (!entry) {
+    throw new Error('Choose an effect first.');
+  }
+  if (!nextId) {
+    throw new Error('Effect ID cannot be empty.');
+  }
+  if (!isValidEffectCollectionId(nextId)) {
+    throw new Error('Effect IDs must start with a letter or number and only use letters, numbers, "-" or "_".');
+  }
+  if (!nextLabel) {
+    throw new Error('Label cannot be empty.');
+  }
+  if (!nextFileName) {
+    throw new Error('File name cannot be empty.');
+  }
+  if (idTaken) {
+    throw new Error(`Another saved effect already uses the ID "${nextId}".`);
+  }
+  if (fileNameTaken) {
+    throw new Error(`Another saved effect already uses the file "${nextFileName}".`);
+  }
+
+  return {
+    nextId,
+    nextLabel,
+    nextFileName,
+  };
+}
+
+async function renameSelectedEffectCollectionEntry() {
+  const entry = getSelectedEffectCollectionEntry();
+
+  try {
+    const { nextId, nextLabel, nextFileName } = validateEffectCollectionDraft({
+      entry,
+      mode: 'rename',
+    });
+    const repoRootHandle = await resolveRepoRootHandleForRegistryRefresh();
+    if (!repoRootHandle) {
+      throw new Error('Link the repo root first.');
+    }
+
+    state.effectCollectionBusy = true;
+    setEffectCollectionStatus('Renaming effect and refreshing saved references…');
+
+    const nextAsset = normalizeAsset({
+      ...cloneData(entry.asset),
+      id: nextId,
+      label: nextLabel,
+    });
+    const effectsDirHandle = await getDirectoryHandle(repoRootHandle, REPO_EFFECTS_SEGMENTS);
+    const nextFileHandle = await effectsDirHandle.getFileHandle(nextFileName, { create: true });
+    const writable = await nextFileHandle.createWritable();
+    await writable.write(stringifyAsset(nextAsset));
+    await writable.close();
+
+    if (entry.id !== nextId) {
+      await rewriteSequenceAssetReferences(repoRootHandle, entry.id, nextId);
+    }
+
+    if (entry.filename !== nextFileName) {
+      await effectsDirHandle.removeEntry(entry.filename);
+      await forgetRecentFileByName(entry.filename);
+    }
+
+    await regenerateEffectRegistry(repoRootHandle);
+    delete effectPreviewLibrary[entry.id];
+    effectPreviewLibrary[nextAsset.id] = cloneData(nextAsset);
+
+    const loadedFileMatches = state.fileName === entry.filename && state.asset.id === entry.id;
+    if (loadedFileMatches) {
+      loadAssetFromObject(nextAsset, { fileHandle: nextFileHandle, fileName: nextFileName });
+      await rememberRecentFile(nextFileHandle, nextFileName);
+    }
+
+    await refreshEffectCollectionModalData({ selectedFileName: nextFileName });
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(
+      entry.id === nextId
+        ? `Renamed ${entry.filename} to ${nextFileName} and refreshed effectRegistry.ts.`
+        : `Renamed ${entry.label} to ${nextLabel}, updated saved sequence references, and refreshed effectRegistry.ts.`,
+      'success',
+    );
+    setSaveStatus(
+      entry.id === nextId
+        ? `Renamed ${entry.filename} to ${nextFileName}.`
+        : `Renamed effect to ${nextId}, updated saved sequences, and refreshed effectRegistry.ts.`,
+      'success',
+    );
+  } catch (error) {
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(`Could not rename effect: ${error.message}`, 'error');
+  }
+}
+
+async function duplicateSelectedEffectCollectionEntry() {
+  const entry = getSelectedEffectCollectionEntry();
+
+  try {
+    const { nextId, nextLabel, nextFileName } = validateEffectCollectionDraft({
+      entry,
+      mode: 'duplicate',
+    });
+    const repoRootHandle = await resolveRepoRootHandleForRegistryRefresh();
+    if (!repoRootHandle) {
+      throw new Error('Link the repo root first.');
+    }
+
+    state.effectCollectionBusy = true;
+    setEffectCollectionStatus('Duplicating effect and refreshing the registry…');
+
+    const nextAsset = normalizeAsset({
+      ...cloneData(entry.asset),
+      id: nextId,
+      label: nextLabel,
+    });
+    const effectsDirHandle = await getDirectoryHandle(repoRootHandle, REPO_EFFECTS_SEGMENTS);
+    const nextFileHandle = await effectsDirHandle.getFileHandle(nextFileName, { create: true });
+    const writable = await nextFileHandle.createWritable();
+    await writable.write(stringifyAsset(nextAsset));
+    await writable.close();
+
+    await regenerateEffectRegistry(repoRootHandle);
+    effectPreviewLibrary[nextAsset.id] = cloneData(nextAsset);
+    await rememberRecentFile(nextFileHandle, nextFileName);
+    await refreshEffectCollectionModalData({ selectedFileName: nextFileName });
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(
+      `Duplicated ${entry.label} as ${nextLabel} and refreshed effectRegistry.ts.`,
+      'success',
+    );
+    setSaveStatus(`Duplicated ${entry.label} as ${nextFileName}.`, 'success');
+  } catch (error) {
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(`Could not duplicate effect: ${error.message}`, 'error');
+  }
+}
+
+async function deleteSelectedEffectCollectionEntry() {
+  const entry = getSelectedEffectCollectionEntry();
+  if (!entry) {
+    setEffectCollectionStatus('Choose an effect first.', 'error');
+    return;
+  }
+
+  const references = getEffectCollectionReferences(entry.id);
+  if (references.length > 0) {
+    setEffectCollectionStatus('Remove this effect from saved sequences before deleting it.', 'error');
+    return;
+  }
+
+  if (isEffectUsedByCurrentPreviewSequence(entry.id)) {
+    setEffectCollectionStatus('Remove this effect from the active preview sequence before deleting it.', 'error');
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Delete "${entry.label}"?\n\nThis removes ${entry.filename} from src/features/vfx/assets/effects and refreshes effectRegistry.ts.`,
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const repoRootHandle = await resolveRepoRootHandleForRegistryRefresh();
+    if (!repoRootHandle) {
+      throw new Error('Link the repo root first.');
+    }
+
+    state.effectCollectionBusy = true;
+    setEffectCollectionStatus('Deleting effect and refreshing the registry…');
+
+    const effectsDirHandle = await getDirectoryHandle(repoRootHandle, REPO_EFFECTS_SEGMENTS);
+    await effectsDirHandle.removeEntry(entry.filename);
+    await regenerateEffectRegistry(repoRootHandle);
+    delete effectPreviewLibrary[entry.id];
+    await forgetRecentFileByName(entry.filename);
+
+    if (state.fileName === entry.filename && state.asset.id === entry.id) {
+      createNewAsset();
+    }
+
+    await refreshEffectCollectionModalData();
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(`Deleted ${entry.filename} and refreshed effectRegistry.ts.`, 'success');
+    setSaveStatus(`Deleted ${entry.filename} from the VFX effects collection.`, 'success');
+  } catch (error) {
+    state.effectCollectionBusy = false;
+    setEffectCollectionStatus(`Could not delete effect: ${error.message}`, 'error');
+  }
+}
+
 function loadAssetFromObject(asset, { fileHandle = null, fileName = '' } = {}) {
   const normalizedAsset = normalizeAsset(asset);
   state.fileHandle = fileHandle;
@@ -8069,6 +8818,32 @@ function handleToolbarMenuInput(event) {
   }
 }
 
+function handleEffectCollectionModalInput(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) {
+    return;
+  }
+
+  const { collectionField } = target.dataset;
+  if (!collectionField) {
+    return;
+  }
+
+  if (collectionField === 'renameId') {
+    state.effectCollectionRenameId = target.value;
+  } else if (collectionField === 'renameLabel') {
+    state.effectCollectionRenameLabel = target.value;
+  } else if (collectionField === 'renameFileName') {
+    state.effectCollectionRenameFileName = target.value;
+  } else if (collectionField === 'duplicateId') {
+    state.effectCollectionDuplicateId = target.value;
+  } else if (collectionField === 'duplicateLabel') {
+    state.effectCollectionDuplicateLabel = target.value;
+  } else if (collectionField === 'duplicateFileName') {
+    state.effectCollectionDuplicateFileName = target.value;
+  }
+}
+
 function handleToolbarMenuClick(event) {
   const button = event.target.closest('[data-toolbar-action]');
   if (!button) return;
@@ -8094,6 +8869,9 @@ function handleToolbarMenuClick(event) {
   } else if (toolbarAction === 'link-repo-root') {
     closeToolbarMenus();
     void linkRepoRoot();
+  } else if (toolbarAction === 'manage-effect-collection') {
+    closeToolbarMenus();
+    openEffectCollectionModal();
   } else if (toolbarAction === 'import-sprite') {
     closeToolbarMenus();
     void importSprite();
@@ -8110,6 +8888,37 @@ function handleToolbarMenuClick(event) {
   } else if (toolbarAction === 'load-demo' && demoEffect) {
     closeToolbarMenus();
     void loadDemoEffect(demoEffect);
+  }
+}
+
+function handleEffectCollectionModalClick(event) {
+  const closeButton = event.target.closest('[data-modal-action="close-effect-collection"]');
+  if (closeButton) {
+    closeEffectCollectionModal();
+    return;
+  }
+
+  const button = event.target.closest('[data-collection-action]');
+  if (!button) {
+    return;
+  }
+
+  const { collectionAction, collectionFileName } = button.dataset;
+
+  if (collectionAction === 'refresh') {
+    void refreshEffectCollectionModalData();
+  } else if (collectionAction === 'link-repo-root') {
+    void linkRepoRoot().then(() => refreshEffectCollectionModalData());
+  } else if (collectionAction === 'select-entry' && collectionFileName) {
+    state.selectedEffectCollectionFileName = collectionFileName;
+    primeEffectCollectionDrafts(getSelectedEffectCollectionEntry());
+    renderEffectCollectionModal();
+  } else if (collectionAction === 'rename-entry') {
+    void renameSelectedEffectCollectionEntry();
+  } else if (collectionAction === 'duplicate-entry') {
+    void duplicateSelectedEffectCollectionEntry();
+  } else if (collectionAction === 'delete-entry') {
+    void deleteSelectedEffectCollectionEntry();
   }
 }
 
@@ -8464,6 +9273,12 @@ function handleCurvePointerDown(event) {
 }
 
 function handleGlobalKeyDown(event) {
+  if (event.key === 'Escape' && state.effectCollectionModalOpen) {
+    event.preventDefault();
+    closeEffectCollectionModal();
+    return;
+  }
+
   const isMac = navigator.platform.toUpperCase().includes('MAC');
   const primaryModifier = isMac ? event.metaKey : event.ctrlKey;
 
@@ -8581,6 +9396,9 @@ function wireEvents() {
     renderStaticPanelState();
   });
   ui.applyJsonButton.addEventListener('click', applyRawJson);
+  ui.effectCollectionModal?.addEventListener('click', handleEffectCollectionModalClick);
+  ui.effectCollectionModal?.addEventListener('input', handleEffectCollectionModalInput);
+  ui.effectCollectionModal?.addEventListener('change', handleEffectCollectionModalInput);
   ui.fallbackFileInput.addEventListener('change', handleFallbackFileChange);
 
   ui.togglePlaybackButton.addEventListener('click', () => {
@@ -8732,6 +9550,19 @@ function resetEditorStateForRecovery() {
   state.activeSequenceCueDrag = null;
   state.previewSpritesReady = true;
   state.previewSpriteLoadKey = '';
+  state.effectCollectionModalOpen = false;
+  state.effectCollectionEntries = [];
+  state.effectCollectionReferences = {};
+  state.selectedEffectCollectionFileName = '';
+  state.effectCollectionStatus = '';
+  state.effectCollectionStatusType = 'info';
+  state.effectCollectionBusy = false;
+  state.effectCollectionRenameId = '';
+  state.effectCollectionRenameLabel = '';
+  state.effectCollectionRenameFileName = '';
+  state.effectCollectionDuplicateId = '';
+  state.effectCollectionDuplicateLabel = '';
+  state.effectCollectionDuplicateFileName = '';
   ensureSelection();
   ensureSequenceSelection();
   state.jsonDraft = stringifyAsset(state.asset);

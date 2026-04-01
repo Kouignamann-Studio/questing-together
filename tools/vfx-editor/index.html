@@ -229,6 +229,31 @@
       </section>
     </div>
 
+    <div id="effectCollectionModal" class="modal-overlay" hidden>
+      <div class="modal-scrim" data-modal-action="close-effect-collection"></div>
+      <section
+        class="modal-card effect-collection-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="effectCollectionModalTitle"
+      >
+        <div class="modal-header">
+          <div>
+            <p class="panel-kicker">Collection</p>
+            <h2 id="effectCollectionModalTitle">Manage VFX Collection</h2>
+          </div>
+          <button
+            class="icon-toggle-button"
+            type="button"
+            data-modal-action="close-effect-collection"
+            aria-label="Close VFX collection manager"
+            title="Close"
+          >✕</button>
+        </div>
+        <div id="effectCollectionModalBody" class="modal-body"></div>
+      </section>
+    </div>
+
     <input id="fallbackFileInput" type="file" accept=".json,application/json" hidden />
 
     <script type="module" src="./app.js"></script>
