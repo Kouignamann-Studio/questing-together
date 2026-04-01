@@ -22,11 +22,14 @@ import {
 } from '@/features/vfx/runtime/preloadEffectSprites';
 import { listEffectSequences } from '@/features/vfx/runtime/sequenceRegistry';
 import { getVfxSpriteSource } from '@/features/vfx/runtime/spriteRegistry';
+import type { EffectAsset } from '@/features/vfx/types/assets';
 import type { EffectInstance } from '@/features/vfx/types/runtime';
+import type { EffectSequence } from '@/features/vfx/types/sequences';
 
 type AnchorKey = 'caster' | 'target';
 type Point = { x: number; y: number };
 type PreviewMode = 'sequence' | 'effect';
+type PreviewInstanceSlot = { slotId: number; active: boolean; instance: EffectInstance };
 
 type VfxPreviewScreenProps = {
   sequenceId?: string;
@@ -39,6 +42,59 @@ type VfxPreviewScreenProps = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function resolveCueDurationMs(cue: EffectSequence['cues'][number], asset: EffectAsset | null) {
+  return cue.durationMs ?? asset?.durationMs ?? 0;
+}
+
+function getSequenceWarmupSlotCounts(sequence: EffectSequence | null) {
+  const slotCounts = new Map<string, number>();
+
+  if (!sequence) {
+    return slotCounts;
+  }
+
+  const eventsByAsset = new Map<string, { atMs: number; delta: number }[]>();
+
+  for (const cue of sequence.cues) {
+    const asset = getEffectAsset(cue.assetId);
+    const durationMs = Math.max(0, resolveCueDurationMs(cue, asset));
+    const events = eventsByAsset.get(cue.assetId) ?? [];
+    events.push({ atMs: cue.atMs, delta: 1 });
+    events.push({ atMs: cue.atMs + durationMs, delta: -1 });
+    eventsByAsset.set(cue.assetId, events);
+  }
+
+  for (const [assetId, events] of eventsByAsset.entries()) {
+    let activeCount = 0;
+    let maxActiveCount = 0;
+
+    events
+      .sort((left, right) => left.atMs - right.atMs || left.delta - right.delta)
+      .forEach((event) => {
+        activeCount += event.delta;
+        maxActiveCount = Math.max(maxActiveCount, activeCount);
+      });
+
+    if (maxActiveCount > 0) {
+      slotCounts.set(assetId, maxActiveCount);
+    }
+  }
+
+  return slotCounts;
+}
+
+function createWarmupInstance(assetId: string, slotId: number): EffectInstance {
+  return {
+    assetId,
+    instanceId: `warmup-${assetId}-${slotId}`,
+    x: 0,
+    y: 0,
+    targetX: 0,
+    targetY: 0,
+    loopOverride: false,
+  };
 }
 
 function resolveSkiaSpriteSource(spriteId: string) {
@@ -87,8 +143,10 @@ const VfxPreviewScreen = ({
 }: VfxPreviewScreenProps) => {
   const router = useRouter();
   const stageRef = useRef<View>(null);
+  const activationFrameIdsRef = useRef<number[]>([]);
   const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const instancesRef = useRef<EffectInstance[]>([]);
+  const slotIdRef = useRef(0);
+  const instanceSlotsRef = useRef<PreviewInstanceSlot[]>([]);
   const stageBoundsRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
   const effectOptions = useMemo(
     () =>
@@ -116,7 +174,7 @@ const VfxPreviewScreen = ({
   const [selectedSequenceId, setSelectedSequenceId] = useState(defaultSequenceId);
   const [spriteImageCache, setSpriteImageCache] = useState<Partial<Record<string, SkImage>>>({});
   const [selectionReady, setSelectionReady] = useState(true);
-  const [instances, setInstances] = useState<EffectInstance[]>([]);
+  const [instanceSlots, setInstanceSlots] = useState<PreviewInstanceSlot[]>([]);
   const [stageReady, setStageReady] = useState(false);
   const [anchors, setAnchors] = useState<{ caster: Point; target: Point }>({
     caster: { x: 0, y: 0 },
@@ -134,24 +192,49 @@ const VfxPreviewScreen = ({
     timeoutIdsRef.current = [];
   }, []);
 
+  const clearActivationFrames = useCallback(() => {
+    if (activationFrameIdsRef.current.length === 0) {
+      return;
+    }
+
+    for (const frameId of activationFrameIdsRef.current) {
+      cancelAnimationFrame(frameId);
+    }
+    activationFrameIdsRef.current = [];
+  }, []);
+
   const resetPreviewPlayback = useCallback(() => {
+    clearActivationFrames();
     clearTimers();
-    setInstances((current) => (current.length === 0 ? current : []));
-  }, [clearTimers]);
+    setInstanceSlots((current) =>
+      current.some((slot) => slot.active)
+        ? current.map((slot) => (slot.active ? { ...slot, active: false } : slot))
+        : current,
+    );
+  }, [clearActivationFrames, clearTimers]);
 
   const resetPreviewPlaybackIfActive = useCallback(() => {
-    if (timeoutIdsRef.current.length === 0 && instancesRef.current.length === 0) {
+    if (
+      timeoutIdsRef.current.length === 0 &&
+      !instanceSlotsRef.current.some((slot) => slot.active)
+    ) {
       return;
     }
 
     resetPreviewPlayback();
   }, [resetPreviewPlayback]);
 
-  useEffect(() => clearTimers, [clearTimers]);
+  useEffect(
+    () => () => {
+      clearActivationFrames();
+      clearTimers();
+    },
+    [clearActivationFrames, clearTimers],
+  );
 
   useEffect(() => {
-    instancesRef.current = instances;
-  }, [instances]);
+    instanceSlotsRef.current = instanceSlots;
+  }, [instanceSlots]);
 
   const refreshStageBounds = useCallback((onMeasured?: () => void) => {
     stageRef.current?.measureInWindow((x, y, width, height) => {
@@ -216,14 +299,46 @@ const VfxPreviewScreen = ({
         return null;
       }
 
-      setInstances((current) => [...current, instance]);
+      setInstanceSlots((current) => {
+        const reusableSlotIndex = current.findIndex(
+          (slot) => !slot.active && slot.instance.assetId === assetId,
+        );
+
+        if (reusableSlotIndex >= 0) {
+          const reusableSlot = current[reusableSlotIndex];
+          const nextSlots = current.map((slot, index) =>
+            index === reusableSlotIndex ? { ...slot, instance, active: false } : slot,
+          );
+          const frameId = requestAnimationFrame(() => {
+            activationFrameIdsRef.current = activationFrameIdsRef.current.filter(
+              (candidate) => candidate !== frameId,
+            );
+            setInstanceSlots((slots) =>
+              slots.map((slot) =>
+                slot.slotId === reusableSlot.slotId &&
+                slot.instance.instanceId === instance.instanceId
+                  ? { ...slot, active: true }
+                  : slot,
+              ),
+            );
+          });
+          activationFrameIdsRef.current.push(frameId);
+          return nextSlots;
+        }
+
+        return [...current, { slotId: slotIdRef.current++, active: true, instance }];
+      });
       return instance.instanceId;
     },
     [],
   );
 
   const handleComplete = useCallback((instanceId: string) => {
-    setInstances((current) => current.filter((instance) => instance.instanceId !== instanceId));
+    setInstanceSlots((current) =>
+      current.map((slot) =>
+        slot.instance.instanceId === instanceId ? { ...slot, active: false } : slot,
+      ),
+    );
   }, []);
 
   const queueLocalTimeout = useCallback((callback: () => void, delayMs: number) => {
@@ -323,6 +438,17 @@ const VfxPreviewScreen = ({
     () => listEffectSequences().find((sequence) => sequence.id === selectedSequenceId) ?? null,
     [selectedSequenceId],
   );
+  const warmupSlotCounts = useMemo(() => {
+    if (previewMode === 'sequence') {
+      return getSequenceWarmupSlotCounts(selectedSequence);
+    }
+
+    if (selectedEffect) {
+      return new Map([[selectedEffect.id, 1]]);
+    }
+
+    return new Map<string, number>();
+  }, [previewMode, selectedEffect, selectedSequence]);
   const selectedSpriteIds = useMemo(() => {
     const assets =
       previewMode === 'sequence'
@@ -384,6 +510,39 @@ const VfxPreviewScreen = ({
 
     setSelectionReady(selectedSpriteIds.every((spriteId) => Boolean(spriteImageCache[spriteId])));
   }, [selectedSpriteIds, spriteImageCache]);
+
+  useEffect(() => {
+    if (warmupSlotCounts.size === 0) {
+      return;
+    }
+
+    setInstanceSlots((current) => {
+      let nextSlots = current;
+
+      for (const [assetId, requiredCount] of warmupSlotCounts.entries()) {
+        const currentCount = nextSlots.filter((slot) => slot.instance.assetId === assetId).length;
+
+        if (currentCount >= requiredCount) {
+          continue;
+        }
+
+        if (nextSlots === current) {
+          nextSlots = [...current];
+        }
+
+        for (let index = currentCount; index < requiredCount; index += 1) {
+          const slotId = slotIdRef.current++;
+          nextSlots.push({
+            slotId,
+            active: false,
+            instance: createWarmupInstance(assetId, slotId),
+          });
+        }
+      }
+
+      return nextSlots;
+    });
+  }, [warmupSlotCounts]);
 
   const handleSpriteResolved = useCallback((spriteId: string, image: SkImage | null) => {
     if (!image) {
@@ -470,12 +629,13 @@ const VfxPreviewScreen = ({
             <Stack gap={12}>
               <View ref={stageRef} onLayout={handleStageLayout} style={styles.stage}>
                 <View pointerEvents="none" style={styles.stageEffects}>
-                  {instances.map((instance) => (
+                  {instanceSlots.map((slot) => (
                     <EffectPlayer
-                      key={instance.instanceId}
-                      instance={instance}
+                      key={slot.slotId}
+                      instance={slot.instance}
                       onComplete={handleComplete}
                       spriteImageCache={spriteImageCache}
+                      active={slot.active}
                     />
                   ))}
                 </View>

@@ -47,6 +47,7 @@ type EffectPlayerProps = {
   instance: EffectInstance;
   onComplete: (instanceId: string) => void;
   spriteImageCache?: Partial<Record<string, SkImage>>;
+  active?: boolean;
 };
 
 type SharedLayerMetrics = {
@@ -1992,8 +1993,8 @@ function renderLayer(
 
   if (!asset) return null;
 
-  const wrapCoreLayer = (content: ReactNode) => (
-    <Group key={layer.id} opacity={coreLayerOpacity}>
+  const wrapCoreLayer = (content: ReactNode, key = layer.id) => (
+    <Group key={key} opacity={coreLayerOpacity}>
       {content}
     </Group>
   );
@@ -2046,6 +2047,7 @@ function renderLayer(
           progress={progress}
           spriteImageCache={spriteImageCache}
         />,
+        `${layer.id}-${instance.instanceId}`,
       );
     case 'particleEmitter':
       return (
@@ -2064,14 +2066,21 @@ function renderLayer(
   }
 }
 
-const EffectPlayerSkia = ({ instance, onComplete, spriteImageCache }: EffectPlayerProps) => {
+const EffectPlayerSkia = ({
+  instance,
+  onComplete,
+  spriteImageCache,
+  active = true,
+}: EffectPlayerProps) => {
   const progress = useSharedValue(0);
   const elapsedMs = useSharedValue(0);
   const renderOpacity = useSharedValue(0);
   const asset = getEffectAsset(instance.assetId);
   const spriteIds = useMemo(() => (asset ? collectAssetSpriteIds(asset) : []), [asset]);
+  const spriteCount = spriteIds.length;
   const allSpritesCached = spriteIds.every((spriteId) => spriteImageCache?.[spriteId]);
-  const [spritesReady, setSpritesReady] = useState(spriteIds.length === 0 || allSpritesCached);
+  const needsSpriteWarmup = spriteCount > 0 && !allSpritesCached;
+  const [spritesReady, setSpritesReady] = useState(spriteCount === 0 || allSpritesCached);
   const shouldLoop = instance.loopOverride ?? asset?.loop ?? false;
   const animationDurationMs = Math.max(1, instance.durationMsOverride ?? asset?.durationMs ?? 1);
   const playbackDurationMs =
@@ -2121,7 +2130,7 @@ const EffectPlayerSkia = ({ instance, onComplete, spriteImageCache }: EffectPlay
   }, [allSpritesCached, asset, spriteIds]);
 
   useEffect(() => {
-    if (!asset || !spritesReady) {
+    if (!active || !asset || !spritesReady) {
       cancelAnimation(progress);
       cancelAnimation(elapsedMs);
       progress.value = 0;
@@ -2134,7 +2143,7 @@ const EffectPlayerSkia = ({ instance, onComplete, spriteImageCache }: EffectPlay
     cancelAnimation(elapsedMs);
     progress.value = 0;
     elapsedMs.value = 0;
-    renderOpacity.value = spriteIds.length === 0 ? 1 : 0;
+    renderOpacity.value = spriteCount === 0 ? 1 : 0;
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let frameOne: number | null = null;
@@ -2176,7 +2185,7 @@ const EffectPlayerSkia = ({ instance, onComplete, spriteImageCache }: EffectPlay
       }, playbackDurationMs + 32);
     };
 
-    if (spriteIds.length > 0) {
+    if (needsSpriteWarmup) {
       frameOne = requestAnimationFrame(() => {
         frameTwo = requestAnimationFrame(startPlayback);
       });
@@ -2200,6 +2209,7 @@ const EffectPlayerSkia = ({ instance, onComplete, spriteImageCache }: EffectPlay
       renderOpacity.value = 0;
     };
   }, [
+    active,
     asset,
     animationDurationMs,
     elapsedMs,
@@ -2209,8 +2219,9 @@ const EffectPlayerSkia = ({ instance, onComplete, spriteImageCache }: EffectPlay
     progress,
     renderOpacity,
     shouldLoop,
-    spriteIds.length,
+    needsSpriteWarmup,
     spritesReady,
+    spriteCount,
   ]);
 
   if (!asset) return null;

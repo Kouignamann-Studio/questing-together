@@ -25,6 +25,7 @@ import type { EffectInstance } from '@/features/vfx/types/runtime';
 type EffectPlayerProps = {
   instance: EffectInstance;
   onComplete: (instanceId: string) => void;
+  active?: boolean;
 };
 
 function renderLayer(layer: EffectLayer, instance: EffectInstance, progress: SharedValue<number>) {
@@ -119,7 +120,7 @@ function renderLayer(layer: EffectLayer, instance: EffectInstance, progress: Sha
   }
 }
 
-const EffectPlayer = ({ instance, onComplete }: EffectPlayerProps) => {
+const EffectPlayer = ({ instance, onComplete, active = true }: EffectPlayerProps) => {
   const progress = useSharedValue(0);
   const asset = getEffectAsset(instance.assetId);
   const shouldLoop = instance.loopOverride ?? asset?.loop ?? false;
@@ -130,7 +131,11 @@ const EffectPlayer = ({ instance, onComplete }: EffectPlayerProps) => {
       : animationDurationMs;
 
   useEffect(() => {
-    if (!asset) return;
+    if (!active || !asset) {
+      cancelAnimation(progress);
+      progress.value = 0;
+      return;
+    }
 
     cancelAnimation(progress);
     progress.value = 0;
@@ -162,9 +167,11 @@ const EffectPlayer = ({ instance, onComplete }: EffectPlayerProps) => {
     playbackDurationMs,
     progress,
     shouldLoop,
+    active,
   ]);
 
   if (!asset) return null;
+  if (!active) return null;
 
   return (
     <Svg pointerEvents="none" style={styles.canvas} width="100%" height="100%">
