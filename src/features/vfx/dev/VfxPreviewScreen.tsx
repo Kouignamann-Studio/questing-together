@@ -9,6 +9,7 @@ import {
   ScreenContainer,
   Select,
   Stack,
+  TextField,
   Typography,
 } from '@/components';
 import { colors } from '@/constants/colors';
@@ -31,6 +32,8 @@ type Point = { x: number; y: number };
 type PreviewMode = 'sequence' | 'effect';
 type PreviewInstanceSlot = { slotId: number; active: boolean; instance: EffectInstance };
 
+const INSTANCE_OFFSET_STEP = 18;
+
 type VfxPreviewScreenProps = {
   sequenceId?: string;
   travelAssetId?: string;
@@ -48,7 +51,17 @@ function resolveCueDurationMs(cue: EffectSequence['cues'][number], asset: Effect
   return cue.durationMs ?? asset?.durationMs ?? 0;
 }
 
-function getSequenceWarmupSlotCounts(sequence: EffectSequence | null) {
+function parseInstanceCount(value: string) {
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed)) {
+    return 1;
+  }
+
+  return clamp(parsed, 1, 32);
+}
+
+function getSequenceWarmupSlotCounts(sequence: EffectSequence | null, multiplier = 1) {
   const slotCounts = new Map<string, number>();
 
   if (!sequence) {
@@ -78,7 +91,7 @@ function getSequenceWarmupSlotCounts(sequence: EffectSequence | null) {
       });
 
     if (maxActiveCount > 0) {
-      slotCounts.set(assetId, maxActiveCount);
+      slotCounts.set(assetId, maxActiveCount * multiplier);
     }
   }
 
@@ -115,6 +128,22 @@ function resolveSkiaSpriteSource(spriteId: string) {
   }
 
   return null;
+}
+
+function getInstanceOffset(index: number, totalCount: number): Point {
+  if (totalCount <= 1) {
+    return { x: 0, y: 0 };
+  }
+
+  const columns = Math.ceil(Math.sqrt(totalCount));
+  const rows = Math.ceil(totalCount / columns);
+  const column = index % columns;
+  const row = Math.floor(index / columns);
+
+  return {
+    x: (column - (columns - 1) / 2) * INSTANCE_OFFSET_STEP,
+    y: (row - (rows - 1) / 2) * INSTANCE_OFFSET_STEP,
+  };
 }
 
 type SpriteWarmupImageProps = {
@@ -172,6 +201,8 @@ const VfxPreviewScreen = ({
   );
   const [selectedEffectId, setSelectedEffectId] = useState(defaultEffectId);
   const [selectedSequenceId, setSelectedSequenceId] = useState(defaultSequenceId);
+  const [instanceCount, setInstanceCount] = useState('1');
+  const [fps, setFps] = useState(0);
   const [spriteImageCache, setSpriteImageCache] = useState<Partial<Record<string, SkImage>>>({});
   const [selectionReady, setSelectionReady] = useState(true);
   const [instanceSlots, setInstanceSlots] = useState<PreviewInstanceSlot[]>([]);
@@ -231,6 +262,35 @@ const VfxPreviewScreen = ({
     },
     [clearActivationFrames, clearTimers],
   );
+
+  useEffect(() => {
+    let frameId = 0;
+    let sampleStartedAt = performance.now();
+    let frameCount = 0;
+
+    const sampleFps = (now: number) => {
+      frameCount += 1;
+
+      const elapsedMs = now - sampleStartedAt;
+      if (elapsedMs >= 400) {
+        const nextFps = Math.round((frameCount * 1000) / elapsedMs);
+        setFps((current) => (current === nextFps ? current : nextFps));
+        sampleStartedAt = now;
+        frameCount = 0;
+      }
+
+      frameId = requestAnimationFrame(sampleFps);
+    };
+
+    frameId = requestAnimationFrame((now) => {
+      sampleStartedAt = now;
+      frameId = requestAnimationFrame(sampleFps);
+    });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, []);
 
   useEffect(() => {
     instanceSlotsRef.current = instanceSlots;
@@ -354,17 +414,28 @@ const VfxPreviewScreen = ({
       return;
     }
 
+    const totalInstances = parseInstanceCount(instanceCount);
     resetPreviewPlayback();
-    playEffectSequence({
-      sequenceId: selectedSequenceId,
-      caster: anchors.caster,
-      target: anchors.target,
-      playEffect: playLocalEffect,
-      onTimeout: queueLocalTimeout,
-    });
+    for (let index = 0; index < totalInstances; index += 1) {
+      const offset = getInstanceOffset(index, totalInstances);
+      playEffectSequence({
+        sequenceId: selectedSequenceId,
+        caster: {
+          x: anchors.caster.x + offset.x,
+          y: anchors.caster.y + offset.y,
+        },
+        target: {
+          x: anchors.target.x + offset.x,
+          y: anchors.target.y + offset.y,
+        },
+        playEffect: playLocalEffect,
+        onTimeout: queueLocalTimeout,
+      });
+    }
   }, [
     anchors.caster,
     anchors.target,
+    instanceCount,
     playLocalEffect,
     queueLocalTimeout,
     resetPreviewPlayback,
@@ -376,19 +447,24 @@ const VfxPreviewScreen = ({
       return;
     }
 
+    const totalInstances = parseInstanceCount(instanceCount);
     resetPreviewPlayback();
-    playLocalEffect(selectedEffectId, {
-      x: anchors.caster.x,
-      y: anchors.caster.y,
-      targetX: anchors.target.x,
-      targetY: anchors.target.y,
-      loopOverride: false,
-    });
+    for (let index = 0; index < totalInstances; index += 1) {
+      const offset = getInstanceOffset(index, totalInstances);
+      playLocalEffect(selectedEffectId, {
+        x: anchors.caster.x + offset.x,
+        y: anchors.caster.y + offset.y,
+        targetX: anchors.target.x + offset.x,
+        targetY: anchors.target.y + offset.y,
+        loopOverride: false,
+      });
+    }
   }, [
     anchors.caster.x,
     anchors.caster.y,
     anchors.target.x,
     anchors.target.y,
+    instanceCount,
     playLocalEffect,
     resetPreviewPlayback,
     selectedEffectId,
@@ -439,16 +515,18 @@ const VfxPreviewScreen = ({
     [selectedSequenceId],
   );
   const warmupSlotCounts = useMemo(() => {
+    const totalInstances = parseInstanceCount(instanceCount);
+
     if (previewMode === 'sequence') {
-      return getSequenceWarmupSlotCounts(selectedSequence);
+      return getSequenceWarmupSlotCounts(selectedSequence, totalInstances);
     }
 
     if (selectedEffect) {
-      return new Map([[selectedEffect.id, 1]]);
+      return new Map([[selectedEffect.id, totalInstances]]);
     }
 
     return new Map<string, number>();
-  }, [previewMode, selectedEffect, selectedSequence]);
+  }, [instanceCount, previewMode, selectedEffect, selectedSequence]);
   const selectedSpriteIds = useMemo(() => {
     const assets =
       previewMode === 'sequence'
@@ -622,6 +700,17 @@ const VfxPreviewScreen = ({
                   ) : null}
                 </Stack>
               )}
+
+              <Stack gap={6}>
+                <TextField
+                  label="Instance Count"
+                  value={instanceCount}
+                  keyboardType="number-pad"
+                  helperText="Custom value, clamped between 1 and 32."
+                  onChangeText={(value) => setInstanceCount(value.replace(/[^0-9]/g, ''))}
+                  onBlur={() => setInstanceCount(String(parseInstanceCount(instanceCount)))}
+                />
+              </Stack>
             </Stack>
           </Card>
 
@@ -638,6 +727,12 @@ const VfxPreviewScreen = ({
                       active={slot.active}
                     />
                   ))}
+                </View>
+
+                <View pointerEvents="none" style={styles.fpsPill}>
+                  <Typography variant="caption" style={styles.fpsText}>
+                    {fps} FPS
+                  </Typography>
                 </View>
 
                 {stageReady ? (
@@ -760,6 +855,20 @@ const styles = StyleSheet.create({
   },
   stageEffects: {
     ...StyleSheet.absoluteFillObject,
+  },
+  fpsPill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(8, 12, 20, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  fpsText: {
+    color: colors.textPrimary,
   },
   motionGuide: {
     position: 'absolute',
