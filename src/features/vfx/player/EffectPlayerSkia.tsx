@@ -51,6 +51,7 @@ type EffectPlayerProps = {
 };
 
 type SharedLayerMetrics = {
+  progress: SharedValue<number>;
   x: SharedValue<number>;
   y: SharedValue<number>;
   scale: SharedValue<number>;
@@ -85,6 +86,9 @@ type ResolvedParticleStaticState = {
   endAlpha: number;
   hasScaleTrack: boolean;
   hasAlphaTrack: boolean;
+  hasOffsetXTrack: boolean;
+  hasOffsetYTrack: boolean;
+  hasRotationTrack: boolean;
   legacyEndSize: number;
   baseRotationDeg: number;
   rotationOverLifetimeDeg: number;
@@ -518,6 +522,9 @@ function resolveParticleStaticState(
       endAlpha: 0,
       hasScaleTrack: hasDynamicTrack(layer.particleTracks, 'scale'),
       hasAlphaTrack: hasDynamicTrack(layer.particleTracks, 'alpha'),
+      hasOffsetXTrack: hasDynamicTrack(layer.particleTracks, 'x'),
+      hasOffsetYTrack: hasDynamicTrack(layer.particleTracks, 'y'),
+      hasRotationTrack: hasDynamicTrack(layer.particleTracks, 'rotationDeg'),
       legacyEndSize: 0,
       baseRotationDeg: layer.rotationDeg ?? defaultRotationDeg,
       rotationOverLifetimeDeg: 0,
@@ -685,6 +692,9 @@ function resolveParticleStaticState(
     endAlpha,
     hasScaleTrack,
     hasAlphaTrack,
+    hasOffsetXTrack: hasDynamicTrack(layer.particleTracks, 'x'),
+    hasOffsetYTrack: hasDynamicTrack(layer.particleTracks, 'y'),
+    hasRotationTrack: hasDynamicTrack(layer.particleTracks, 'rotationDeg'),
     legacyEndSize,
     baseRotationDeg,
     rotationOverLifetimeDeg,
@@ -695,7 +705,7 @@ function resolveParticleStaticState(
 
 function sampleResolvedParticleState(
   layer: ParticleEmitterLayer,
-  progress: number,
+  emitterAlpha: number,
   elapsedMs: number,
   staticState: ResolvedParticleStaticState,
 ) {
@@ -731,8 +741,12 @@ function sampleResolvedParticleState(
     staticState.drag > 0
       ? (1 - Math.exp(-staticState.drag * ageSeconds)) / staticState.drag
       : ageSeconds;
-  const offsetX = sampleDynamicTrackValue(layer.particleTracks, 'x', lifeProgress, 0);
-  const offsetY = sampleDynamicTrackValue(layer.particleTracks, 'y', lifeProgress, 0);
+  const offsetX = staticState.hasOffsetXTrack
+    ? sampleDynamicTrackValue(layer.particleTracks, 'x', lifeProgress, 0)
+    : 0;
+  const offsetY = staticState.hasOffsetYTrack
+    ? sampleDynamicTrackValue(layer.particleTracks, 'y', lifeProgress, 0)
+    : 0;
   const size = Math.max(
     0.5,
     staticState.hasScaleTrack
@@ -742,7 +756,7 @@ function sampleResolvedParticleState(
   );
   const alpha = Math.max(
     0,
-    sampleLayerTrack(layer, 'alpha', progress, 1) *
+    emitterAlpha *
       (staticState.hasAlphaTrack
         ? sampleDynamicTrackValue(layer.particleTracks, 'alpha', lifeProgress, 1)
         : staticState.startAlpha + (staticState.endAlpha - staticState.startAlpha) * lifeProgress),
@@ -751,7 +765,9 @@ function sampleResolvedParticleState(
     staticState.baseRotationDeg +
     staticState.rotationOverLifetimeDeg * lifeProgress +
     staticState.spinDeg * ageSeconds +
-    sampleDynamicTrackValue(layer.particleTracks, 'rotationDeg', lifeProgress, 0);
+    (staticState.hasRotationTrack
+      ? sampleDynamicTrackValue(layer.particleTracks, 'rotationDeg', lifeProgress, 0)
+      : 0);
 
   return {
     x:
@@ -777,12 +793,11 @@ function useLayerMetrics(
   layer: EffectLayer,
   progress: SharedValue<number>,
 ): SharedLayerMetrics {
-  const layerProgress = useDerivedValue(
-    () => resolveLayerTimelineProgress(asset, instance, layer, progress.value) ?? 1,
+  const timelineProgress = useDerivedValue(() =>
+    resolveLayerTimelineProgress(asset, instance, layer, progress.value),
   );
-  const layerVisible = useDerivedValue(() =>
-    resolveLayerTimelineProgress(asset, instance, layer, progress.value) == null ? 0 : 1,
-  );
+  const layerProgress = useDerivedValue(() => timelineProgress.value ?? 1);
+  const layerVisible = useDerivedValue(() => (timelineProgress.value == null ? 0 : 1));
   const x = useDerivedValue(() => {
     const base = sampleMotionPosition(asset, instance, layerProgress.value);
     return base.x + sampleLayerTrack(layer, 'x', layerProgress.value, 0);
@@ -798,15 +813,15 @@ function useLayerMetrics(
     Math.max(0, layerVisible.value * sampleLayerTrack(layer, 'alpha', layerProgress.value, 1)),
   );
 
-  return { x, y, scale, alpha };
+  return { progress: layerProgress, x, y, scale, alpha };
 }
 
 function useParticleMetrics(
   asset: EffectAsset,
   instance: EffectInstance,
   layer: ParticleEmitterLayer,
-  progress: SharedValue<number>,
   elapsedMs: SharedValue<number>,
+  emitterAlpha: SharedValue<number>,
   index: number,
 ): SharedParticleMetrics {
   const staticState = useMemo(
@@ -814,7 +829,7 @@ function useParticleMetrics(
     [asset, index, instance, layer],
   );
   const state = useDerivedValue(() =>
-    sampleResolvedParticleState(layer, progress.value, elapsedMs.value, staticState),
+    sampleResolvedParticleState(layer, emitterAlpha.value, elapsedMs.value, staticState),
   );
 
   const x = useDerivedValue(() => state.value.x);
@@ -838,10 +853,13 @@ const OrbPrimitiveSkia = ({
   layer: OrbLayer;
   progress: SharedValue<number>;
 }) => {
-  const { x, y, scale, alpha } = useLayerMetrics(asset, instance, layer, progress);
-  const layerProgress = useDerivedValue(
-    () => resolveLayerTimelineProgress(asset, instance, layer, progress.value) ?? 1,
-  );
+  const {
+    progress: layerProgress,
+    x,
+    y,
+    scale,
+    alpha,
+  } = useLayerMetrics(asset, instance, layer, progress);
   const glow = useDerivedValue(() => sampleLayerTrack(layer, 'glow', layerProgress.value, 0));
   const glowRadius = useDerivedValue(
     () => layer.radius * scale.value * (layer.glowScale ?? 2.3) * (1 + glow.value * 0.45),
@@ -1110,23 +1128,23 @@ const ParticleOrbNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
 }) => {
   const { x, y, size, alpha, color } = useParticleMetrics(
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
   const radius = useDerivedValue(() => Math.max(0.5, size.value / 2));
@@ -1138,23 +1156,23 @@ const ParticleRingNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
 }) => {
   const { x, y, size, alpha, color } = useParticleMetrics(
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
   const radius = useDerivedValue(() => Math.max(0.5, size.value / 2));
@@ -1177,23 +1195,23 @@ const ParticleStreakNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
 }) => {
   const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
   const path = useDerivedValue(() => {
@@ -1222,23 +1240,23 @@ const ParticleDiamondNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
 }) => {
   const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
   const path = useDerivedValue(() => {
@@ -1264,23 +1282,23 @@ const ParticleArcNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
 }) => {
   const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
   const path = useDerivedValue(() => {
@@ -1311,23 +1329,23 @@ const ParticleStarburstNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
 }) => {
   const { x, y, size, alpha, rotationDeg, color } = useParticleMetrics(
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
   const path = useDerivedValue(() => {
@@ -1357,16 +1375,16 @@ const ParticleSpriteNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
   spriteImageCache,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
   spriteImageCache?: Partial<Record<string, SkImage>>;
 }) => {
@@ -1374,8 +1392,8 @@ const ParticleSpriteNodeSkia = ({
     asset,
     instance,
     layer,
-    progress,
     elapsedMs,
+    emitterAlpha,
     index,
   );
 
@@ -1404,16 +1422,16 @@ const ParticleNodeSkia = ({
   asset,
   instance,
   layer,
-  progress,
   elapsedMs,
+  emitterAlpha,
   index,
   spriteImageCache,
 }: {
   asset: EffectAsset;
   instance: EffectInstance;
   layer: ParticleEmitterLayer;
-  progress: SharedValue<number>;
   elapsedMs: SharedValue<number>;
+  emitterAlpha: SharedValue<number>;
   index: number;
   spriteImageCache?: Partial<Record<string, SkImage>>;
 }) => {
@@ -1424,8 +1442,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
           spriteImageCache={spriteImageCache}
         />
@@ -1436,8 +1454,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
         />
       );
@@ -1447,8 +1465,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
         />
       );
@@ -1458,8 +1476,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
         />
       );
@@ -1469,8 +1487,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
         />
       );
@@ -1480,8 +1498,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
         />
       );
@@ -1491,8 +1509,8 @@ const ParticleNodeSkia = ({
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
         />
       );
@@ -1518,6 +1536,11 @@ const ParticleEmitterPrimitiveSkia = ({
   const particleCount = shouldLoop
     ? Math.max(0, Math.round(layer.maxParticles))
     : resolveParticleNodeCount(layer, asset, instance);
+  const emitterAlpha = useDerivedValue(() => sampleLayerTrack(layer, 'alpha', progress.value, 1));
+  const particleIndices = useMemo(
+    () => Array.from({ length: particleCount }, (_, index) => index),
+    [particleCount],
+  );
 
   if (particleCount <= 0) {
     return null;
@@ -1525,14 +1548,14 @@ const ParticleEmitterPrimitiveSkia = ({
 
   return (
     <>
-      {Array.from({ length: particleCount }, (_, index) => (
+      {particleIndices.map((index) => (
         <ParticleNodeSkia
           key={`${layer.id}-particle-${index}`}
           asset={asset}
           instance={instance}
           layer={layer}
-          progress={progress}
           elapsedMs={elapsedMs}
+          emitterAlpha={emitterAlpha}
           index={index}
           spriteImageCache={spriteImageCache}
         />
@@ -1556,12 +1579,11 @@ function useTrailSegmentMetrics(
   progress: SharedValue<number>,
   index: number,
 ): TrailSegmentMetrics {
-  const layerProgress = useDerivedValue(
-    () => resolveLayerTimelineProgress(asset, instance, layer, progress.value) ?? 1,
+  const timelineProgress = useDerivedValue(() =>
+    resolveLayerTimelineProgress(asset, instance, layer, progress.value),
   );
-  const layerVisible = useDerivedValue(() =>
-    resolveLayerTimelineProgress(asset, instance, layer, progress.value) == null ? 0 : 1,
-  );
+  const layerProgress = useDerivedValue(() => timelineProgress.value ?? 1);
+  const layerVisible = useDerivedValue(() => (timelineProgress.value == null ? 0 : 1));
   const segmentProgress = useDerivedValue(() =>
     Math.max(0, layerProgress.value - index * layer.spacing),
   );
@@ -1982,6 +2004,7 @@ const TrailPrimitiveSkia = ({
 };
 
 function renderLayer(
+  asset: EffectAsset,
   layer: EffectLayer,
   instance: EffectInstance,
   progress: SharedValue<number>,
@@ -1989,10 +2012,6 @@ function renderLayer(
   coreLayerOpacity: SharedValue<number>,
   spriteImageCache?: Partial<Record<string, SkImage>>,
 ) {
-  const asset = getEffectAsset(instance.assetId);
-
-  if (!asset) return null;
-
   const wrapCoreLayer = (content: ReactNode, key = layer.id) => (
     <Group key={key} opacity={coreLayerOpacity}>
       {content}
@@ -2230,7 +2249,15 @@ const EffectPlayerSkia = ({
     <Canvas pointerEvents="none" style={styles.canvas}>
       <Group opacity={renderOpacity}>
         {asset.layers.map((layer) =>
-          renderLayer(layer, instance, progress, elapsedMs, coreLayerOpacity, spriteImageCache),
+          renderLayer(
+            asset,
+            layer,
+            instance,
+            progress,
+            elapsedMs,
+            coreLayerOpacity,
+            spriteImageCache,
+          ),
         )}
       </Group>
     </Canvas>
