@@ -16,6 +16,7 @@ type CardHandGridProps = {
   combatState: PlayerCombatState;
   roleId: RoleId;
   disabled?: boolean;
+  hideCards?: boolean;
   onPlayCard: (handIndex: number, targetEnemyIdx?: number | null) => void;
   onConvergence: () => void;
   onEndTurn: () => void;
@@ -28,6 +29,7 @@ const CardHandGrid = ({
   combatState,
   roleId,
   disabled = false,
+  hideCards = false,
   onPlayCard,
   onConvergence,
   onEndTurn,
@@ -38,6 +40,8 @@ const CardHandGrid = ({
   const { t } = useTranslation();
   // Optimistic tracking
   const [localPlayedIndices, setLocalPlayedIndices] = useState<number[]>([]);
+  // Lock to prevent spam — one card at a time
+  const playLockRef = useRef(false);
   // Reroll: show first 4 cards, reroll swaps to remaining cards
   const [rerolled, setRerolled] = useState(false);
 
@@ -52,6 +56,7 @@ const CardHandGrid = ({
     if (serialized !== prevHandRef.current) {
       prevHandRef.current = serialized;
       setLocalPlayedIndices([]);
+      playLockRef.current = false;
       // Only reset reroll on new turn, not on reroll response
       if (isNewTurn) {
         setRerolled(false);
@@ -69,15 +74,23 @@ const CardHandGrid = ({
 
   const handleCardPress = useCallback(
     (handIndex: number) => {
+      if (playLockRef.current) return;
       if (localPlayedIndices.includes(handIndex)) return;
       const instance = combatState.hand[handIndex];
       if (!instance) return;
       const card = getCardById(instance.cardId);
       if (!card || combatState.energy < card.cost) return;
 
+      playLockRef.current = true;
       setLocalPlayedIndices((prev) => [...prev, handIndex]);
 
       onPlayCard(handIndex, card.baseDamage && card.baseDamage > 0 ? selectedEnemyIdx : null);
+
+      // Safety: unlock after 1.5s in case server response is slow
+      const timer = setTimeout(() => {
+        playLockRef.current = false;
+      }, 1500);
+      return () => clearTimeout(timer);
     },
     [combatState, localPlayedIndices, selectedEnemyIdx, onPlayCard],
   );
@@ -106,7 +119,7 @@ const CardHandGrid = ({
       />
 
       {/* Card hand: hidden during enemy phase / ended turn */}
-      {!disabled ? (
+      {!hideCards ? (
         <Stack direction="row" gap={8} justify="center" style={{ paddingTop: 4 }}>
           {visibleCards.map(({ instance, idx }) => {
             const card = getCardById(instance.cardId);
@@ -126,7 +139,7 @@ const CardHandGrid = ({
       ) : null}
 
       {/* Convergence banner */}
-      {canConverge && identity && !disabled ? (
+      {canConverge && identity && !hideCards ? (
         <Pressable onPress={onConvergence} disabled={disabled}>
           <View
             style={{

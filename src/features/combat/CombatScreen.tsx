@@ -390,7 +390,7 @@ const CombatScreen = () => {
 
   const handlePlayCard = useCallback(
     (handIndex: number, targetEnemyIdx?: number | null) => {
-      if (isDead || anim.isAnimating || hasEndedTurn) return;
+      if (isDead || anim.isAnimating || hasEndedTurn || turnPhase !== 'player') return;
       if (!localCombatState) return;
       const instance = localCombatState.hand[handIndex];
       if (!instance) return;
@@ -454,6 +454,7 @@ const CombatScreen = () => {
       isDead,
       anim,
       hasEndedTurn,
+      turnPhase,
       localCombatState,
       getLungeToEnemy,
       aliveEnemies,

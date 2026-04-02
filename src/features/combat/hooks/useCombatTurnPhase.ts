@@ -31,20 +31,23 @@ const useCombatTurnPhase = ({
   useEffect(() => {
     if (!isHost || turnPhase !== 'enemy' || enemyPhaseTriggeredRef.current) return;
     enemyPhaseTriggeredRef.current = true;
-    void combatEnemyPhase().then((result) => {
-      if (result) {
-        const r = result as { attacks: { enemyId: string; damage?: number; type?: string }[] };
-        // Filter to only damage-dealing attacks and ensure damage is a number
-        const attacks = (r.attacks ?? [])
-          .filter((a) => a.enemyId && (a.damage ?? 0) > 0)
-          .map((a) => ({
-            enemyId: a.enemyId,
-            damage: a.damage ?? 0,
-            direction: getDirectionForEnemy(a.enemyId),
-          }));
-        playEnemyPhase(attacks, localHp);
-      }
-    });
+    void combatEnemyPhase()
+      .then((result) => {
+        if (result) {
+          const r = result as { attacks: { enemyId: string; damage?: number; type?: string }[] };
+          const attacks = (r.attacks ?? [])
+            .filter((a) => a.enemyId && (a.damage ?? 0) > 0)
+            .map((a) => ({
+              enemyId: a.enemyId,
+              damage: a.damage ?? 0,
+              direction: getDirectionForEnemy(a.enemyId),
+            }));
+          playEnemyPhase(attacks, localHp);
+        }
+      })
+      .catch((err) => {
+        console.error('combat_enemy_phase failed:', err);
+      });
   }, [isHost, turnPhase, localHp, combatEnemyPhase, playEnemyPhase, getDirectionForEnemy]);
 };
 

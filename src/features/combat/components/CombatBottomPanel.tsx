@@ -117,6 +117,7 @@ const CombatBottomPanel = ({
         combatState={localCombatState}
         roleId={roleId}
         disabled={isAnimating || turnPhase === 'enemy' || hasEndedTurn}
+        hideCards={turnPhase === 'enemy' || hasEndedTurn}
         onPlayCard={onPlayCard}
         onConvergence={onConvergence}
         onEndTurn={onEndTurn}
