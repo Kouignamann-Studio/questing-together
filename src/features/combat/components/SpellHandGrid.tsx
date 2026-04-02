@@ -6,14 +6,15 @@ import { COMBAT } from '@/constants/combatSettings';
 import { useTranslation } from '@/contexts/I18nContext';
 import SchoolChargeBar from '@/features/combat/components/SchoolChargeBar';
 import CardView from '@/features/combat/components/SpellCard';
-import type { Trait } from '@/features/gameConfig';
-import { getCardById, getIdentityById, TRAITS } from '@/features/gameConfig';
+import { getCardById, getIdentityById, getSchoolsForRole } from '@/features/gameConfig';
+import type { RoleId } from '@/types/player';
 import type { PlayerCombatState } from '@/types/spellCombat';
 
 const VISIBLE_HAND_SIZE = 4;
 
 type CardHandGridProps = {
   combatState: PlayerCombatState;
+  roleId: RoleId;
   disabled?: boolean;
   onPlayCard: (handIndex: number, targetEnemyIdx?: number | null) => void;
   onConvergence: () => void;
@@ -24,6 +25,7 @@ type CardHandGridProps = {
 
 const CardHandGrid = ({
   combatState,
+  roleId,
   disabled = false,
   onPlayCard,
   onConvergence,
@@ -78,13 +80,8 @@ const CardHandGrid = ({
     [combatState, localPlayedIndices, selectedEnemyIdx, onPlayCard],
   );
 
-  // Build schools from TRAITS (excluding neutral)
-  const schools = TRAITS.filter((t) => t.id !== 'neutral').map((t) => ({
-    id: t.id as Trait,
-    name: t.name,
-    icon: t.icon,
-    color: t.color,
-  }));
+  // Schools for this character's role
+  const schools = getSchoolsForRole(roleId);
 
   // Filter out played cards
   const availableCards = combatState.hand

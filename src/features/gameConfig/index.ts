@@ -65,6 +65,8 @@ export {
   CONVERGENCE_BY_TRAIT,
   CONVERGENCE_COUNT_MULTIPLIERS,
   getConvergenceMultiplier,
+  getSchoolsForRole,
+  SCHOOLS_BY_ROLE,
   TRAIT_MAP,
   TRAITS,
 } from '@/features/gameConfig/traits';

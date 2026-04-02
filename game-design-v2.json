@@ -1,0 +1,372 @@
+{
+  "version": 2,
+  "description": "Game design v2 — 4 schools per character, ~15 cards per school",
+  "settings": {
+    "baseHp": 250,
+    "baseEnergy": 3,
+    "openingHandSize": 4,
+    "empowerThreshold": 3,
+    "convergenceRequiredTraits": 2,
+    "upgradeEnergyThreshold": 10,
+    "combatPoolTargetSize": 20,
+    "convergenceCountMultipliers": {
+      "2": 1,
+      "3": 1.5,
+      "4": 2
+    }
+  },
+  "characters": [
+    {
+      "id": "warrior",
+      "name": "Warrior",
+      "description": "Melee combatant — balanced between offense, defense, sustain and disruption.",
+      "schools": [
+        {
+          "id": "rage",
+          "name": "Rage",
+          "color": "#e63946",
+          "icon": "rage",
+          "convergenceEffect": { "damage": 16 },
+          "cards": [
+            { "id": "w-strike", "name": "Strike", "cost": 1, "trait": "rage", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Strike+", "baseDamage": 8, "upgradedDamage": 11, "description": "Deal 8 damage.", "upgradeDescription": "Deal 11 damage." },
+            { "id": "w-quick-slash", "name": "Quick Slash", "cost": 0, "trait": "rage", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Quick Slash+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage.", "upgradeDescription": "Deal 5 damage." },
+            { "id": "w-heavy-blow", "name": "Heavy Blow", "cost": 2, "trait": "rage", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Crushing Blow", "baseDamage": 14, "upgradedDamage": 19, "description": "Deal 14 damage.", "upgradeDescription": "Deal 19 damage." },
+            { "id": "w-reckless-strike", "name": "Reckless Strike", "cost": 1, "trait": "rage", "upgradeThreshold": 3, "upgradeName": "Reckless Strike+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage. Take 3 damage.", "upgradeDescription": "Deal 16 damage. Take 3 damage." },
+            { "id": "w-cleave", "name": "Cleave", "cost": 2, "trait": "rage", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Great Cleave", "baseDamage": 10, "upgradedDamage": 14, "description": "Deal 10 damage to all.", "upgradeDescription": "Deal 14 damage to all." },
+            { "id": "w-fury-chain", "name": "Fury Chain", "cost": 2, "trait": "rage", "upgradeThreshold": 2, "upgradeName": "Fury Chain+", "baseDamage": 5, "upgradedDamage": 7, "description": "Deal 5 damage ×3.", "upgradeDescription": "Deal 7 damage ×3." },
+            { "id": "w-savage-swing", "name": "Savage Swing", "cost": 1, "trait": "rage", "upgradeThreshold": 3, "upgradeName": "Savage Swing+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage. Vuln 1.", "upgradeDescription": "Deal 9 damage. Vuln 1." },
+            { "id": "w-war-stomp", "name": "War Stomp", "cost": 2, "trait": "rage", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "War Stomp+", "baseDamage": 8, "upgradedDamage": 11, "description": "Deal 8 damage to all. Weak 1.", "upgradeDescription": "Deal 11 damage to all. Weak 1." },
+            { "id": "w-execute", "name": "Execute", "cost": 3, "trait": "rage", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Execute+", "baseDamage": 22, "upgradedDamage": 28, "description": "Deal 22 damage.", "upgradeDescription": "Deal 28 damage." },
+            { "id": "w-rampage", "name": "Rampage", "cost": 3, "trait": "rage", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Rampage+", "baseDamage": 16, "upgradedDamage": 22, "description": "Deal 16 damage to all.", "upgradeDescription": "Deal 22 damage to all." },
+            { "id": "w-pummel", "name": "Pummel", "cost": 1, "trait": "rage", "upgradeThreshold": 3, "upgradeName": "Pummel+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage ×2.", "upgradeDescription": "Deal 6 damage ×2." },
+            { "id": "w-headbutt", "name": "Headbutt", "cost": 0, "trait": "rage", "upgradeThreshold": 3, "upgradeName": "Headbutt+", "baseDamage": 2, "upgradedDamage": 4, "description": "Deal 2 damage. Weak 1.", "upgradeDescription": "Deal 4 damage. Weak 1." },
+            { "id": "w-bloodlust", "name": "Bloodlust", "cost": 2, "trait": "rage", "upgradeThreshold": 2, "upgradeName": "Bloodlust+", "baseDamage": 14, "upgradedDamage": 18, "baseHeal": 4, "upgradedHeal": 6, "description": "Deal 14 damage. Heal 4.", "upgradeDescription": "Deal 18 damage. Heal 6." },
+            { "id": "w-massacre", "name": "Massacre", "cost": 3, "trait": "rage", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Massacre+", "baseDamage": 14, "upgradedDamage": 18, "description": "Deal 14 damage to all. Vuln 1.", "upgradeDescription": "Deal 18 damage to all. Vuln 2." },
+            { "id": "w-charge", "name": "Charge", "cost": 1, "trait": "rage", "upgradeThreshold": 3, "upgradeName": "Charge+", "baseDamage": 10, "upgradedDamage": 13, "description": "Deal 10 damage. Vuln 1.", "upgradeDescription": "Deal 13 damage. Vuln 1." }
+          ]
+        },
+        {
+          "id": "iron",
+          "name": "Iron",
+          "color": "#5b9bd5",
+          "icon": "shield",
+          "convergenceEffect": { "block": 14, "persistBlock": true },
+          "cards": [
+            { "id": "w-guard", "name": "Guard", "cost": 1, "trait": "iron", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Guard+", "baseBlock": 7, "upgradedBlock": 10, "description": "Gain 7 Block.", "upgradeDescription": "Gain 10 Block." },
+            { "id": "w-brace", "name": "Brace", "cost": 0, "trait": "iron", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Brace+", "baseBlock": 3, "upgradedBlock": 5, "description": "Gain 3 Block.", "upgradeDescription": "Gain 5 Block." },
+            { "id": "w-fortify", "name": "Fortify", "cost": 2, "trait": "iron", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Fortify+", "baseBlock": 12, "upgradedBlock": 16, "description": "Gain 12 Block.", "upgradeDescription": "Gain 16 Block." },
+            { "id": "w-shield-wall", "name": "Shield Wall", "cost": 2, "trait": "iron", "upgradeThreshold": 2, "upgradeName": "Shield Wall+", "baseBlock": 10, "upgradedBlock": 14, "description": "Gain 10 Block. Persists.", "upgradeDescription": "Gain 14 Block. Persists." },
+            { "id": "w-iron-skin", "name": "Iron Skin", "cost": 1, "trait": "iron", "upgradeThreshold": 3, "upgradeName": "Iron Skin+", "baseBlock": 5, "upgradedBlock": 7, "description": "Gain 5 Block. +2 Thorns.", "upgradeDescription": "Gain 7 Block. +3 Thorns." },
+            { "id": "w-bulwark", "name": "Bulwark", "cost": 3, "trait": "iron", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Great Bulwark", "baseBlock": 18, "upgradedBlock": 24, "description": "Gain 18 Block. +3 Thorns.", "upgradeDescription": "Gain 24 Block. +4 Thorns." },
+            { "id": "w-parry", "name": "Parry", "cost": 1, "trait": "iron", "upgradeThreshold": 3, "upgradeName": "Parry+", "baseBlock": 4, "upgradedBlock": 6, "baseDamage": 4, "upgradedDamage": 6, "description": "Gain 4 Block. Deal 4 damage.", "upgradeDescription": "Gain 6 Block. Deal 6 damage." },
+            { "id": "w-shield-bash", "name": "Shield Bash", "cost": 1, "trait": "iron", "upgradeThreshold": 3, "upgradeName": "Shield Bash+", "baseBlock": 3, "upgradedBlock": 5, "baseDamage": 6, "upgradedDamage": 8, "description": "Gain 3 Block. Deal 6 damage.", "upgradeDescription": "Gain 5 Block. Deal 8 damage." },
+            { "id": "w-sentinel", "name": "Sentinel", "cost": 2, "trait": "iron", "upgradeThreshold": 2, "upgradeName": "Sentinel+", "baseBlock": 8, "upgradedBlock": 11, "baseHeal": 4, "upgradedHeal": 6, "description": "Gain 8 Block. Heal 4.", "upgradeDescription": "Gain 11 Block. Heal 6." },
+            { "id": "w-reinforce", "name": "Reinforce", "cost": 0, "trait": "iron", "upgradeThreshold": 3, "upgradeName": "Reinforce+", "baseBlock": 2, "upgradedBlock": 4, "description": "Gain 2 Block. +1 Regen.", "upgradeDescription": "Gain 4 Block. +1 Regen." },
+            { "id": "w-stone-form", "name": "Stone Form", "cost": 3, "trait": "iron", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Stone Form+", "baseBlock": 20, "upgradedBlock": 26, "description": "Gain 20 Block. Persists.", "upgradeDescription": "Gain 26 Block. Persists." },
+            { "id": "w-counter-strike", "name": "Counter Strike", "cost": 2, "trait": "iron", "upgradeThreshold": 2, "upgradeName": "Counter Strike+", "baseBlock": 6, "upgradedBlock": 8, "baseDamage": 8, "upgradedDamage": 11, "description": "Gain 6 Block. Deal 8 damage.", "upgradeDescription": "Gain 8 Block. Deal 11 damage." },
+            { "id": "w-deflect", "name": "Deflect", "cost": 1, "trait": "iron", "upgradeThreshold": 3, "upgradeName": "Deflect+", "baseBlock": 6, "upgradedBlock": 9, "description": "Gain 6 Block.", "upgradeDescription": "Gain 9 Block." },
+            { "id": "w-aegis", "name": "Aegis", "cost": 2, "trait": "iron", "upgradeThreshold": 2, "upgradeName": "Aegis+", "baseBlock": 14, "upgradedBlock": 18, "description": "Gain 14 Block.", "upgradeDescription": "Gain 18 Block." },
+            { "id": "w-last-stand", "name": "Last Stand", "cost": 3, "trait": "iron", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Last Stand+", "baseBlock": 16, "upgradedBlock": 20, "baseDamage": 10, "upgradedDamage": 14, "description": "Gain 16 Block. Deal 10 damage.", "upgradeDescription": "Gain 20 Block. Deal 14 damage." }
+          ]
+        },
+        {
+          "id": "blood",
+          "name": "Blood",
+          "color": "#9b59b6",
+          "icon": "blood",
+          "convergenceEffect": { "heal": 12 },
+          "cards": [
+            { "id": "w-drain-strike", "name": "Drain Strike", "cost": 1, "trait": "blood", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Drain Strike+", "baseDamage": 5, "upgradedDamage": 7, "baseHeal": 3, "upgradedHeal": 5, "description": "Deal 5 damage. Heal 3.", "upgradeDescription": "Deal 7 damage. Heal 5." },
+            { "id": "w-blood-pact", "name": "Blood Pact", "cost": 0, "trait": "blood", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Blood Pact+", "baseHeal": 2, "upgradedHeal": 4, "description": "Heal 2.", "upgradeDescription": "Heal 4." },
+            { "id": "w-siphon", "name": "Siphon", "cost": 2, "trait": "blood", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Siphon+", "baseDamage": 8, "upgradedDamage": 11, "baseHeal": 6, "upgradedHeal": 8, "description": "Deal 8 damage. Heal 6.", "upgradeDescription": "Deal 11 damage. Heal 8." },
+            { "id": "w-leech", "name": "Leech", "cost": 1, "trait": "blood", "upgradeThreshold": 3, "upgradeName": "Leech+", "baseDamage": 4, "upgradedDamage": 6, "baseHeal": 4, "upgradedHeal": 6, "description": "Deal 4 damage. Heal 4.", "upgradeDescription": "Deal 6 damage. Heal 6." },
+            { "id": "w-crimson-slash", "name": "Crimson Slash", "cost": 1, "trait": "blood", "upgradeThreshold": 3, "upgradeName": "Crimson Slash+", "baseDamage": 7, "upgradedDamage": 10, "baseHeal": 2, "upgradedHeal": 3, "description": "Deal 7 damage. Heal 2.", "upgradeDescription": "Deal 10 damage. Heal 3." },
+            { "id": "w-transfusion", "name": "Transfusion", "cost": 2, "trait": "blood", "upgradeThreshold": 2, "upgradeName": "Transfusion+", "baseHeal": 10, "upgradedHeal": 14, "description": "Heal 10.", "upgradeDescription": "Heal 14." },
+            { "id": "w-blood-shield", "name": "Blood Shield", "cost": 1, "trait": "blood", "upgradeThreshold": 3, "upgradeName": "Blood Shield+", "baseBlock": 4, "upgradedBlock": 6, "baseHeal": 3, "upgradedHeal": 5, "description": "Gain 4 Block. Heal 3.", "upgradeDescription": "Gain 6 Block. Heal 5." },
+            { "id": "w-vampiric-touch", "name": "Vampiric Touch", "cost": 2, "trait": "blood", "upgradeThreshold": 2, "upgradeName": "Vampiric Touch+", "baseDamage": 6, "upgradedDamage": 9, "baseHeal": 6, "upgradedHeal": 9, "description": "Deal 6 damage. Heal 6. +1 Regen.", "upgradeDescription": "Deal 9 damage. Heal 9. +1 Regen." },
+            { "id": "w-hemorrhage", "name": "Hemorrhage", "cost": 2, "trait": "blood", "upgradeThreshold": 2, "upgradeName": "Hemorrhage+", "baseDamage": 10, "upgradedDamage": 14, "baseBurn": 4, "upgradedBurn": 6, "description": "Deal 10 damage. Burn 4.", "upgradeDescription": "Deal 14 damage. Burn 6." },
+            { "id": "w-life-tap", "name": "Life Tap", "cost": 0, "trait": "blood", "upgradeThreshold": 3, "upgradeName": "Life Tap+", "baseHeal": 3, "upgradedHeal": 5, "description": "Heal 3.", "upgradeDescription": "Heal 5." },
+            { "id": "w-blood-rage", "name": "Blood Rage", "cost": 3, "trait": "blood", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Blood Rage+", "baseDamage": 14, "upgradedDamage": 18, "baseHeal": 8, "upgradedHeal": 12, "description": "Deal 14 damage. Heal 8.", "upgradeDescription": "Deal 18 damage. Heal 12." },
+            { "id": "w-crimson-wave", "name": "Crimson Wave", "cost": 3, "trait": "blood", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Crimson Wave+", "baseDamage": 10, "upgradedDamage": 14, "baseHeal": 6, "upgradedHeal": 8, "description": "Deal 10 damage to all. Heal 6.", "upgradeDescription": "Deal 14 damage to all. Heal 8." },
+            { "id": "w-mend-wounds", "name": "Mend Wounds", "cost": 1, "trait": "blood", "upgradeThreshold": 3, "upgradeName": "Mend Wounds+", "baseHeal": 6, "upgradedHeal": 9, "description": "Heal 6.", "upgradeDescription": "Heal 9." },
+            { "id": "w-blood-oath", "name": "Blood Oath", "cost": 2, "trait": "blood", "upgradeThreshold": 2, "upgradeName": "Blood Oath+", "baseBlock": 5, "upgradedBlock": 7, "baseHeal": 5, "upgradedHeal": 8, "description": "Gain 5 Block. Heal 5. +1 Regen.", "upgradeDescription": "Gain 7 Block. Heal 8. +1 Regen." },
+            { "id": "w-sanguine-burst", "name": "Sanguine Burst", "cost": 3, "trait": "blood", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Sanguine Burst+", "baseDamage": 12, "upgradedDamage": 16, "baseHeal": 12, "upgradedHeal": 16, "description": "Deal 12 damage. Heal 12.", "upgradeDescription": "Deal 16 damage. Heal 16." }
+          ]
+        },
+        {
+          "id": "thunder",
+          "name": "Thunder",
+          "color": "#f4d03f",
+          "icon": "strike",
+          "convergenceEffect": { "vulnerable": 2, "weakened": 2 },
+          "cards": [
+            { "id": "w-shock", "name": "Shock", "cost": 1, "trait": "thunder", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Shock+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage. Weak 1.", "upgradeDescription": "Deal 9 damage. Weak 1." },
+            { "id": "w-spark", "name": "Spark", "cost": 0, "trait": "thunder", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Spark+", "baseDamage": 2, "upgradedDamage": 4, "description": "Deal 2 damage.", "upgradeDescription": "Deal 4 damage." },
+            { "id": "w-lightning-strike", "name": "Lightning Strike", "cost": 2, "trait": "thunder", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Lightning Strike+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage. Vuln 1.", "upgradeDescription": "Deal 16 damage. Vuln 1." },
+            { "id": "w-thunderclap", "name": "Thunderclap", "cost": 2, "trait": "thunder", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Thunderclap+", "baseDamage": 8, "upgradedDamage": 11, "description": "Deal 8 damage to all. Weak 1.", "upgradeDescription": "Deal 11 damage to all. Weak 1." },
+            { "id": "w-chain-lightning", "name": "Chain Lightning", "cost": 2, "trait": "thunder", "upgradeThreshold": 2, "upgradeName": "Chain Lightning+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage ×2.", "upgradeDescription": "Deal 9 damage ×2." },
+            { "id": "w-storm-call", "name": "Storm Call", "cost": 3, "trait": "thunder", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Storm Call+", "baseDamage": 14, "upgradedDamage": 18, "description": "Deal 14 damage to all. Vuln 1.", "upgradeDescription": "Deal 18 damage to all. Vuln 2." },
+            { "id": "w-static", "name": "Static", "cost": 1, "trait": "thunder", "upgradeThreshold": 3, "upgradeName": "Static+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage. Weak 1.", "upgradeDescription": "Deal 6 damage. Weak 2." },
+            { "id": "w-overcharge", "name": "Overcharge", "cost": 1, "trait": "thunder", "upgradeThreshold": 3, "upgradeName": "Overcharge+", "baseDamage": 8, "upgradedDamage": 11, "description": "Deal 8 damage.", "upgradeDescription": "Deal 11 damage." },
+            { "id": "w-tempest", "name": "Tempest", "cost": 3, "trait": "thunder", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Tempest+", "baseDamage": 16, "upgradedDamage": 22, "description": "Deal 16 damage to all.", "upgradeDescription": "Deal 22 damage to all." },
+            { "id": "w-jolt", "name": "Jolt", "cost": 0, "trait": "thunder", "upgradeThreshold": 3, "upgradeName": "Jolt+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage. Vuln 1.", "upgradeDescription": "Deal 5 damage. Vuln 1." },
+            { "id": "w-surge", "name": "Surge", "cost": 1, "trait": "thunder", "upgradeThreshold": 3, "upgradeName": "Surge+", "baseDamage": 5, "upgradedDamage": 7, "baseBlock": 3, "upgradedBlock": 5, "description": "Deal 5 damage. Gain 3 Block.", "upgradeDescription": "Deal 7 damage. Gain 5 Block." },
+            { "id": "w-arc-flash", "name": "Arc Flash", "cost": 2, "trait": "thunder", "upgradeThreshold": 2, "upgradeName": "Arc Flash+", "baseDamage": 10, "upgradedDamage": 14, "description": "Deal 10 damage. Weak 2.", "upgradeDescription": "Deal 14 damage. Weak 2." },
+            { "id": "w-disrupt", "name": "Disrupt", "cost": 1, "trait": "thunder", "upgradeThreshold": 3, "upgradeName": "Disrupt+", "baseDamage": 0, "upgradedDamage": 3, "description": "Vuln 2. Weak 1.", "upgradeDescription": "Deal 3 damage. Vuln 2. Weak 1." },
+            { "id": "w-thunder-wave", "name": "Thunder Wave", "cost": 2, "trait": "thunder", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Thunder Wave+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage to all. Vuln 1. Weak 1.", "upgradeDescription": "Deal 9 damage to all. Vuln 1. Weak 1." },
+            { "id": "w-cataclysm", "name": "Cataclysm", "cost": 3, "trait": "thunder", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Cataclysm+", "baseDamage": 20, "upgradedDamage": 26, "description": "Deal 20 damage. Vuln 2. Weak 2.", "upgradeDescription": "Deal 26 damage. Vuln 2. Weak 2." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sage",
+      "name": "Sage",
+      "description": "Arcane caster — elemental damage, burn DOT, frost control, and arcane utility.",
+      "schools": [
+        {
+          "id": "fire",
+          "name": "Fire",
+          "color": "#ff6b35",
+          "icon": "fire",
+          "convergenceEffect": { "damage": 16 },
+          "cards": [
+            { "id": "s-fireball", "name": "Fireball", "cost": 1, "trait": "fire", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Fireball+", "baseDamage": 7, "upgradedDamage": 10, "baseBurn": 3, "upgradedBurn": 5, "description": "Deal 7 damage. Burn 3.", "upgradeDescription": "Deal 10 damage. Burn 5." },
+            { "id": "s-kindle", "name": "Kindle", "cost": 0, "trait": "fire", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Kindle+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage.", "upgradeDescription": "Deal 5 damage." },
+            { "id": "s-flame-wave", "name": "Flame Wave", "cost": 2, "trait": "fire", "isStarter": true, "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Flame Wave+", "baseDamage": 10, "upgradedDamage": 14, "description": "Deal 10 damage to all.", "upgradeDescription": "Deal 14 damage to all." },
+            { "id": "s-scorch", "name": "Scorch", "cost": 1, "trait": "fire", "upgradeThreshold": 3, "upgradeName": "Scorch+", "baseDamage": 5, "upgradedDamage": 8, "baseBurn": 5, "upgradedBurn": 8, "description": "Deal 5 damage. Burn 5.", "upgradeDescription": "Deal 8 damage. Burn 8." },
+            { "id": "s-ignite", "name": "Ignite", "cost": 1, "trait": "fire", "upgradeThreshold": 3, "upgradeName": "Ignite+", "baseBurn": 6, "upgradedBurn": 9, "description": "Burn 6.", "upgradeDescription": "Burn 9." },
+            { "id": "s-inferno", "name": "Inferno", "cost": 3, "trait": "fire", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Inferno+", "baseDamage": 14, "upgradedDamage": 18, "baseBurn": 4, "upgradedBurn": 6, "description": "Deal 14 damage to all. Burn 4.", "upgradeDescription": "Deal 18 damage to all. Burn 6." },
+            { "id": "s-sear", "name": "Sear", "cost": 0, "trait": "fire", "upgradeThreshold": 3, "upgradeName": "Sear+", "baseBurn": 4, "upgradedBurn": 7, "description": "Burn 4.", "upgradeDescription": "Burn 7." },
+            { "id": "s-flame-lance", "name": "Flame Lance", "cost": 2, "trait": "fire", "upgradeThreshold": 2, "upgradeName": "Flame Lance+", "baseDamage": 16, "upgradedDamage": 22, "description": "Deal 16 damage.", "upgradeDescription": "Deal 22 damage." },
+            { "id": "s-combustion", "name": "Combustion", "cost": 2, "trait": "fire", "upgradeThreshold": 2, "upgradeName": "Combustion+", "baseDamage": 8, "upgradedDamage": 11, "baseBurn": 8, "upgradedBurn": 12, "description": "Deal 8 damage. Burn 8.", "upgradeDescription": "Deal 11 damage. Burn 12." },
+            { "id": "s-ember", "name": "Ember", "cost": 0, "trait": "fire", "upgradeThreshold": 3, "upgradeName": "Ember+", "baseDamage": 2, "upgradedDamage": 3, "baseBurn": 2, "upgradedBurn": 4, "description": "Deal 2 damage. Burn 2.", "upgradeDescription": "Deal 3 damage. Burn 4." },
+            { "id": "s-blaze", "name": "Blaze", "cost": 1, "trait": "fire", "upgradeThreshold": 3, "upgradeName": "Blaze+", "baseDamage": 10, "upgradedDamage": 14, "description": "Deal 10 damage.", "upgradeDescription": "Deal 14 damage." },
+            { "id": "s-eruption", "name": "Eruption", "cost": 3, "trait": "fire", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Eruption+", "baseDamage": 18, "upgradedDamage": 24, "description": "Deal 18 damage to all.", "upgradeDescription": "Deal 24 damage to all." },
+            { "id": "s-immolate", "name": "Immolate", "cost": 2, "trait": "fire", "upgradeThreshold": 2, "upgradeName": "Immolate+", "baseDamage": 6, "upgradedDamage": 9, "baseBurn": 10, "upgradedBurn": 14, "description": "Deal 6 damage. Burn 10.", "upgradeDescription": "Deal 9 damage. Burn 14." },
+            { "id": "s-fire-shield", "name": "Fire Shield", "cost": 1, "trait": "fire", "upgradeThreshold": 3, "upgradeName": "Fire Shield+", "baseBlock": 4, "upgradedBlock": 6, "baseBurn": 3, "upgradedBurn": 5, "description": "Gain 4 Block. Burn 3.", "upgradeDescription": "Gain 6 Block. Burn 5." },
+            { "id": "s-pyroclasm", "name": "Pyroclasm", "cost": 3, "trait": "fire", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Pyroclasm+", "baseDamage": 22, "upgradedDamage": 28, "baseBurn": 6, "upgradedBurn": 10, "description": "Deal 22 damage. Burn 6.", "upgradeDescription": "Deal 28 damage. Burn 10." }
+          ]
+        },
+        {
+          "id": "frost",
+          "name": "Frost",
+          "color": "#00bcd4",
+          "icon": "eyes",
+          "convergenceEffect": { "block": 14, "weakened": 1 },
+          "cards": [
+            { "id": "s-ice-shard", "name": "Ice Shard", "cost": 1, "trait": "frost", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Ice Shard+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage. Weak 1.", "upgradeDescription": "Deal 9 damage. Weak 2." },
+            { "id": "s-frost-shield", "name": "Frost Shield", "cost": 0, "trait": "frost", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Frost Shield+", "baseBlock": 4, "upgradedBlock": 6, "description": "Gain 4 Block.", "upgradeDescription": "Gain 6 Block." },
+            { "id": "s-blizzard", "name": "Blizzard", "cost": 2, "trait": "frost", "isStarter": true, "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Blizzard+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage to all. Weak 1.", "upgradeDescription": "Deal 9 damage to all. Weak 2." },
+            { "id": "s-freeze", "name": "Freeze", "cost": 1, "trait": "frost", "upgradeThreshold": 3, "upgradeName": "Freeze+", "description": "Vuln 2. Weak 1.", "upgradeDescription": "Vuln 3. Weak 2." },
+            { "id": "s-glacial-armor", "name": "Glacial Armor", "cost": 2, "trait": "frost", "upgradeThreshold": 2, "upgradeName": "Glacial Armor+", "baseBlock": 12, "upgradedBlock": 16, "description": "Gain 12 Block.", "upgradeDescription": "Gain 16 Block." },
+            { "id": "s-ice-lance", "name": "Ice Lance", "cost": 1, "trait": "frost", "upgradeThreshold": 3, "upgradeName": "Ice Lance+", "baseDamage": 8, "upgradedDamage": 11, "description": "Deal 8 damage.", "upgradeDescription": "Deal 11 damage." },
+            { "id": "s-frostbite", "name": "Frostbite", "cost": 1, "trait": "frost", "upgradeThreshold": 3, "upgradeName": "Frostbite+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage. Vuln 1.", "upgradeDescription": "Deal 6 damage. Vuln 2." },
+            { "id": "s-avalanche", "name": "Avalanche", "cost": 3, "trait": "frost", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Avalanche+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage to all. Vuln 2.", "upgradeDescription": "Deal 16 damage to all. Vuln 2." },
+            { "id": "s-permafrost", "name": "Permafrost", "cost": 2, "trait": "frost", "upgradeThreshold": 2, "upgradeName": "Permafrost+", "baseBlock": 10, "upgradedBlock": 14, "description": "Gain 10 Block. Persists.", "upgradeDescription": "Gain 14 Block. Persists." },
+            { "id": "s-shatter", "name": "Shatter", "cost": 2, "trait": "frost", "upgradeThreshold": 2, "upgradeName": "Shatter+", "baseDamage": 14, "upgradedDamage": 18, "description": "Deal 14 damage.", "upgradeDescription": "Deal 18 damage." },
+            { "id": "s-cold-snap", "name": "Cold Snap", "cost": 0, "trait": "frost", "upgradeThreshold": 3, "upgradeName": "Cold Snap+", "description": "Weak 2.", "upgradeDescription": "Weak 3." },
+            { "id": "s-ice-wall", "name": "Ice Wall", "cost": 2, "trait": "frost", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Ice Wall+", "baseBlock": 8, "upgradedBlock": 11, "description": "Gain 8 Block. Weak 1 to all.", "upgradeDescription": "Gain 11 Block. Weak 1 to all." },
+            { "id": "s-crystallize", "name": "Crystallize", "cost": 1, "trait": "frost", "upgradeThreshold": 3, "upgradeName": "Crystallize+", "baseBlock": 6, "upgradedBlock": 8, "description": "Gain 6 Block. +2 Thorns.", "upgradeDescription": "Gain 8 Block. +3 Thorns." },
+            { "id": "s-absolute-zero", "name": "Absolute Zero", "cost": 3, "trait": "frost", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Absolute Zero+", "baseDamage": 8, "upgradedDamage": 12, "description": "Deal 8 damage to all. Vuln 2. Weak 2.", "upgradeDescription": "Deal 12 damage to all. Vuln 2. Weak 2." },
+            { "id": "s-glacial-spike", "name": "Glacial Spike", "cost": 3, "trait": "frost", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Glacial Spike+", "baseDamage": 20, "upgradedDamage": 26, "description": "Deal 20 damage. Weak 2.", "upgradeDescription": "Deal 26 damage. Weak 2." }
+          ]
+        },
+        {
+          "id": "storm",
+          "name": "Storm",
+          "color": "#ffc107",
+          "icon": "strike",
+          "convergenceEffect": { "damage": 12 },
+          "cards": [
+            { "id": "s-zap", "name": "Zap", "cost": 0, "trait": "storm", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Zap+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage.", "upgradeDescription": "Deal 5 damage." },
+            { "id": "s-arc-bolt", "name": "Arc Bolt", "cost": 1, "trait": "storm", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Arc Bolt+", "baseDamage": 8, "upgradedDamage": 11, "description": "Deal 8 damage.", "upgradeDescription": "Deal 11 damage." },
+            { "id": "s-thunderstrike", "name": "Thunderstrike", "cost": 2, "trait": "storm", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Thunderstrike+", "baseDamage": 14, "upgradedDamage": 19, "description": "Deal 14 damage.", "upgradeDescription": "Deal 19 damage." },
+            { "id": "s-chain-spark", "name": "Chain Spark", "cost": 1, "trait": "storm", "upgradeThreshold": 3, "upgradeName": "Chain Spark+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage ×2.", "upgradeDescription": "Deal 6 damage ×2." },
+            { "id": "s-lightning-rod", "name": "Lightning Rod", "cost": 1, "trait": "storm", "upgradeThreshold": 3, "upgradeName": "Lightning Rod+", "baseDamage": 6, "upgradedDamage": 8, "baseBlock": 3, "upgradedBlock": 5, "description": "Deal 6 damage. Gain 3 Block.", "upgradeDescription": "Deal 8 damage. Gain 5 Block." },
+            { "id": "s-ball-lightning", "name": "Ball Lightning", "cost": 2, "trait": "storm", "upgradeThreshold": 2, "upgradeName": "Ball Lightning+", "baseDamage": 10, "upgradedDamage": 14, "baseBurn": 3, "upgradedBurn": 5, "description": "Deal 10 damage. Burn 3.", "upgradeDescription": "Deal 14 damage. Burn 5." },
+            { "id": "s-shock-wave", "name": "Shock Wave", "cost": 2, "trait": "storm", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Shock Wave+", "baseDamage": 8, "upgradedDamage": 12, "description": "Deal 8 damage to all.", "upgradeDescription": "Deal 12 damage to all." },
+            { "id": "s-galvanize", "name": "Galvanize", "cost": 1, "trait": "storm", "upgradeThreshold": 3, "upgradeName": "Galvanize+", "baseDamage": 5, "upgradedDamage": 7, "baseBlock": 5, "upgradedBlock": 7, "description": "Deal 5 damage. Gain 5 Block.", "upgradeDescription": "Deal 7 damage. Gain 7 Block." },
+            { "id": "s-storm-surge", "name": "Storm Surge", "cost": 3, "trait": "storm", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Storm Surge+", "baseDamage": 18, "upgradedDamage": 24, "description": "Deal 18 damage.", "upgradeDescription": "Deal 24 damage." },
+            { "id": "s-electrocute", "name": "Electrocute", "cost": 2, "trait": "storm", "upgradeThreshold": 2, "upgradeName": "Electrocute+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage. Vuln 1.", "upgradeDescription": "Deal 16 damage. Vuln 1." },
+            { "id": "s-static-charge", "name": "Static Charge", "cost": 0, "trait": "storm", "upgradeThreshold": 3, "upgradeName": "Static Charge+", "baseDamage": 2, "upgradedDamage": 4, "description": "Deal 2 damage. Vuln 1.", "upgradeDescription": "Deal 4 damage. Vuln 1." },
+            { "id": "s-thunder-bolt", "name": "Thunder Bolt", "cost": 1, "trait": "storm", "upgradeThreshold": 3, "upgradeName": "Thunder Bolt+", "baseDamage": 10, "upgradedDamage": 13, "description": "Deal 10 damage.", "upgradeDescription": "Deal 13 damage." },
+            { "id": "s-overload", "name": "Overload", "cost": 3, "trait": "storm", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Overload+", "baseDamage": 14, "upgradedDamage": 18, "baseBurn": 4, "upgradedBurn": 6, "description": "Deal 14 damage to all. Burn 4.", "upgradeDescription": "Deal 18 damage to all. Burn 6." },
+            { "id": "s-spark-storm", "name": "Spark Storm", "cost": 2, "trait": "storm", "upgradeThreshold": 2, "upgradeName": "Spark Storm+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage ×3.", "upgradeDescription": "Deal 6 damage ×3." },
+            { "id": "s-megavolt", "name": "Megavolt", "cost": 3, "trait": "storm", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Megavolt+", "baseDamage": 24, "upgradedDamage": 30, "description": "Deal 24 damage.", "upgradeDescription": "Deal 30 damage." }
+          ]
+        },
+        {
+          "id": "arcane",
+          "name": "Arcane",
+          "color": "#7e57c2",
+          "icon": "eyes",
+          "convergenceEffect": { "heal": 8, "block": 6 },
+          "cards": [
+            { "id": "s-arcane-bolt", "name": "Arcane Bolt", "cost": 1, "trait": "arcane", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Arcane Bolt+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage.", "upgradeDescription": "Deal 9 damage." },
+            { "id": "s-mystic-shield", "name": "Mystic Shield", "cost": 0, "trait": "arcane", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Mystic Shield+", "baseBlock": 3, "upgradedBlock": 5, "baseHeal": 1, "upgradedHeal": 2, "description": "Gain 3 Block. Heal 1.", "upgradeDescription": "Gain 5 Block. Heal 2." },
+            { "id": "s-arcane-blast", "name": "Arcane Blast", "cost": 2, "trait": "arcane", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Arcane Blast+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage.", "upgradeDescription": "Deal 16 damage." },
+            { "id": "s-dispel", "name": "Dispel", "cost": 1, "trait": "arcane", "upgradeThreshold": 3, "upgradeName": "Dispel+", "description": "Weak 2. Vuln 1.", "upgradeDescription": "Weak 3. Vuln 2." },
+            { "id": "s-arcane-ward", "name": "Arcane Ward", "cost": 1, "trait": "arcane", "upgradeThreshold": 3, "upgradeName": "Arcane Ward+", "baseBlock": 6, "upgradedBlock": 8, "baseHeal": 2, "upgradedHeal": 4, "description": "Gain 6 Block. Heal 2.", "upgradeDescription": "Gain 8 Block. Heal 4." },
+            { "id": "s-mana-burst", "name": "Mana Burst", "cost": 2, "trait": "arcane", "upgradeThreshold": 2, "upgradeName": "Mana Burst+", "baseDamage": 10, "upgradedDamage": 14, "baseBlock": 4, "upgradedBlock": 6, "description": "Deal 10 damage. Gain 4 Block.", "upgradeDescription": "Deal 14 damage. Gain 6 Block." },
+            { "id": "s-mystic-pulse", "name": "Mystic Pulse", "cost": 2, "trait": "arcane", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Mystic Pulse+", "baseDamage": 8, "upgradedDamage": 12, "description": "Deal 8 damage to all.", "upgradeDescription": "Deal 12 damage to all." },
+            { "id": "s-enchant", "name": "Enchant", "cost": 1, "trait": "arcane", "upgradeThreshold": 3, "upgradeName": "Enchant+", "baseBlock": 4, "upgradedBlock": 6, "description": "Gain 4 Block. +2 Thorns.", "upgradeDescription": "Gain 6 Block. +3 Thorns." },
+            { "id": "s-arcane-storm", "name": "Arcane Storm", "cost": 3, "trait": "arcane", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Arcane Storm+", "baseDamage": 16, "upgradedDamage": 22, "description": "Deal 16 damage to all.", "upgradeDescription": "Deal 22 damage to all." },
+            { "id": "s-counterspell", "name": "Counterspell", "cost": 0, "trait": "arcane", "upgradeThreshold": 3, "upgradeName": "Counterspell+", "baseBlock": 4, "upgradedBlock": 6, "description": "Gain 4 Block.", "upgradeDescription": "Gain 6 Block." },
+            { "id": "s-transmute", "name": "Transmute", "cost": 1, "trait": "arcane", "upgradeThreshold": 3, "upgradeName": "Transmute+", "baseDamage": 5, "upgradedDamage": 7, "baseHeal": 3, "upgradedHeal": 5, "description": "Deal 5 damage. Heal 3.", "upgradeDescription": "Deal 7 damage. Heal 5." },
+            { "id": "s-phase-shift", "name": "Phase Shift", "cost": 2, "trait": "arcane", "upgradeThreshold": 2, "upgradeName": "Phase Shift+", "baseBlock": 10, "upgradedBlock": 14, "baseHeal": 4, "upgradedHeal": 6, "description": "Gain 10 Block. Heal 4.", "upgradeDescription": "Gain 14 Block. Heal 6." },
+            { "id": "s-arcane-barrage", "name": "Arcane Barrage", "cost": 2, "trait": "arcane", "upgradeThreshold": 2, "upgradeName": "Arcane Barrage+", "baseDamage": 5, "upgradedDamage": 7, "description": "Deal 5 damage ×3.", "upgradeDescription": "Deal 7 damage ×3." },
+            { "id": "s-annihilate", "name": "Annihilate", "cost": 3, "trait": "arcane", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Annihilate+", "baseDamage": 22, "upgradedDamage": 28, "description": "Deal 22 damage.", "upgradeDescription": "Deal 28 damage." },
+            { "id": "s-cosmic-ray", "name": "Cosmic Ray", "cost": 3, "trait": "arcane", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Cosmic Ray+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage to all. Vuln 1. Weak 1.", "upgradeDescription": "Deal 16 damage to all. Vuln 2. Weak 1." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ranger",
+      "name": "Ranger",
+      "description": "Agile fighter — precision strikes, poisons, shadow debuffs, and nature healing.",
+      "schools": [
+        {
+          "id": "shadow",
+          "name": "Shadow",
+          "color": "#7e57c2",
+          "icon": "eyes",
+          "convergenceEffect": { "vulnerable": 2, "weakened": 2 },
+          "cards": [
+            { "id": "r-shadow-mark", "name": "Shadow Mark", "cost": 1, "trait": "shadow", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Deep Mark", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage. Vuln 2.", "upgradeDescription": "Deal 6 damage. Vuln 3." },
+            { "id": "r-nick", "name": "Nick", "cost": 0, "trait": "shadow", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Nick+", "baseDamage": 2, "upgradedDamage": 4, "description": "Deal 2 damage. Weak 1.", "upgradeDescription": "Deal 4 damage. Weak 1." },
+            { "id": "r-ambush", "name": "Ambush", "cost": 2, "trait": "shadow", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Ambush+", "baseDamage": 12, "upgradedDamage": 16, "description": "Deal 12 damage.", "upgradeDescription": "Deal 16 damage." },
+            { "id": "r-backstab", "name": "Backstab", "cost": 2, "trait": "shadow", "upgradeThreshold": 2, "upgradeName": "Assassinate", "baseDamage": 10, "upgradedDamage": 14, "description": "Deal 10 damage. +5 if Vuln.", "upgradeDescription": "Deal 14 damage. +8 if Vuln." },
+            { "id": "r-poison-edge", "name": "Poison Edge", "cost": 1, "trait": "shadow", "upgradeThreshold": 3, "upgradeName": "Venom Edge", "baseDamage": 5, "upgradedDamage": 7, "description": "Deal 5 damage. Weak 2.", "upgradeDescription": "Deal 7 damage. Weak 3." },
+            { "id": "r-death-sentence", "name": "Death Sentence", "cost": 3, "trait": "shadow", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Execution", "baseDamage": 20, "upgradedDamage": 26, "description": "Deal 20 damage.", "upgradeDescription": "Deal 26 damage." },
+            { "id": "r-expose", "name": "Expose", "cost": 1, "trait": "shadow", "upgradeThreshold": 3, "upgradeName": "Expose+", "description": "Vuln 2.", "upgradeDescription": "Vuln 3." },
+            { "id": "r-cripple", "name": "Cripple", "cost": 1, "trait": "shadow", "upgradeThreshold": 3, "upgradeName": "Cripple+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage. Weak 1.", "upgradeDescription": "Deal 9 damage. Weak 2." },
+            { "id": "r-shadow-strike", "name": "Shadow Strike", "cost": 2, "trait": "shadow", "upgradeThreshold": 2, "upgradeName": "Shadow Strike+", "baseDamage": 14, "upgradedDamage": 18, "description": "Deal 14 damage. Vuln 1.", "upgradeDescription": "Deal 18 damage. Vuln 1." },
+            { "id": "r-cheap-shot", "name": "Cheap Shot", "cost": 0, "trait": "shadow", "upgradeThreshold": 3, "upgradeName": "Cheap Shot+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage.", "upgradeDescription": "Deal 5 damage." },
+            { "id": "r-eviscerate", "name": "Eviscerate", "cost": 2, "trait": "shadow", "upgradeThreshold": 2, "upgradeName": "Eviscerate+", "baseDamage": 8, "upgradedDamage": 12, "description": "Deal 8 damage. Vuln 1. Weak 1.", "upgradeDescription": "Deal 12 damage. Vuln 1. Weak 1." },
+            { "id": "r-assassinate", "name": "Assassinate", "cost": 3, "trait": "shadow", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Assassinate+", "baseDamage": 24, "upgradedDamage": 30, "description": "Deal 24 damage.", "upgradeDescription": "Deal 30 damage." },
+            { "id": "r-feint", "name": "Feint", "cost": 1, "trait": "shadow", "upgradeThreshold": 3, "upgradeName": "Feint+", "baseBlock": 4, "upgradedBlock": 6, "description": "Gain 4 Block. Vuln 1.", "upgradeDescription": "Gain 6 Block. Vuln 2." },
+            { "id": "r-garrote", "name": "Garrote", "cost": 2, "trait": "shadow", "upgradeThreshold": 2, "upgradeName": "Garrote+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage. Weak 2. Vuln 1.", "upgradeDescription": "Deal 9 damage. Weak 2. Vuln 2." },
+            { "id": "r-smoke-bomb", "name": "Smoke Bomb", "cost": 3, "trait": "shadow", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Smoke Bomb+", "baseDamage": 8, "upgradedDamage": 12, "description": "Deal 8 damage to all. Weak 2. Vuln 2.", "upgradeDescription": "Deal 12 damage to all. Weak 2. Vuln 2." }
+          ]
+        },
+        {
+          "id": "nature",
+          "name": "Nature",
+          "color": "#66bb6a",
+          "icon": "leaf",
+          "convergenceEffect": { "heal": 12 },
+          "cards": [
+            { "id": "r-sprout", "name": "Sprout", "cost": 0, "trait": "nature", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Sprout+", "baseHeal": 3, "upgradedHeal": 5, "description": "Heal 3.", "upgradeDescription": "Heal 5." },
+            { "id": "r-vine-lash", "name": "Vine Lash", "cost": 1, "trait": "nature", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Vine Lash+", "baseDamage": 4, "upgradedDamage": 6, "baseHeal": 4, "upgradedHeal": 6, "description": "Deal 4 damage. Heal 4.", "upgradeDescription": "Deal 6 damage. Heal 6." },
+            { "id": "r-regrowth", "name": "Regrowth", "cost": 2, "trait": "nature", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Regrowth+", "baseHeal": 8, "upgradedHeal": 12, "description": "Heal 8. +1 Regen.", "upgradeDescription": "Heal 12. +2 Regen." },
+            { "id": "r-mend", "name": "Mend", "cost": 1, "trait": "nature", "upgradeThreshold": 3, "upgradeName": "Mend+", "baseHeal": 6, "upgradedHeal": 10, "description": "Heal 6.", "upgradeDescription": "Heal 10." },
+            { "id": "r-bramble-wall", "name": "Bramble Wall", "cost": 1, "trait": "nature", "upgradeThreshold": 3, "upgradeName": "Bramble Wall+", "baseBlock": 5, "upgradedBlock": 8, "description": "Gain 5 Block. +2 Thorns.", "upgradeDescription": "Gain 8 Block. +3 Thorns." },
+            { "id": "r-natures-wrath", "name": "Nature's Wrath", "cost": 3, "trait": "nature", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Nature's Fury", "baseDamage": 12, "upgradedDamage": 18, "baseHeal": 8, "upgradedHeal": 12, "description": "Deal 12 damage. Heal 8.", "upgradeDescription": "Deal 18 damage. Heal 12." },
+            { "id": "r-thorn-burst", "name": "Thorn Burst", "cost": 2, "trait": "nature", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Thorn Burst+", "baseDamage": 6, "upgradedDamage": 9, "description": "Deal 6 damage to all. +2 Thorns.", "upgradeDescription": "Deal 9 damage to all. +3 Thorns." },
+            { "id": "r-rejuvenate", "name": "Rejuvenate", "cost": 2, "trait": "nature", "upgradeThreshold": 2, "upgradeName": "Rejuvenate+", "baseHeal": 10, "upgradedHeal": 14, "description": "Heal 10. +2 Regen.", "upgradeDescription": "Heal 14. +2 Regen." },
+            { "id": "r-bark-skin", "name": "Bark Skin", "cost": 1, "trait": "nature", "upgradeThreshold": 3, "upgradeName": "Bark Skin+", "baseBlock": 6, "upgradedBlock": 9, "description": "Gain 6 Block.", "upgradeDescription": "Gain 9 Block." },
+            { "id": "r-life-bloom", "name": "Life Bloom", "cost": 0, "trait": "nature", "upgradeThreshold": 3, "upgradeName": "Life Bloom+", "baseHeal": 2, "upgradedHeal": 4, "description": "Heal 2. +1 Regen.", "upgradeDescription": "Heal 4. +1 Regen." },
+            { "id": "r-entangle", "name": "Entangle", "cost": 1, "trait": "nature", "upgradeThreshold": 3, "upgradeName": "Entangle+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage. Weak 1. Vuln 1.", "upgradeDescription": "Deal 5 damage. Weak 1. Vuln 1." },
+            { "id": "r-wild-growth", "name": "Wild Growth", "cost": 2, "trait": "nature", "upgradeThreshold": 2, "upgradeName": "Wild Growth+", "baseBlock": 8, "upgradedBlock": 11, "baseHeal": 4, "upgradedHeal": 6, "description": "Gain 8 Block. Heal 4.", "upgradeDescription": "Gain 11 Block. Heal 6." },
+            { "id": "r-forests-embrace", "name": "Forest's Embrace", "cost": 3, "trait": "nature", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Forest's Embrace+", "baseBlock": 14, "upgradedBlock": 18, "baseHeal": 10, "upgradedHeal": 14, "description": "Gain 14 Block. Heal 10.", "upgradeDescription": "Gain 18 Block. Heal 14." },
+            { "id": "r-seed-of-life", "name": "Seed of Life", "cost": 2, "trait": "nature", "upgradeThreshold": 2, "upgradeName": "Seed of Life+", "baseHeal": 6, "upgradedHeal": 10, "description": "Heal 6. +2 Regen.", "upgradeDescription": "Heal 10. +2 Regen." },
+            { "id": "r-world-bloom", "name": "World Bloom", "cost": 3, "trait": "nature", "isRare": true, "upgradeThreshold": 2, "upgradeName": "World Bloom+", "baseHeal": 14, "upgradedHeal": 20, "description": "Heal 14. +2 Regen.", "upgradeDescription": "Heal 20. +3 Regen." }
+          ]
+        },
+        {
+          "id": "precision",
+          "name": "Precision",
+          "color": "#eceff1",
+          "icon": "strike",
+          "convergenceEffect": { "damage": 16 },
+          "cards": [
+            { "id": "r-quick-shot", "name": "Quick Shot", "cost": 0, "trait": "precision", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Quick Shot+", "baseDamage": 3, "upgradedDamage": 5, "description": "Deal 3 damage.", "upgradeDescription": "Deal 5 damage." },
+            { "id": "r-aimed-shot", "name": "Aimed Shot", "cost": 1, "trait": "precision", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Aimed Shot+", "baseDamage": 9, "upgradedDamage": 12, "description": "Deal 9 damage.", "upgradeDescription": "Deal 12 damage." },
+            { "id": "r-snipe", "name": "Snipe", "cost": 2, "trait": "precision", "isStarter": true, "upgradeThreshold": 2, "upgradeName": "Snipe+", "baseDamage": 16, "upgradedDamage": 22, "description": "Deal 16 damage.", "upgradeDescription": "Deal 22 damage." },
+            { "id": "r-double-tap", "name": "Double Tap", "cost": 1, "trait": "precision", "upgradeThreshold": 3, "upgradeName": "Double Tap+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage ×2.", "upgradeDescription": "Deal 6 damage ×2." },
+            { "id": "r-headshot", "name": "Headshot", "cost": 2, "trait": "precision", "upgradeThreshold": 2, "upgradeName": "Headshot+", "baseDamage": 14, "upgradedDamage": 18, "description": "Deal 14 damage. Vuln 1.", "upgradeDescription": "Deal 18 damage. Vuln 1." },
+            { "id": "r-volley", "name": "Volley", "cost": 2, "trait": "precision", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Volley+", "baseDamage": 8, "upgradedDamage": 12, "description": "Deal 8 damage to all.", "upgradeDescription": "Deal 12 damage to all." },
+            { "id": "r-piercing-shot", "name": "Piercing Shot", "cost": 1, "trait": "precision", "upgradeThreshold": 3, "upgradeName": "Piercing Shot+", "baseDamage": 7, "upgradedDamage": 10, "description": "Deal 7 damage.", "upgradeDescription": "Deal 10 damage." },
+            { "id": "r-rapid-fire", "name": "Rapid Fire", "cost": 2, "trait": "precision", "upgradeThreshold": 2, "upgradeName": "Rapid Fire+", "baseDamage": 4, "upgradedDamage": 6, "description": "Deal 4 damage ×3.", "upgradeDescription": "Deal 6 damage ×3." },
+            { "id": "r-kill-shot", "name": "Kill Shot", "cost": 3, "trait": "precision", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Kill Shot+", "baseDamage": 22, "upgradedDamage": 28, "description": "Deal 22 damage.", "upgradeDescription": "Deal 28 damage." },
+            { "id": "r-trick-shot", "name": "Trick Shot", "cost": 1, "trait": "precision", "upgradeThreshold": 3, "upgradeName": "Trick Shot+", "baseDamage": 6, "upgradedDamage": 8, "baseBlock": 3, "upgradedBlock": 5, "description": "Deal 6 damage. Gain 3 Block.", "upgradeDescription": "Deal 8 damage. Gain 5 Block." },
+            { "id": "r-hunters-mark", "name": "Hunter's Mark", "cost": 1, "trait": "precision", "upgradeThreshold": 3, "upgradeName": "Hunter's Mark+", "baseDamage": 5, "upgradedDamage": 8, "description": "Deal 5 damage. Vuln 1.", "upgradeDescription": "Deal 8 damage. Vuln 2." },
+            { "id": "r-barrage", "name": "Barrage", "cost": 3, "trait": "precision", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Barrage+", "baseDamage": 6, "upgradedDamage": 8, "description": "Deal 6 damage ×4.", "upgradeDescription": "Deal 8 damage ×4." },
+            { "id": "r-steady-aim", "name": "Steady Aim", "cost": 0, "trait": "precision", "upgradeThreshold": 3, "upgradeName": "Steady Aim+", "baseDamage": 2, "upgradedDamage": 4, "description": "Deal 2 damage. Vuln 1.", "upgradeDescription": "Deal 4 damage. Vuln 1." },
+            { "id": "r-critical-strike", "name": "Critical Strike", "cost": 2, "trait": "precision", "upgradeThreshold": 2, "upgradeName": "Critical Strike+", "baseDamage": 18, "upgradedDamage": 24, "description": "Deal 18 damage.", "upgradeDescription": "Deal 24 damage." },
+            { "id": "r-deadeye", "name": "Deadeye", "cost": 3, "trait": "precision", "isRare": true, "upgradeThreshold": 2, "upgradeName": "Deadeye+", "baseDamage": 26, "upgradedDamage": 34, "description": "Deal 26 damage.", "upgradeDescription": "Deal 34 damage." }
+          ]
+        },
+        {
+          "id": "venom",
+          "name": "Venom",
+          "color": "#8bc34a",
+          "icon": "leaf",
+          "convergenceEffect": { "damage": 8, "burn": 8 },
+          "cards": [
+            { "id": "r-poison-dart", "name": "Poison Dart", "cost": 0, "trait": "venom", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Poison Dart+", "baseBurn": 3, "upgradedBurn": 5, "description": "Burn 3.", "upgradeDescription": "Burn 5." },
+            { "id": "r-toxic-strike", "name": "Toxic Strike", "cost": 1, "trait": "venom", "isStarter": true, "upgradeThreshold": 3, "upgradeName": "Toxic Strike+", "baseDamage": 5, "upgradedDamage": 7, "baseBurn": 4, "upgradedBurn": 6, "description": "Deal 5 damage. Burn 4.", "upgradeDescription": "Deal 7 damage. Burn 6." },
+            { "id": "r-acid-splash", "name": "Acid Splash", "cost": 2, "trait": "venom", "isStarter": true, "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Acid Splash+", "baseDamage": 6, "upgradedDamage": 9, "baseBurn": 3, "upgradedBurn": 5, "description": "Deal 6 damage to all. Burn 3.", "upgradeDescription": "Deal 9 damage to all. Burn 5." },
+            { "id": "r-venom-blade", "name": "Venom Blade", "cost": 1, "trait": "venom", "upgradeThreshold": 3, "upgradeName": "Venom Blade+", "baseDamage": 4, "upgradedDamage": 6, "baseBurn": 5, "upgradedBurn": 8, "description": "Deal 4 damage. Burn 5.", "upgradeDescription": "Deal 6 damage. Burn 8." },
+            { "id": "r-noxious-cloud", "name": "Noxious Cloud", "cost": 2, "trait": "venom", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Noxious Cloud+", "baseBurn": 6, "upgradedBurn": 9, "description": "Burn 6 to all.", "upgradeDescription": "Burn 9 to all." },
+            { "id": "r-corrosion", "name": "Corrosion", "cost": 1, "trait": "venom", "upgradeThreshold": 3, "upgradeName": "Corrosion+", "baseBurn": 4, "upgradedBurn": 7, "description": "Burn 4. Weak 1.", "upgradeDescription": "Burn 7. Weak 1." },
+            { "id": "r-plague", "name": "Plague", "cost": 3, "trait": "venom", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Plague+", "baseBurn": 8, "upgradedBurn": 12, "description": "Burn 8 to all. Vuln 1.", "upgradeDescription": "Burn 12 to all. Vuln 1." },
+            { "id": "r-envenom", "name": "Envenom", "cost": 1, "trait": "venom", "upgradeThreshold": 3, "upgradeName": "Envenom+", "baseDamage": 6, "upgradedDamage": 9, "baseBurn": 3, "upgradedBurn": 5, "description": "Deal 6 damage. Burn 3.", "upgradeDescription": "Deal 9 damage. Burn 5." },
+            { "id": "r-toxic-spray", "name": "Toxic Spray", "cost": 2, "trait": "venom", "isAoe": true, "upgradeThreshold": 2, "upgradeName": "Toxic Spray+", "baseDamage": 4, "upgradedDamage": 6, "baseBurn": 4, "upgradedBurn": 6, "description": "Deal 4 damage to all. Burn 4.", "upgradeDescription": "Deal 6 damage to all. Burn 6." },
+            { "id": "r-festering-wound", "name": "Festering Wound", "cost": 2, "trait": "venom", "upgradeThreshold": 2, "upgradeName": "Festering Wound+", "baseDamage": 8, "upgradedDamage": 12, "baseBurn": 6, "upgradedBurn": 8, "description": "Deal 8 damage. Burn 6.", "upgradeDescription": "Deal 12 damage. Burn 8." },
+            { "id": "r-contaminate", "name": "Contaminate", "cost": 0, "trait": "venom", "upgradeThreshold": 3, "upgradeName": "Contaminate+", "baseBurn": 3, "upgradedBurn": 5, "description": "Burn 3. Weak 1.", "upgradeDescription": "Burn 5. Weak 1." },
+            { "id": "r-putrefy", "name": "Putrefy", "cost": 2, "trait": "venom", "upgradeThreshold": 2, "upgradeName": "Putrefy+", "baseDamage": 10, "upgradedDamage": 14, "baseBurn": 4, "upgradedBurn": 6, "description": "Deal 10 damage. Burn 4.", "upgradeDescription": "Deal 14 damage. Burn 6." },
+            { "id": "r-bio-bomb", "name": "Bio Bomb", "cost": 3, "trait": "venom", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Bio Bomb+", "baseDamage": 8, "upgradedDamage": 12, "baseBurn": 8, "upgradedBurn": 12, "description": "Deal 8 damage to all. Burn 8.", "upgradeDescription": "Deal 12 damage to all. Burn 12." },
+            { "id": "r-miasma", "name": "Miasma", "cost": 1, "trait": "venom", "upgradeThreshold": 3, "upgradeName": "Miasma+", "baseBurn": 2, "upgradedBurn": 4, "description": "Weak 1. Vuln 1. Burn 2.", "upgradeDescription": "Weak 1. Vuln 1. Burn 4." },
+            { "id": "r-pandemic", "name": "Pandemic", "cost": 3, "trait": "venom", "isAoe": true, "isRare": true, "upgradeThreshold": 2, "upgradeName": "Pandemic+", "baseBurn": 12, "upgradedBurn": 16, "description": "Burn 12 to all.", "upgradeDescription": "Burn 16 to all." }
+          ]
+        }
+      ]
+    }
+  ],
+  "starterDeckStructure": {
+    "description": "Each character starts with 12 cards: 3 per school (the isStarter cards).",
+    "cardsPerSchool": 3,
+    "totalStarterCards": 12
+  },
+  "rewardStructure": {
+    "description": "After combat, players pick from reward cards of their character's schools (non-starter cards).",
+    "rewardCardChoiceCount": 3,
+    "rewardUpgradeChoiceCount": 3
+  },
+  "enemyTemplates": [
+    { "id": "hollow-scout", "name": "Hollow Scout", "baseHp": 66, "baseStrength": 1, "icon": "placeholder", "scalingPerFight": 1.22, "strengthScaling": 0.6, "intentPattern": [0, 2, 0, 3, 0, 4] },
+    { "id": "bone-guardian", "name": "Bone Guardian", "baseHp": 90, "baseStrength": 1, "icon": "placeholder", "scalingPerFight": 1.26, "strengthScaling": 0.6, "intentPattern": [2, 0, 3, 1, 2, 0] },
+    { "id": "plague-rat", "name": "Plague Rat", "baseHp": 45, "baseStrength": 0, "icon": "placeholder", "scalingPerFight": 1.15, "strengthScaling": 0.3, "intentPattern": [0, 4, 0, 6, 0, 4] },
+    { "id": "shadow-fiend", "name": "Shadow Fiend", "baseHp": 70, "baseStrength": 1, "icon": "placeholder", "scalingPerFight": 1.3, "strengthScaling": 0.5, "intentPattern": [4, 0, 7, 0, 1, 4] },
+    { "id": "iron-golem", "name": "Iron Golem", "baseHp": 120, "baseStrength": 2, "icon": "placeholder", "scalingPerFight": 1.2, "strengthScaling": 1, "intentPattern": [2, 3, 0, 2, 1, 5] },
+    { "id": "dread-warden", "name": "Dread Warden", "baseHp": 200, "baseStrength": 2, "icon": "placeholder", "scalingPerFight": 1.15, "strengthScaling": 1, "intentPattern": [0, 2, 1, 3, 0, 4, 6, 0, 5, 7, 2, 1] },
+    { "id": "chaos-wyrm", "name": "Chaos Wyrm", "baseHp": 280, "baseStrength": 3, "icon": "placeholder", "scalingPerFight": 1, "strengthScaling": 0, "intentPattern": [5, 3, 6, 1, 0, 7, 3, 5, 1, 6] },
+    { "id": "pine-wolf", "name": "Pine Wolf", "baseHp": 70, "baseStrength": 1, "icon": "placeholder", "scalingPerFight": 1.16, "strengthScaling": 0.6, "intentPattern": [0, 6, 4, 0, 5, 3] },
+    { "id": "road-blackguard", "name": "Road Blackguard", "baseHp": 92, "baseStrength": 2, "icon": "placeholder", "scalingPerFight": 1.12, "strengthScaling": 0.8, "intentPattern": [0, 5, 2, 1, 0, 6] },
+    { "id": "reed-stalker", "name": "Reed Stalker", "baseHp": 104, "baseStrength": 2, "icon": "placeholder", "scalingPerFight": 1.12, "strengthScaling": 0.7, "intentPattern": [4, 0, 6, 1, 5, 0] },
+    { "id": "totem-warden", "name": "Totem Warden", "baseHp": 128, "baseStrength": 2, "icon": "placeholder", "scalingPerFight": 1.08, "strengthScaling": 0.8, "intentPattern": [2, 5, 1, 0, 6, 4] },
+    { "id": "crossroad-reaver", "name": "Crossroad Reaver", "baseHp": 122, "baseStrength": 2, "icon": "placeholder", "scalingPerFight": 1.14, "strengthScaling": 0.9, "intentPattern": [0, 6, 2, 1, 0, 4] },
+    { "id": "bridge-keeper-drog", "name": "Bridge Keeper Drog", "baseHp": 188, "baseStrength": 3, "icon": "placeholder", "scalingPerFight": 1.1, "strengthScaling": 1, "intentPattern": [2, 0, 5, 1, 3, 0, 6] },
+    { "id": "ogre-lord", "name": "Ogre Lord", "baseHp": 305, "baseStrength": 4, "icon": "placeholder", "scalingPerFight": 1.02, "strengthScaling": 0.6, "intentPattern": [3, 0, 5, 1, 6, 0, 7, 2] }
+  ],
+  "encounters": [
+    { "description": "A lone scout blocks your path.", "enemies": [{ "templateId": "hollow-scout" }] },
+    { "description": "A skeletal guardian awakens.", "enemies": [{ "templateId": "bone-guardian" }] },
+    { "description": "A swarm of rats ambushes you!", "enemies": [{ "templateId": "plague-rat" }, { "templateId": "plague-rat" }] },
+    { "description": "Dark forces converge.", "enemies": [{ "templateId": "shadow-fiend" }, { "templateId": "iron-golem", "hpMult": 0.8 }] },
+    { "description": "The final guardian emerges.", "isBoss": true, "enemies": [{ "templateId": "chaos-wyrm" }] }
+  ],
+  "bonuses": [
+    { "id": "max-hp-10", "name": "+10 Max HP", "description": "Permanently increase your max HP by 10.", "icon": "heart" },
+    { "id": "max-hp-20", "name": "+20 Max HP", "description": "Permanently increase your max HP by 20.", "icon": "heart" },
+    { "id": "starting-block-5", "name": "Iron Skin", "description": "Start each fight with 5 Block.", "icon": "shield" },
+    { "id": "starting-block-10", "name": "Steel Skin", "description": "Start each fight with 10 Block.", "icon": "shield" },
+    { "id": "free-first-reroll", "name": "Lucky Draw", "description": "First reroll each turn is free.", "icon": "dice" },
+    { "id": "max-energy-1", "name": "Energy Core", "description": "Gain +1 max energy permanently.", "icon": "energy" },
+    { "id": "heal-15", "name": "Healing Potion", "description": "Heal 15 HP immediately.", "icon": "potion" },
+    { "id": "heal-30", "name": "Greater Potion", "description": "Heal 30 HP immediately.", "icon": "potion" }
+  ]
+}

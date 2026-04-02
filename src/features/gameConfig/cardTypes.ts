@@ -1,6 +1,23 @@
 import type { RoleId } from '@/types/player';
 
-type Trait = 'fire' | 'guard' | 'shadow' | 'storm' | 'nature' | 'neutral';
+type Trait =
+  // Warrior schools
+  | 'rage'
+  | 'iron'
+  | 'blood'
+  | 'thunder'
+  // Sage schools
+  | 'fire'
+  | 'frost'
+  | 'storm'
+  | 'arcane'
+  // Ranger schools
+  | 'shadow'
+  | 'nature'
+  | 'precision'
+  | 'venom'
+  // Neutral
+  | 'neutral';
 
 type TraitMeta = {
   id: Trait;
@@ -44,6 +61,7 @@ type ConvergenceEffect = {
     energy?: number;
     vulnerable?: number;
     weakened?: number;
+    burn?: number;
   };
   scalePerUpgradeRank: number;
 };

@@ -4,6 +4,7 @@ import { colors } from '@/constants/colors';
 import { useTranslation } from '@/contexts/I18nContext';
 import RewardScreen from '@/features/combat/components/RewardScreen';
 import CardHandGrid from '@/features/combat/components/SpellHandGrid';
+import type { RoleId } from '@/types/player';
 import type { PlayerCombatState } from '@/types/spellCombat';
 
 type CombatBottomPanelProps = {
@@ -15,6 +16,7 @@ type CombatBottomPanelProps = {
   isBusy: boolean;
   isAnimating: boolean;
   localCombatState: PlayerCombatState | null;
+  roleId: RoleId;
   selectedEnemyIdx: number | null;
   onPlayCard: (handIndex: number, targetEnemyIdx?: number | null) => void;
   onConvergence: () => void;
@@ -32,6 +34,7 @@ const CombatBottomPanel = ({
   isBusy,
   isAnimating,
   localCombatState,
+  roleId,
   selectedEnemyIdx,
   onPlayCard,
   onConvergence,
@@ -130,6 +133,7 @@ const CombatBottomPanel = ({
     >
       <CardHandGrid
         combatState={localCombatState}
+        roleId={roleId}
         disabled={isAnimating}
         onPlayCard={onPlayCard}
         onConvergence={onConvergence}

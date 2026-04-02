@@ -1,5 +1,5 @@
 /**
- * Player identities — each defines a dominant trait
+ * Player identities — one per role. Each defines a dominant trait
  * and convergence action name/description.
  */
 
@@ -16,54 +16,32 @@ type Identity = {
 
 const IDENTITIES: Identity[] = [
   {
-    id: 'fire',
-    name: 'Ashbound',
+    id: 'warrior',
+    name: 'Warrior',
+    dominantTrait: 'rage',
+    passiveDescription:
+      'Balanced melee fighter. Empowering schools fuels devastating Convergence effects.',
+    convergenceActionName: 'Wrath',
+    convergenceDescription:
+      'If 2 or more schools are empowered, Wrath cashes out every empowered school into one combined free action.',
+  },
+  {
+    id: 'sage',
+    name: 'Sage',
     dominantTrait: 'fire',
-    passiveDescription:
-      'Fire specialist. Empowering Fire cards fuels devastating Convergence effects.',
-    convergenceActionName: 'Detonate',
+    passiveDescription: 'Arcane caster. Empowering schools fuels powerful Convergence magic.',
+    convergenceActionName: 'Cataclysm',
     convergenceDescription:
-      'If 2 or more traits are empowered, Detonate appears above Fire. It cashes out every empowered trait at once into one combined free action.',
+      'If 2 or more schools are empowered, Cataclysm cashes out every empowered school into one combined free action.',
   },
   {
-    id: 'guard',
-    name: 'Bulwark',
-    dominantTrait: 'guard',
-    passiveDescription:
-      'Guard specialist. Empowering Guard cards fuels powerful Convergence defenses.',
-    convergenceActionName: 'Last Bastion',
+    id: 'ranger',
+    name: 'Ranger',
+    dominantTrait: 'precision',
+    passiveDescription: 'Agile fighter. Empowering schools fuels deadly Convergence strikes.',
+    convergenceActionName: 'Execution',
     convergenceDescription:
-      'If 2 or more traits are empowered, Last Bastion appears above Guard. It cashes out every empowered trait at once into one combined free action.',
-  },
-  {
-    id: 'shadow',
-    name: 'Nightglass',
-    dominantTrait: 'shadow',
-    passiveDescription:
-      'Shadow specialist. Empowering Shadow cards fuels deadly Convergence strikes.',
-    convergenceActionName: 'Execution Window',
-    convergenceDescription:
-      'If 2 or more traits are empowered, Execution Window appears above Shadow. It cashes out every empowered trait at once into one combined free action.',
-  },
-  {
-    id: 'storm',
-    name: 'Tempest Core',
-    dominantTrait: 'storm',
-    passiveDescription:
-      'Storm specialist. Empowering Storm cards fuels explosive Convergence bursts.',
-    convergenceActionName: 'Overdrive',
-    convergenceDescription:
-      'If 2 or more traits are empowered, Overdrive appears above Storm. It cashes out every empowered trait at once into one combined free action.',
-  },
-  {
-    id: 'nature',
-    name: 'Worldroot',
-    dominantTrait: 'nature',
-    passiveDescription:
-      'Nature specialist. Empowering Nature cards fuels restorative Convergence effects.',
-    convergenceActionName: 'World Bloom',
-    convergenceDescription:
-      'If 2 or more traits are empowered, World Bloom appears above Nature. It cashes out every empowered trait at once into one combined free action.',
+      'If 2 or more schools are empowered, Execution cashes out every empowered school into one combined free action.',
   },
 ];
 

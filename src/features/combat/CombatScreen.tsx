@@ -174,6 +174,12 @@ const CombatScreen = () => {
   const localCharacter =
     roomConnection.characters.find((c) => c.playerId === localPlayerId) ?? null;
 
+  const localRoleId =
+    (roomConnection.players.find((p) => p.player_id === localPlayerId)?.role_id as
+      | 'warrior'
+      | 'sage'
+      | 'ranger') ?? 'warrior';
+
   const mappedEnemies = useMemo(
     () =>
       roomConnection.enemyCombatStates.map((ecs) => ({
@@ -525,6 +531,7 @@ const CombatScreen = () => {
         isBusy={roomConnection.isBusy}
         isAnimating={anim.isAnimating}
         localCombatState={localCombatState}
+        roleId={localRoleId}
         selectedEnemyIdx={selectedEnemyIdx >= 0 ? selectedEnemyIdx : null}
         onPlayCard={handlePlayCard}
         onConvergence={handleConvergence}
