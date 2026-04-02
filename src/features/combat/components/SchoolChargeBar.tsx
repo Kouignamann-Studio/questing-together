@@ -16,6 +16,18 @@ const TRAIT_ICON_MAP: Record<string, ImageSourcePropType> = {
   shadow: eyesIcon,
   storm: strikeIcon,
   nature: leafIcon,
+  rage: fireIcon,
+  iron: shieldIcon,
+  thunder: strikeIcon,
+  blood: eyesIcon,
+};
+
+// Fallback emoji for schools without PNG icons
+const TRAIT_EMOJI_MAP: Record<string, string> = {
+  frost: '❄️',
+  arcane: '🔮',
+  precision: '🎯',
+  venom: '🧪',
 };
 
 type SchoolChargeBarProps = {
@@ -33,11 +45,13 @@ const DOT_SIZE = 8;
 
 const TraitOrb = ({
   icon,
+  emoji,
   charge,
   color,
   empowered,
 }: {
-  icon: ImageSourcePropType;
+  icon?: ImageSourcePropType;
+  emoji?: string;
   charge: number;
   color: string;
   empowered: boolean;
@@ -70,7 +84,13 @@ const TraitOrb = ({
           shadowRadius: empowered ? 8 : 0,
         }}
       >
-        <Image source={icon} style={{ width: 18, height: 18 }} resizeMode="contain" />
+        {icon ? (
+          <Image source={icon} style={{ width: 18, height: 18 }} resizeMode="contain" />
+        ) : (
+          <Typography variant="micro" style={{ fontSize: 16 }}>
+            {emoji}
+          </Typography>
+        )}
       </View>
 
       {/* Charge dots positioned along the bottom arc of the circle */}
@@ -139,6 +159,7 @@ const SchoolChargeBar = ({
           <TraitOrb
             key={school.id}
             icon={TRAIT_ICON_MAP[school.id]}
+            emoji={TRAIT_EMOJI_MAP[school.id]}
             charge={charge}
             color={school.color}
             empowered={empowered}

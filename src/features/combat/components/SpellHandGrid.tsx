@@ -20,6 +20,7 @@ type CardHandGridProps = {
   onConvergence: () => void;
   onEndTurn: () => void;
   onReroll: () => void;
+  onLeaveRoom: () => void;
   selectedEnemyIdx: number | null;
 };
 
@@ -31,6 +32,7 @@ const CardHandGrid = ({
   onConvergence,
   onEndTurn,
   onReroll,
+  onLeaveRoom,
   selectedEnemyIdx,
 }: CardHandGridProps) => {
   const { t } = useTranslation();
@@ -103,26 +105,28 @@ const CardHandGrid = ({
         endTurnLabel={t('combat.endTurn')}
       />
 
-      {/* Card hand: horizontal row */}
-      <Stack direction="row" gap={8} justify="center" style={{ paddingTop: 4 }}>
-        {visibleCards.map(({ instance, idx }) => {
-          const card = getCardById(instance.cardId);
-          if (!card) return null;
-          return (
-            <CardView
-              key={`${instance.cardId}-${idx}`}
-              instance={instance}
-              traitCharge={combatState.traitCharges[card.trait] ?? 0}
-              canAfford={combatState.energy >= card.cost}
-              disabled={disabled}
-              onPress={() => handleCardPress(idx)}
-            />
-          );
-        })}
-      </Stack>
+      {/* Card hand: hidden during enemy phase / ended turn */}
+      {!disabled ? (
+        <Stack direction="row" gap={8} justify="center" style={{ paddingTop: 4 }}>
+          {visibleCards.map(({ instance, idx }) => {
+            const card = getCardById(instance.cardId);
+            if (!card) return null;
+            return (
+              <CardView
+                key={`${instance.cardId}-${idx}`}
+                instance={instance}
+                traitCharge={combatState.traitCharges[card.trait] ?? 0}
+                canAfford={combatState.energy >= card.cost}
+                disabled={disabled}
+                onPress={() => handleCardPress(idx)}
+              />
+            );
+          })}
+        </Stack>
+      ) : null}
 
       {/* Convergence banner */}
-      {canConverge && identity ? (
+      {canConverge && identity && !disabled ? (
         <Pressable onPress={onConvergence} disabled={disabled}>
           <View
             style={{
@@ -157,34 +161,55 @@ const CardHandGrid = ({
         </Pressable>
       ) : null}
 
-      {/* Reroll button — full width */}
-      <Pressable
-        onPress={() => {
-          setRerolled(true);
-          setLocalPlayedIndices([]);
-          onReroll();
-        }}
-        disabled={disabled || rerolled}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          paddingVertical: 10,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: disabled || rerolled ? `${colors.tabBorder}44` : colors.tabBorder,
-          backgroundColor: colors.backgroundCombat,
-          opacity: disabled || rerolled ? 0.4 : 1,
-        }}
-      >
-        <Typography variant="caption" style={{ color: colors.textSecondary, fontSize: 14 }}>
-          🔄
-        </Typography>
-        <Typography variant="caption" style={{ color: colors.textSecondary, fontWeight: '600' }}>
-          {t('combat.reroll')} ({rerolled ? 0 : 1})
-        </Typography>
-      </Pressable>
+      {/* Bottom row: Reroll (75%) + Leave (25%) */}
+      <Stack direction="row" gap={8}>
+        <Pressable
+          onPress={() => {
+            setRerolled(true);
+            setLocalPlayedIndices([]);
+            onReroll();
+          }}
+          disabled={disabled || rerolled}
+          style={{
+            flex: 3,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            paddingVertical: 10,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: disabled || rerolled ? `${colors.tabBorder}44` : colors.tabBorder,
+            backgroundColor: colors.backgroundCombat,
+            opacity: disabled || rerolled ? 0.4 : 1,
+          }}
+        >
+          <Typography variant="caption" style={{ color: colors.textSecondary, fontSize: 14 }}>
+            🔄
+          </Typography>
+          <Typography variant="caption" style={{ color: colors.textSecondary, fontWeight: '600' }}>
+            {t('combat.reroll')} ({rerolled ? 0 : 1})
+          </Typography>
+        </Pressable>
+
+        <Pressable
+          onPress={onLeaveRoom}
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 10,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: `${colors.combatDamage}44`,
+            backgroundColor: `${colors.combatDamage}15`,
+          }}
+        >
+          <Typography variant="caption" style={{ color: colors.combatDamage, fontSize: 14 }}>
+            🏃
+          </Typography>
+        </Pressable>
+      </Stack>
     </Stack>
   );
 };
