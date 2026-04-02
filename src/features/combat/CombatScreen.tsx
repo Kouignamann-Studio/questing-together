@@ -615,6 +615,7 @@ const CombatScreen = () => {
         onConvergence={handleConvergence}
         onEndTurn={handleEndTurn}
         onReroll={handleReroll}
+        onLeaveRoom={() => void roomConnection.leaveRoom()}
         onAdvanceScreen={roomConnection.advanceScreen}
       />
 

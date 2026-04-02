@@ -22,6 +22,7 @@ type CombatBottomPanelProps = {
   onConvergence: () => void;
   onEndTurn: () => void;
   onReroll: () => void;
+  onLeaveRoom: () => void;
   onAdvanceScreen: () => Promise<unknown>;
 };
 
@@ -40,6 +41,7 @@ const CombatBottomPanel = ({
   onConvergence,
   onEndTurn,
   onReroll,
+  onLeaveRoom,
   onAdvanceScreen,
 }: CombatBottomPanelProps) => {
   const { t } = useTranslation();
@@ -85,26 +87,6 @@ const CombatBottomPanel = ({
 
   if (isDead) return null;
 
-  if (turnPhase === 'enemy') return null;
-
-  if (hasEndedTurn) {
-    return (
-      <BottomSheet
-        size="sm"
-        style={{
-          backgroundColor: colors.backgroundCombat,
-          borderColor: `${colors.intentConfirmedBorder}22`,
-        }}
-      >
-        <Stack align="center" style={{ paddingVertical: 16 }}>
-          <Typography variant="caption" style={{ color: colors.combatWaiting }}>
-            {t('combat.waitingPlayers')}
-          </Typography>
-        </Stack>
-      </BottomSheet>
-    );
-  }
-
   if (!localCombatState) {
     return (
       <BottomSheet
@@ -134,11 +116,12 @@ const CombatBottomPanel = ({
       <CardHandGrid
         combatState={localCombatState}
         roleId={roleId}
-        disabled={isAnimating}
+        disabled={isAnimating || turnPhase === 'enemy' || hasEndedTurn}
         onPlayCard={onPlayCard}
         onConvergence={onConvergence}
         onEndTurn={onEndTurn}
         onReroll={onReroll}
+        onLeaveRoom={onLeaveRoom}
         selectedEnemyIdx={selectedEnemyIdx}
       />
     </BottomSheet>

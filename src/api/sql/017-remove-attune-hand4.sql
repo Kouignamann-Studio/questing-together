@@ -20,7 +20,7 @@ begin
   v_pile := p_draw_pile;
 
   if jsonb_array_length(v_pile) < p_hand_size then
-    v_pile := public._shuffle_jsonb_array(v_pile || p_discard_pile);
+    v_pile := v_pile || p_discard_pile;
   end if;
 
   for i in 1..least(p_hand_size, jsonb_array_length(v_pile)) loop

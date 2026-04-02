@@ -152,7 +152,7 @@ const CardView = ({
           <Stack
             align="center"
             justify="space-between"
-            style={{ flex: 1, paddingTop: 22, paddingBottom: 8, paddingHorizontal: 4 }}
+            style={{ flex: 1, paddingTop: 28, paddingBottom: 8, paddingHorizontal: 4 }}
           >
             {/* Top: icon + text */}
             <Stack align="center" gap={2}>
