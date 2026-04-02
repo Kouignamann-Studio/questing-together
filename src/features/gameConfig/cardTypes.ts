@@ -31,6 +31,7 @@ type Card = {
   isRare?: boolean;
   isSignature?: boolean;
   starterRole?: RoleId;
+  vfxSequenceId?: string;
 };
 
 type ConvergenceEffect = {

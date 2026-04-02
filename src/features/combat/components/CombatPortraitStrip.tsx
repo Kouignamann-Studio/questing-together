@@ -1,3 +1,4 @@
+import type { RefCallback } from 'react';
 import { View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -32,6 +33,7 @@ type CombatPortraitStripProps = {
   botLungePlayerId: string | null;
   localHpOverride: number | null;
   onPlayerLayout: (x: number, y: number) => void;
+  onPlayerPortraitRef: (playerId: PlayerId) => RefCallback<View>;
   floatingTexts: FloatingText[];
 };
 
@@ -51,6 +53,7 @@ const CombatPortraitStrip = ({
   botLungePlayerId,
   localHpOverride,
   onPlayerLayout,
+  onPlayerPortraitRef,
   floatingTexts,
 }: CombatPortraitStripProps) => {
   const { roomConnection } = useGame();
@@ -125,6 +128,7 @@ const CombatPortraitStrip = ({
                 }
               >
                 <View
+                  ref={onPlayerPortraitRef(player.playerId)}
                   style={{
                     width: RING_SIZE,
                     height: RING_SIZE,

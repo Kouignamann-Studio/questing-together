@@ -198,6 +198,7 @@ const REWARD_CARD_POOL: Card[] = [
     upgradeDescription: 'Heal 10 HP. +1 Regen.',
     baseHeal: 6,
     upgradedHeal: 10,
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'bramble-wall',
@@ -213,6 +214,7 @@ const REWARD_CARD_POOL: Card[] = [
     baseBlock: 5,
     upgradedDamage: 3,
     upgradedBlock: 8,
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'natures-wrath',
@@ -227,6 +229,7 @@ const REWARD_CARD_POOL: Card[] = [
     baseDamage: 12,
     upgradedDamage: 18,
     isRare: true,
+    vfxSequenceId: 'Seq_GreenTest',
   },
 ];
 

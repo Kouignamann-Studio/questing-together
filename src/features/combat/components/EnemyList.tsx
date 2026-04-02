@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { type RefCallback, useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -54,6 +54,7 @@ type EnemyListProps = {
   enemyLungeY: SharedValue<number>;
   attackingEnemyId: string | null;
   onEnemyLayout: (enemyId: string, x: number, y: number) => void;
+  onEnemyPortraitRef: (enemyId: string) => RefCallback<View>;
   floatingTexts: FloatingText[];
 };
 
@@ -103,6 +104,7 @@ const EnemyList = ({
   enemyLungeY,
   attackingEnemyId,
   onEnemyLayout,
+  onEnemyPortraitRef,
   floatingTexts,
 }: EnemyListProps) => {
   const { t } = useTranslation();
@@ -185,6 +187,7 @@ const EnemyList = ({
                   style={isAttacking ? lungeStyle : isSelected ? shakeStyle : undefined}
                 >
                   <View
+                    ref={onEnemyPortraitRef(enemy.id)}
                     style={{
                       width: RING_SIZE,
                       height: RING_SIZE,

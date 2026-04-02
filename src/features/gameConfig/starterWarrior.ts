@@ -133,6 +133,7 @@ const WARRIOR_STARTER: Card[] = [
     baseHeal: 6,
     upgradedHeal: 10,
     starterRole: 'warrior',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'w-second-wind',
@@ -147,6 +148,7 @@ const WARRIOR_STARTER: Card[] = [
     baseHeal: 3,
     upgradedHeal: 5,
     starterRole: 'warrior',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'w-vine-armor',
@@ -163,6 +165,7 @@ const WARRIOR_STARTER: Card[] = [
     upgradedBlock: 7,
     upgradedHeal: 5,
     starterRole: 'warrior',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   // Shadow (1)
   {
@@ -178,6 +181,7 @@ const WARRIOR_STARTER: Card[] = [
     baseDamage: 4,
     upgradedDamage: 6,
     starterRole: 'warrior',
+    vfxSequenceId: 'Seq_IceShard',
   },
   // Storm (1)
   {
@@ -193,6 +197,7 @@ const WARRIOR_STARTER: Card[] = [
     baseDamage: 4,
     upgradedDamage: 6,
     starterRole: 'warrior',
+    vfxSequenceId: 'Seq_IceShard',
   },
   // Neutral (2)
   {

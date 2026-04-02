@@ -15,6 +15,7 @@ const RANGER_STARTER: Card[] = [
     baseDamage: 3,
     upgradedDamage: 6,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'r-ambush',
@@ -29,6 +30,7 @@ const RANGER_STARTER: Card[] = [
     baseDamage: 16,
     upgradedDamage: 22,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'r-poison-arrow',
@@ -59,6 +61,7 @@ const RANGER_STARTER: Card[] = [
     baseDamage: 4,
     upgradedDamage: 6,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_IceShard',
   },
   {
     id: 'r-smoke-bomb',
@@ -90,6 +93,7 @@ const RANGER_STARTER: Card[] = [
     baseHeal: 8,
     upgradedHeal: 12,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'r-regrowth',
@@ -104,6 +108,7 @@ const RANGER_STARTER: Card[] = [
     baseHeal: 6,
     upgradedHeal: 10,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'r-thorn-burst',
@@ -119,6 +124,7 @@ const RANGER_STARTER: Card[] = [
     upgradedDamage: 10,
     isAoe: true,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 'r-sprout',
@@ -133,6 +139,7 @@ const RANGER_STARTER: Card[] = [
     baseHeal: 2,
     upgradedHeal: 4,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   // Fire (2)
   {
@@ -150,6 +157,7 @@ const RANGER_STARTER: Card[] = [
     baseBurn: 5,
     upgradedBurn: 7,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_fireball',
   },
   {
     id: 'r-volley',
@@ -165,6 +173,7 @@ const RANGER_STARTER: Card[] = [
     upgradedDamage: 20,
     isAoe: true,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_Fireball',
   },
   // Guard (1)
   {
@@ -195,6 +204,7 @@ const RANGER_STARTER: Card[] = [
     baseDamage: 4,
     upgradedDamage: 6,
     starterRole: 'ranger',
+    vfxSequenceId: 'Seq_IceShard',
   },
   // Neutral (2)
   {

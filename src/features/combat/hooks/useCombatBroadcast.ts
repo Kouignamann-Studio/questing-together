@@ -8,7 +8,9 @@ type CombatActionEvent = {
   playerName: string;
   actionType: 'spell' | 'convergence';
   damage: number;
+  spellId?: string;
   spellName?: string;
+  targetEnemyId?: string | null;
   effectType?: string;
   roll?: number;
   rollLabel?: string;

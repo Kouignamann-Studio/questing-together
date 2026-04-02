@@ -25,6 +25,15 @@ type EnemyAttackInfo = {
   direction: LungeDirection;
 };
 
+type CastSpellOptions = {
+  impactDelayMs?: number;
+  skipLunge?: boolean;
+};
+
+type BotActionOptions = {
+  impactDelayMs?: number;
+};
+
 interface CombatAnimations {
   playerLungeX: SharedValue<number>;
   playerLungeY: SharedValue<number>;
@@ -50,6 +59,7 @@ interface CombatAnimations {
     roll: number,
     rollLabel: string,
     healed?: number,
+    options?: CastSpellOptions,
   ) => void;
   playConvergence: (damage: number, name: string, roll: number, rollLabel: string) => void;
   playBotAction: (
@@ -57,6 +67,7 @@ interface CombatAnimations {
     actionType: string,
     damage: number,
     spellName?: string,
+    options?: BotActionOptions,
   ) => void;
   playEnemyPhase: (attacks: EnemyAttackInfo[], currentHp: number) => void;
 }
@@ -142,6 +153,7 @@ const useCombatAnimations = (): CombatAnimations => {
       roll: number,
       rollLabel: string,
       healed?: number,
+      options?: CastSpellOptions,
     ) => {
       setIsAnimating(true);
 
@@ -159,17 +171,22 @@ const useCombatAnimations = (): CombatAnimations => {
       }
 
       if (isDamageSingle) {
-        // Lunge toward target (like old playAttack)
-        playerLungeX.value = withSequence(
-          withTiming(direction.x * LUNGE_DISTANCE, { duration: LUNGE_IN }),
-          withTiming(0, { duration: LUNGE_OUT }),
-        );
-        playerLungeY.value = withSequence(
-          withTiming(direction.y * LUNGE_DISTANCE, { duration: LUNGE_IN }),
-          withTiming(0, { duration: LUNGE_OUT }),
-        );
+        const impactDelayMs = options?.impactDelayMs ?? LUNGE_IN;
+
+        if (!options?.skipLunge) {
+          // Lunge toward target (like old playAttack)
+          playerLungeX.value = withSequence(
+            withTiming(direction.x * LUNGE_DISTANCE, { duration: LUNGE_IN }),
+            withTiming(0, { duration: LUNGE_OUT }),
+          );
+          playerLungeY.value = withSequence(
+            withTiming(direction.y * LUNGE_DISTANCE, { duration: LUNGE_IN }),
+            withTiming(0, { duration: LUNGE_OUT }),
+          );
+        }
+
         enemyShake.value = withDelay(
-          LUNGE_IN,
+          impactDelayMs,
           withSequence(
             withTiming(8, { duration: SHAKE_STEP }),
             withTiming(-8, { duration: SHAKE_STEP }),
@@ -179,14 +196,14 @@ const useCombatAnimations = (): CombatAnimations => {
           ),
         );
         enemyFlash.value = withDelay(
-          LUNGE_IN,
+          impactDelayMs,
           withSequence(
             withTiming(1, { duration: FLASH_IN }),
             withTiming(0, { duration: FLASH_OUT }),
           ),
         );
 
-        scheduleCallback(LUNGE_IN + 30, () => {
+        scheduleCallback(impactDelayMs + 30, () => {
           const dmgText = rollLabel === 'critical_fail' ? 'MISS' : `-${damage}`;
           const dmgColor =
             rollLabel === 'critical' || rollLabel === 'strong'
@@ -195,9 +212,12 @@ const useCombatAnimations = (): CombatAnimations => {
           addFloating(dmgText, dmgColor, 'enemy');
         });
 
-        scheduleCallback(LUNGE_IN + LUNGE_OUT + FLASH_OUT, () => {
-          setIsAnimating(false);
-        });
+        scheduleCallback(
+          impactDelayMs + (options?.skipLunge ? FLASH_IN : LUNGE_OUT) + FLASH_OUT,
+          () => {
+            setIsAnimating(false);
+          },
+        );
       } else if (hasDamage) {
         // AoE: flash + shake (like old playAbility)
         enemyFlash.value = withSequence(
@@ -371,7 +391,13 @@ const useCombatAnimations = (): CombatAnimations => {
   );
 
   const playBotAction = useCallback(
-    (botPlayerId: string, actionType: string, damage: number, spellName?: string) => {
+    (
+      botPlayerId: string,
+      actionType: string,
+      damage: number,
+      spellName?: string,
+      options?: BotActionOptions,
+    ) => {
       setBotLungePlayerId(botPlayerId);
       botLunge.value = withSequence(
         withTiming(-15, { duration: LUNGE_IN }),
@@ -388,10 +414,13 @@ const useCombatAnimations = (): CombatAnimations => {
           'player',
           botPlayerId,
         );
-        enemyShake.value = withSequence(
-          withTiming(6, { duration: SHAKE_STEP }),
-          withTiming(-6, { duration: SHAKE_STEP }),
-          withTiming(0, { duration: SHAKE_STEP }),
+        enemyShake.value = withDelay(
+          options?.impactDelayMs ?? 0,
+          withSequence(
+            withTiming(6, { duration: SHAKE_STEP }),
+            withTiming(-6, { duration: SHAKE_STEP }),
+            withTiming(0, { duration: SHAKE_STEP }),
+          ),
         );
       } else if (actionType === 'convergence') {
         addFloating(

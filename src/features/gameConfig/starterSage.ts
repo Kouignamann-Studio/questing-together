@@ -15,6 +15,7 @@ const SAGE_STARTER: Card[] = [
     baseDamage: 12,
     upgradedDamage: 16,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_fireball',
   },
   {
     id: 's-scorch',
@@ -31,6 +32,7 @@ const SAGE_STARTER: Card[] = [
     baseBurn: 7,
     upgradedBurn: 10,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_fireball',
   },
   {
     id: 's-wildfire',
@@ -61,6 +63,7 @@ const SAGE_STARTER: Card[] = [
     upgradedDamage: 8,
     upgradedBurn: 4,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_fireball',
   },
   {
     id: 's-flame-lance',
@@ -77,6 +80,7 @@ const SAGE_STARTER: Card[] = [
     baseBurn: 6,
     upgradedBurn: 8,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_fireball',
   },
   // Storm (4)
   {
@@ -150,6 +154,7 @@ const SAGE_STARTER: Card[] = [
     baseHeal: 6,
     upgradedHeal: 10,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   {
     id: 's-mana-bloom',
@@ -164,6 +169,7 @@ const SAGE_STARTER: Card[] = [
     baseHeal: 2,
     upgradedHeal: 4,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_GreenTest',
   },
   // Guard (1)
   {
@@ -194,6 +200,7 @@ const SAGE_STARTER: Card[] = [
     baseDamage: 5,
     upgradedDamage: 8,
     starterRole: 'sage',
+    vfxSequenceId: 'Seq_IceShard',
   },
   // Neutral (2)
   {

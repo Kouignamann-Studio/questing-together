@@ -6,13 +6,15 @@
       "id": "Ice Shard Travel-cue-1",
       "assetId": "IceShardTravel",
       "atMs": 0,
+      "durationMs": 530,
       "anchor": "projectile",
       "targetAnchor": "target"
     },
     {
       "id": "Ice-impact-cue-2",
       "assetId": "IceImpact",
-      "atMs": 330,
+      "atMs": 470,
+      "durationMs": 710,
       "anchor": "target",
       "targetAnchor": "target"
     }

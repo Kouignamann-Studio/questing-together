@@ -12,14 +12,16 @@
       "id": "fireball-travel-cue-3",
       "assetId": "GreenTestTravel",
       "atMs": 0,
-      "anchor": "caster",
+      "durationMs": 750,
+      "anchor": "projectile",
       "targetAnchor": "target"
     },
     {
       "id": "impact",
       "assetId": "GreenTestImpact",
-      "atMs": 1300,
-      "anchor": "target"
+      "atMs": 730,
+      "anchor": "target",
+      "targetAnchor": "target"
     }
   ]
 }

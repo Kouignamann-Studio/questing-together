@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, type View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, ModalBackdrop, Stack, StatusBadge, Typography } from '@/components';
 import { colors } from '@/constants/colors';
@@ -17,6 +17,8 @@ import useCombatTurnPhase from '@/features/combat/hooks/useCombatTurnPhase';
 import { buildCombatPlayers } from '@/features/combat/utils/buildCombatPlayers';
 import { getEffectiveEnemyId } from '@/features/combat/utils/getEffectiveEnemyId';
 import { getCardById } from '@/features/gameConfig';
+import { getEffectSequence, playEffectSequence, useVfx } from '@/features/vfx';
+import type { PlayerId } from '@/types/player';
 
 const getEffectType = (damage: number, block: number, heal: number, isAoe?: boolean): string => {
   if (heal > 0) return 'heal_self';
@@ -26,6 +28,19 @@ const getEffectType = (damage: number, block: number, heal: number, isAoe?: bool
 };
 
 type Position = { x: number; y: number };
+
+const getSequenceImpactDelayMs = (sequenceId: string) => {
+  const sequence = getEffectSequence(sequenceId);
+  if (!sequence) return 0;
+
+  return sequence.cues.reduce((maxDelay, cue) => {
+    if (cue.anchor === 'target' || cue.anchor === 'projectile' || cue.targetAnchor === 'target') {
+      return Math.max(maxDelay, cue.atMs);
+    }
+
+    return maxDelay;
+  }, 0);
+};
 
 const computeDirection = (from: Position, to: Position): { x: number; y: number } => {
   const dx = to.x - from.x;
@@ -38,6 +53,7 @@ const computeDirection = (from: Position, to: Position): { x: number; y: number 
 const CombatScreen = () => {
   const insets = useSafeAreaInsets();
   const anim = useCombatAnimations();
+  const { playEffect } = useVfx();
   const { roomConnection, localPlayerId, playerDisplayNameById, isHost } = useGame();
 
   const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
@@ -46,6 +62,19 @@ const CombatScreen = () => {
 
   const enemyPositionsRef = useRef<Record<string, Position>>({});
   const playerPositionRef = useRef<Position>({ x: 0, y: 0 });
+  const playerPortraitRefs = useRef<Partial<Record<PlayerId, View | null>>>({});
+  const enemyPortraitRefs = useRef<Record<string, View | null>>({});
+  const vfxTimeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(
+    () => () => {
+      for (const timeoutId of vfxTimeoutIdsRef.current) {
+        clearTimeout(timeoutId);
+      }
+      vfxTimeoutIdsRef.current = [];
+    },
+    [],
+  );
 
   const handleEnemyLayout = useCallback((enemyId: string, x: number, y: number) => {
     enemyPositionsRef.current[enemyId] = { x, y };
@@ -54,6 +83,93 @@ const CombatScreen = () => {
   const handlePlayerLayout = useCallback((x: number, y: number) => {
     playerPositionRef.current = { x, y };
   }, []);
+
+  const handlePlayerPortraitRef = useCallback(
+    (playerId: PlayerId): RefCallback<View> =>
+      (node: View | null) => {
+        if (node) {
+          playerPortraitRefs.current[playerId] = node;
+        } else {
+          delete playerPortraitRefs.current[playerId];
+        }
+      },
+    [],
+  );
+
+  const handleEnemyPortraitRef = useCallback(
+    (enemyId: string): RefCallback<View> =>
+      (node: View | null) => {
+        if (node) {
+          enemyPortraitRefs.current[enemyId] = node;
+        } else {
+          delete enemyPortraitRefs.current[enemyId];
+        }
+      },
+    [],
+  );
+
+  const measureViewCenterInWindow = useCallback((node: View | null) => {
+    return new Promise<Position | null>((resolve) => {
+      if (!node) {
+        resolve(null);
+        return;
+      }
+
+      node.measureInWindow((x, y, width, height) => {
+        if (!width && !height) {
+          resolve(null);
+          return;
+        }
+
+        resolve({
+          x: x + width / 2,
+          y: y + height / 2,
+        });
+      });
+    });
+  }, []);
+
+  const queueVfxTimeout = useCallback((callback: () => void, delayMs: number) => {
+    const timeoutId = setTimeout(() => {
+      vfxTimeoutIdsRef.current = vfxTimeoutIdsRef.current.filter((id) => id !== timeoutId);
+      callback();
+    }, delayMs);
+
+    vfxTimeoutIdsRef.current.push(timeoutId);
+  }, []);
+
+  const playCardVfx = useCallback(
+    async (sequenceId: string, playerId: PlayerId | null, enemyId: string | null) => {
+      if (!playerId || !enemyId) {
+        return { impactDelayMs: 0, played: false };
+      }
+
+      const sourcePortrait = playerPortraitRefs.current[playerId] ?? null;
+
+      const [caster, target] = await Promise.all([
+        measureViewCenterInWindow(sourcePortrait),
+        measureViewCenterInWindow(enemyPortraitRefs.current[enemyId] ?? null),
+      ]);
+
+      if (!caster || !target) {
+        return { impactDelayMs: 0, played: false };
+      }
+
+      playEffectSequence({
+        sequenceId,
+        caster,
+        target,
+        playEffect,
+        onTimeout: queueVfxTimeout,
+      });
+
+      return {
+        impactDelayMs: getSequenceImpactDelayMs(sequenceId),
+        played: true,
+      };
+    },
+    [measureViewCenterInWindow, playEffect, queueVfxTimeout],
+  );
 
   const localCharacter =
     roomConnection.characters.find((c) => c.playerId === localPlayerId) ?? null;
@@ -137,10 +253,18 @@ const CombatScreen = () => {
     roomId: roomConnection.room?.id ?? null,
     localPlayerId,
     onAllyAction: useCallback(
-      (event) => {
-        anim.playBotAction(event.playerId, event.actionType, event.damage, event.spellName);
+      async (event) => {
+        const allyCard = event.spellId ? getCardById(event.spellId) : undefined;
+        const vfxResult =
+          allyCard?.vfxSequenceId && event.actionType === 'spell' && event.targetEnemyId
+            ? await playCardVfx(allyCard.vfxSequenceId, event.playerId, event.targetEnemyId)
+            : { impactDelayMs: 0, played: false };
+
+        anim.playBotAction(event.playerId, event.actionType, event.damage, event.spellName, {
+          impactDelayMs: vfxResult.impactDelayMs,
+        });
       },
-      [anim],
+      [anim, playCardVfx],
     ),
   });
 
@@ -155,10 +279,17 @@ const CombatScreen = () => {
     turnNumber,
     botPlayerIds,
     combatBotTurn: roomConnection.combatBotTurn,
-    playBotAction: (botId, action) => {
+    playBotAction: async (botId, action) => {
       const botPlayer = roomConnection.players.find((p) => p.player_id === botId);
       const botName = botPlayer?.display_name ?? 'Bot';
-      anim.playBotAction(botId, action.action, action.damage ?? 0, action.spellName);
+      const botCard = action.spellId ? getCardById(action.spellId) : undefined;
+      const vfxResult =
+        botCard?.vfxSequenceId && action.action === 'spell' && action.targetId
+          ? await playCardVfx(botCard.vfxSequenceId, botId, action.targetId)
+          : { impactDelayMs: 0, played: false };
+      anim.playBotAction(botId, action.action, action.damage ?? 0, action.spellName, {
+        impactDelayMs: vfxResult.impactDelayMs,
+      });
 
       const dmg = action.damage ?? 0;
       const label = action.spellName ?? action.action;
@@ -169,7 +300,9 @@ const CombatScreen = () => {
         playerName: botName,
         actionType: action.action === 'skip' ? 'spell' : action.action,
         damage: action.damage ?? 0,
+        spellId: action.spellId,
         spellName: action.spellName,
+        targetEnemyId: action.targetId,
       });
     },
     onBotSkip: (botId, reason) => {
@@ -189,8 +322,12 @@ const CombatScreen = () => {
       if (!card) return;
 
       const direction = getLungeToEnemy();
+      const targetEnemyId =
+        targetEnemyIdx != null && targetEnemyIdx >= 0
+          ? (aliveEnemies[targetEnemyIdx]?.id ?? effectiveEnemyId)
+          : effectiveEnemyId;
 
-      void roomConnection.combatPlayCard(handIndex, targetEnemyIdx).then((result) => {
+      void roomConnection.combatPlayCard(handIndex, targetEnemyIdx).then(async (result) => {
         if (!result) return;
         const r = result as {
           cardName: string;
@@ -203,8 +340,18 @@ const CombatScreen = () => {
         };
 
         const effectType = getEffectType(r.damage, r.block, r.heal, card.isAoe);
+        const shouldPlayTargetedVfx = Boolean(
+          card.vfxSequenceId && targetEnemyId && !card.isAoe && r.damage > 0,
+        );
+        const targetedVfxSequenceId = shouldPlayTargetedVfx ? card.vfxSequenceId : null;
+        const vfxResult = targetedVfxSequenceId
+          ? await playCardVfx(targetedVfxSequenceId, localPlayerId, targetEnemyId)
+          : { impactDelayMs: 0, played: false };
 
-        anim.playCastSpell(r.damage, r.cardName, effectType, direction, 0, 'normal', r.heal);
+        anim.playCastSpell(r.damage, r.cardName, effectType, direction, 0, 'normal', r.heal, {
+          impactDelayMs: vfxResult.impactDelayMs,
+          skipLunge: vfxResult.played,
+        });
 
         if (localPlayerId) {
           broadcastAction({
@@ -212,7 +359,9 @@ const CombatScreen = () => {
             playerName: localPlayerName,
             actionType: 'spell',
             damage: r.damage,
+            spellId: card.id,
             spellName: r.cardName,
+            targetEnemyId,
           });
         }
       });
@@ -223,6 +372,9 @@ const CombatScreen = () => {
       hasEndedTurn,
       localCombatState,
       getLungeToEnemy,
+      aliveEnemies,
+      effectiveEnemyId,
+      playCardVfx,
       roomConnection,
       localPlayerId,
       localPlayerName,
@@ -341,6 +493,7 @@ const CombatScreen = () => {
           enemyLungeY={anim.enemyLungeY}
           attackingEnemyId={anim.attackingEnemyId}
           onEnemyLayout={handleEnemyLayout}
+          onEnemyPortraitRef={handleEnemyPortraitRef}
           floatingTexts={anim.floatingTexts}
         />
 
@@ -358,6 +511,7 @@ const CombatScreen = () => {
               : null
           }
           onPlayerLayout={handlePlayerLayout}
+          onPlayerPortraitRef={handlePlayerPortraitRef}
           floatingTexts={anim.floatingTexts}
         />
       </ScrollView>
