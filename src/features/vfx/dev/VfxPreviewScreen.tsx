@@ -184,6 +184,7 @@ const VfxPreviewScreen = ({
   const router = useRouter();
   const stageRef = useRef<View>(null);
   const activationFrameIdsRef = useRef<number[]>([]);
+  const portraitShaderFrameIdsRef = useRef<number[]>([]);
   const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const slotIdRef = useRef(0);
   const instanceSlotsRef = useRef<PreviewInstanceSlot[]>([]);
@@ -219,6 +220,7 @@ const VfxPreviewScreen = ({
   const [instanceSlots, setInstanceSlots] = useState<PreviewInstanceSlot[]>([]);
   const [stageReady, setStageReady] = useState(false);
   const [combatFloats, setCombatFloats] = useState<PreviewCombatFloat[]>([]);
+  const [targetDissolveProgress, setTargetDissolveProgress] = useState(0);
   const [anchors, setAnchors] = useState<{ caster: Point; target: Point }>({
     caster: { x: 0, y: 0 },
     target: { x: 0, y: 0 },
@@ -246,16 +248,29 @@ const VfxPreviewScreen = ({
     activationFrameIdsRef.current = [];
   }, []);
 
+  const clearPortraitShaderFrames = useCallback(() => {
+    if (portraitShaderFrameIdsRef.current.length === 0) {
+      return;
+    }
+
+    for (const frameId of portraitShaderFrameIdsRef.current) {
+      cancelAnimationFrame(frameId);
+    }
+    portraitShaderFrameIdsRef.current = [];
+  }, []);
+
   const resetPreviewPlayback = useCallback(() => {
     clearActivationFrames();
+    clearPortraitShaderFrames();
     clearTimers();
     setCombatFloats([]);
+    setTargetDissolveProgress(0);
     setInstanceSlots((current) =>
       current.some((slot) => slot.active)
         ? current.map((slot) => (slot.active ? { ...slot, active: false } : slot))
         : current,
     );
-  }, [clearActivationFrames, clearTimers]);
+  }, [clearActivationFrames, clearPortraitShaderFrames, clearTimers]);
 
   const resetPreviewPlaybackIfActive = useCallback(() => {
     if (
@@ -271,9 +286,10 @@ const VfxPreviewScreen = ({
   useEffect(
     () => () => {
       clearActivationFrames();
+      clearPortraitShaderFrames();
       clearTimers();
     },
-    [clearActivationFrames, clearTimers],
+    [clearActivationFrames, clearPortraitShaderFrames, clearTimers],
   );
 
   useEffect(() => {
@@ -439,8 +455,34 @@ const VfxPreviewScreen = ({
     (impactDelayMs: number) => {
       spawnCombatFloat('caster', 'CAST', colors.intentConfirmedBorder, 0);
       spawnCombatFloat('target', '-18', colors.combatDamage, impactDelayMs);
+
+      queueLocalTimeout(() => {
+        clearPortraitShaderFrames();
+        setTargetDissolveProgress(0);
+
+        let frameId = 0;
+        let startTime = 0;
+        const durationMs = 650;
+
+        const step = (timestamp: number) => {
+          if (startTime === 0) {
+            startTime = timestamp;
+          }
+
+          const nextProgress = Math.min(1, (timestamp - startTime) / durationMs);
+          setTargetDissolveProgress(nextProgress);
+
+          if (nextProgress < 1) {
+            frameId = requestAnimationFrame(step);
+            portraitShaderFrameIdsRef.current.push(frameId);
+          }
+        };
+
+        frameId = requestAnimationFrame(step);
+        portraitShaderFrameIdsRef.current.push(frameId);
+      }, impactDelayMs);
     },
-    [spawnCombatFloat],
+    [clearPortraitShaderFrames, queueLocalTimeout, spawnCombatFloat],
   );
 
   const selectedEffect = useMemo(
@@ -811,6 +853,8 @@ const VfxPreviewScreen = ({
                       highlighted
                       highlightColor={colors.combatDamage}
                       hideName
+                      artShaderId="dissolve"
+                      artShaderUniforms={{ progress: targetDissolveProgress }}
                     />
                     {combatFloats
                       .filter((entry) => entry.anchor === 'target')
